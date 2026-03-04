@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3, 4]
+stepsCompleted: [1, 2, 3, 4, 5]
 inputDocuments: ["/home/andras/dev/risk_guard/partnerRadar.md"]
 date: 2026-03-04
 author: Andras
@@ -106,3 +106,29 @@ PartnerRadar provides an "Opten lite" experience focused on the 20% of features 
 - **v1.1: AI Self-Healing:** Automated repair of scraper adapters using LLM-driven DOM analysis.
 - **v2.0: AI Anomaly Detection:** Identifying "hidden" financial risks in partner data trends.
 - **v2.0: AI Admin Assistant:** Automated drafting of MOHU justifications and reports for bookkeepers.
+
+---
+
+## MVP Scope
+
+### Core Features
+- **Deterministic Screening Engine:** High-performance ingestion of NAV Debt & Insolvency status; JSoup-based basic scraping for `e-Cégjegyzék` alapadatok.
+- **The "30-Second Verdict" Dashboard:** A clean, mobile-optimized UI providing a binary "Reliable/At-Risk" status and an AI-driven narrative summary (OpenAI o3/GPT-5).
+- **Automated Watchlist & Alerts:** Basic CRUD for partner management with an automated email notification system (Resend/SendGrid) for status changes.
+- **EPR Compliance Wizard:** A guided decision-tree questionnaire for material type and weight calculation, backed by the official 2026 legislative fee tables.
+- **Subscription Management:** Simple Stripe/Barion integration for Alap, Pro, and Pro+EPR tiers.
+
+### Out of Scope for MVP
+- **AI Self-Healing:** The automated repair engine for scrapers (Roadmap v1.1).
+- **Advanced Data Viz:** "Cégháló" (ownership graphs) and financial trend charts.
+- **Bulk Operations:** CSV/Excel mass import of partners.
+- **Accountant White-labeling:** Branded reporting for external bookkeepers.
+- **API Access:** Public API for 3rd party B2B integrations.
+
+### MVP Success Criteria
+- **Stability Gate:** The scraper engine runs for 30 consecutive days without manual code intervention.
+- **Validation Gate:** At least 5 paying "Innovator" customers confirm that the "AI Verdict" is clear and actionable.
+- **Performance Gate:** Cold-start to verdict latency remains < 30 seconds for 95% of requests.
+
+### Future Vision
+In 2-3 years, risk_guard evolves into the **"Financial Operating System for SMEs."** It will expand beyond simple risk screening into a holistic monitoring platform for supply chain health, fully automated ESG reporting, and predictive financial counseling—effectively replacing the need for expensive manual risk consultants and specialized administrative staff for small businesses.
