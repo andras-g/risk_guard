@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping", "step-09-functional"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping", "step-09-functional", "step-10-nonfunctional"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -173,11 +173,6 @@ risk_guard is a multi-tenant B2B SaaS platform utilizing a modular monolithic ba
 - **Visual DAG Interface:** Replaced with a backend-driven linear sequence.
 - **Advanced AI Summaries:** Moved to post-launch growth phase.
 
-### Risk Mitigation Strategy (Solo Dev)
-- **Vertical Slice Security:** If Week 3/4 stalls, the product launches as a high-value "Tax Risk Shield."
-- **Paretean Logic:** Ensuring 100% deterministic accuracy for the most common compliance cases rather than "maybe" accuracy for all.
-- **Architecture Guardrails:** Utilizing `ArchUnit` to maintain the 100% deterministic mandate during fast-paced solo development.
-
 ---
 
 ## Functional Requirements
@@ -204,6 +199,33 @@ risk_guard is a multi-tenant B2B SaaS platform utilizing a modular monolithic ba
 - **FR15:** Users can input production weights for each material category.
 - **FR16:** The system can generate a MOHU-ready CSV and XLSX export file.
 - **FR17:** The system can display a "Submission Guide" with step-by-step instructions for government portal uploads.
+
+---
+
+## Non-Functional Requirements (Optimized)
+
+### Performance & Scaling
+- **NFR1 (Time-to-Verdict):** 95% of partner search requests must return a deterministic verdict in **< 30 seconds**.
+- **NFR2 (Instant-On):** Utilize GraalVM native images + R2DBC to ensure container startup times of **< 200ms**.
+- **NFR3 (Smart Scaling):** System must maintain **Min-Instances: 1** on GCP Cloud Run during Hungarian business hours (8:00-17:00 CET); Scale-to-Zero active during off-peak hours.
+
+### Security & Authentication
+- **NFR4 (Minimalist B2B SSO):** Support for Google OAuth 2.0 and Microsoft Entra ID with read-only profile scopes to ensure SME trust.
+- **NFR5 (Auth Boundary):** Strict JWT-based protection for all Watchlist and EPR data.
+- **NFR6 (Encryption):** Data encrypted at rest (AES-256) and in transit (TLS 1.3).
+- **NFR7 (Data Residency):** All resources hosted in GCP europe-west3 (Frankfurt) or europe-central2 (Warsaw).
+
+### Trust & Legal Integrity
+- **NFR8 (Deterministic Core):** 100% identical verdicts for identical portal inputs.
+- **NFR9 (Immutable Audit Trail):** Every risk check must be recorded with a **Cryptographic Hash (SHA-256)** and a raw government JSON snapshot to provide "Court-Ready" due diligence evidence for bookkeepers.
+- **NFR10 (Snapshot Traceability):** Every report must explicitly state the source timestamp and official server URL.
+
+### SEO & Public Growth
+- **NFR11 (Gateway Stubs):** The system must generate indexable public pages for Hungarian companies showing registration data and a "Full Risk Profile" CTA.
+- **NFR12 (Rich Snippets):** Implement Schema.org/Corporation JSON-LD to drive organic Google search traffic via rich search results.
+
+### Operations
+- **NFR13 (Async Ingestion):** Daily NAV bulk updates must be isolated from user-facing search traffic to prevent latency spikes.
 
 ### Multi-Tenancy & User Management
 - **FR18:** The system can isolate user data using a shared-database multi-tenant model.
