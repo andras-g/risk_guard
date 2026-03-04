@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5]
+stepsCompleted: [1, 2, 3, 4, 5, 6]
 inputDocuments: ["/home/andras/dev/risk_guard/partnerRadar.md"]
 date: 2026-03-04
 author: Andras
