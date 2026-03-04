@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping", "step-09-functional"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -177,4 +177,42 @@ risk_guard is a multi-tenant B2B SaaS platform utilizing a modular monolithic ba
 - **Vertical Slice Security:** If Week 3/4 stalls, the product launches as a high-value "Tax Risk Shield."
 - **Paretean Logic:** Ensuring 100% deterministic accuracy for the most common compliance cases rather than "maybe" accuracy for all.
 - **Architecture Guardrails:** Utilizing `ArchUnit` to maintain the 100% deterministic mandate during fast-paced solo development.
+
+---
+
+## Functional Requirements
+
+### Partner Screening & Risk Assessment
+- **FR1:** Users can search for Hungarian partners using a valid 8-digit or 11-digit Tax Number (Adószám).
+- **FR2:** The system can retrieve factual debt and enforcement status from the NAV Open Data Portal.
+- **FR3:** The system can retrieve basic company registration details (Alapadatok) from the e-Cégjegyzék portal.
+- **FR4:** The system can detect "Suspended Tax Number" status and flag it for manual review.
+- **FR5:** The system can execute a deterministic state-machine check to assign a binary "Reliable/At-Risk" status.
+- **FR6:** The system can provide a timestamped "Data Source Snapshot" for every search result.
+- **FR7:** The system can display a legally compliant informational disclaimer on all partner reports.
+
+### Partner Monitoring (The Watchlist)
+- **FR8:** Authenticated Users can add partners to a private "Watchlist."
+- **FR9:** The system can monitor partners on the Watchlist for status changes every 24 hours.
+- **FR10:** The system can trigger automated email alerts when a monitored partner's status changes.
+- **FR11:** Users can view a dashboard summarizing the current health of their entire Watchlist.
+
+### EPR Compliance Wizard
+- **FR12:** Users can navigate a linear multi-step questionnaire to classify packaging and waste materials.
+- **FR13:** The system can validate material classification using a backend JSON-driven Directed Graph (DAG).
+- **FR14:** The system can map user inputs to legally valid Hungarian KF-Codes (Semantic Constructor).
+- **FR15:** Users can input production weights for each material category.
+- **FR16:** The system can generate a MOHU-ready CSV and XLSX export file.
+- **FR17:** The system can display a "Submission Guide" with step-by-step instructions for government portal uploads.
+
+### Multi-Tenancy & User Management
+- **FR18:** The system can isolate user data using a shared-database multi-tenant model.
+- **FR19:** Pro Accountants can manage and switch between multiple SME client accounts.
+- **FR20:** Guest Users can perform a limited number of partner checks (Rate-limited).
+- **FR21:** Guest Users can upload a small sample list (max 10) of partners to the temporary watchlist.
+
+### System Administration & Observability
+- **FR22:** Administrators (Andras) can monitor gov-portal scraper success rates via a health dashboard.
+- **FR23:** The system can trigger "Visual Diff" alerts when government UI layouts change significantly.
+- **FR24:** Administrators can update the EPR logic by modifying a central JSON configuration file without code changes.
 
