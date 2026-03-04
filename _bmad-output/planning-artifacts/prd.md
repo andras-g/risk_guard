@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -58,4 +58,32 @@ workflowType: 'prd'
 - **Predictive Anomaly Detection:** Identifying "hidden" financial risks in partner data trends before they become public defaults.
 - **Automated ESG Reporting:** Holistic compliance mapping for SME supply chains.
 - **Supply Chain Ownership Mapping:** Visualizing ownership webs ("Cégháló") to detect systemic risks.
+
+---
+
+## User Journeys
+
+### Journey 1: Gábor's "Midnight Risk Check" (The Primary Success Path)
+- **Opening Scene:** It's 10:00 PM. Gábor is finalizing a 10M HUF contract. He opens PartnerRadar on his phone.
+- **Rising Action:** He enters the partner's tax number. The system performs a real-time state-logic check.
+- **Climax:** The screen shows a **Red Shield**: "AT RISK - NAV Debt > 180 Days detected."
+- **Resolution:** Gábor requests 100% prepayment. The product just saved his cash flow.
+
+### Journey 2: Judit's "Quarterly EPR Sprint" (The Accountant Efficiency Path)
+- **Opening Scene:** Judit has 40 clients who need EPR reporting. She dreads the manual KF-code mapping.
+- **Rising Action:** She logs into the "Pro View," selects a client, and enters production weights into the JSON Wizard.
+- **Climax:** One click on "Export for MOHU." She gets a schema-perfect CSV.
+- **Resolution:** She uploads the file to the gov portal. It shows "Validated - No errors." She finishes in 5 minutes instead of 45.
+
+### Journey 3: The "Broken Gatekeeper" (The Error Recovery Path)
+- **Opening Scene:** Gábor tries to check a company while the NAV portal is down for maintenance.
+- **Climax:** The UI clearly states: "Data Temporarily Unavailable - Gov Portal is Down."
+- **Resolution:** The app offers a "Monitor and Alert me when portal returns" button. Gábor feels the system is "on it."
+
+### Journey Requirements Summary
+- **High-Availability Landing Page:** Optimized for mobile tax-number entry.
+- **State-Logic Engine:** Decoupled risk assessment logic.
+- **Semantic KF-Code Constructor:** Internal graph-based validation for EPR codes.
+- **Last-Mile Export Service:** Generation of MOHU-ready files with a built-in "Submission Guide."
+- **Persistence & Alerting:** Reliable tracking of status changes and notification triggers.
 
