@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type", "step-08-scoping"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -148,4 +148,33 @@ risk_guard is a multi-tenant B2B SaaS platform utilizing a modular monolithic ba
 ### Data Compliance & Integration
 - **EU Data Residency:** All GCP resources (Cloud Run, Cloud SQL) must be hosted in the `europe-west3` (Frankfurt) or `europe-central2` (Warsaw) regions.
 - **External Webhooks:** Pre-configured integration for Resend (Email) and Stripe (Payment status).
+
+---
+
+## Project Scoping & Phased Development (Optimized)
+
+### MVP Strategy & Philosophy
+- **MVP Approach:** Problem-Solving Vertical Slice. Delivering a shippable "Tax Status" unit by Week 2, followed by the "EPR Wizard" by Week 4.
+- **Resource Hack:** Solo Staff Engineer utilizing **HTMX + Spring Boot** to minimize frontend/backend integration overhead.
+
+### MVP Feature Set (Phase 1: 4-Week Sprint)
+- **Week 1-2 (Foundational):** NAV Ingestor, Deterministic State Machine, and "Verdict" UI.
+- **Week 3 (EPR Core):** JSON-Driven Linear Wizard for the Top-20 most common KF-Codes.
+- **Week 4 (UX & Demo):** Guest Demo Mode (Rate-limited), High-Fidelity CSV/XLS Export, and Submission Guide.
+
+**Must-Have Capabilities:**
+- Factual retrieval: NAV Debt, Insolvency, and Suspended Tax Numbers.
+- Strict-Integrity Verdict UI (Reliable/At-Risk).
+- Top-20 common KF-Code Constructor (80/20 compliance rule).
+- Schema-perfect CSV/XLS Export for MOHU reporting.
+
+### Out of Scope for MVP (Moved to Phase 2)
+- **MOHU XML Generation:** Pivot to Excel-only for faster launch.
+- **Visual DAG Interface:** Replaced with a backend-driven linear sequence.
+- **Advanced AI Summaries:** Moved to post-launch growth phase.
+
+### Risk Mitigation Strategy (Solo Dev)
+- **Vertical Slice Security:** If Week 3/4 stalls, the product launches as a high-value "Tax Risk Shield."
+- **Paretean Logic:** Ensuring 100% deterministic accuracy for the most common compliance cases rather than "maybe" accuracy for all.
+- **Architecture Guardrails:** Utilizing `ArchUnit` to maintain the 100% deterministic mandate during fast-paced solo development.
 
