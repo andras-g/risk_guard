@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation", "step-07-project-type"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -125,4 +125,27 @@ workflowType: 'prd'
 ### Validation Approach
 - **The "Golden Case" Regression Suite:** Continuous verification against immutable gov-data snapshots to ensure logic stability.
 - **Visual Diff Observability:** Automated detection of government UI layout deviations.
+
+---
+
+## B2B SaaS Specific Requirements
+
+### Project-Type Overview
+risk_guard is a multi-tenant B2B SaaS platform utilizing a modular monolithic backend to provide partner screening and regulatory compliance as a service.
+
+### Technical Architecture Considerations
+- **Multi-Tenant Model:** Shared-database approach with strict `tenant_id` filtering in the Spring Boot Data layer to ensure Judit cannot see Gábor's partners unless authorized.
+- **Scalable Ingestor:** Background processing for daily NAV debt list ingestion using Spring Batch to prevent performance degradation during business hours.
+
+### Role-Based Access Control (RBAC)
+- **Guest:** Read-only access to search; transient storage for 10 companies; rate-limited.
+- **SME User:** Full CRUD on private Watchlist; access to personal EPR Wizard.
+- **Pro Accountant:** Ability to "Switch Context" between different client SME accounts; bulk dashboard view of client risks.
+
+### Subscription & Feature Management
+- **Feature Flags:** Decoupling subscription logic from code. The "EPR Wizard" and "Monitoring Alerts" are enabled based on the user's billing status in the `user_profile` table.
+
+### Data Compliance & Integration
+- **EU Data Residency:** All GCP resources (Cloud Run, Cloud SQL) must be hosted in the `europe-west3` (Frankfurt) or `europe-central2` (Warsaw) regions.
+- **External Webhooks:** Pre-configured integration for Resend (Email) and Stripe (Payment status).
 
