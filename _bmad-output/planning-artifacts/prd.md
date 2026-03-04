@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain", "step-06-innovation"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -109,4 +109,20 @@ workflowType: 'prd'
 ### Risk Mitigations
 - **Liability Shield:** "Informational Purpose Only" clause in Terms of Service.
 - **Data Freshness Guard:** Auto-shift to "Unavailable" status if source data age > 48 hours.
+
+---
+
+## Innovation & Novel Patterns
+
+### Detected Innovation Areas
+- **Policy-as-Code EPR Wizard:** A "Safe-by-Construction" Directed Acyclic Graph (DAG) for generating Hungarian KF-Codes.
+- **Human-in-the-Loop Scraper Repair (v1.1):** AI-driven auto-triage of broken scrapers. The system captures HTML screenshots/snippets and sends a one-click repair proposal to the developer via mobile notification.
+- **Binary Trust Architecture:** Rejection of "Confidence Scores" in favor of absolute factual integrity, ensuring Judit's professional reputation is protected.
+
+### Market Context & Competitive Landscape
+- **Deterministic Disruption:** Competitors (Opten/Bisnode) focus on data volume; risk_guard focuses on **Verdict Clarity**.
+
+### Validation Approach
+- **The "Golden Case" Regression Suite:** Continuous verification against immutable gov-data snapshots to ensure logic stability.
+- **Visual Diff Observability:** Automated detection of government UI layout deviations.
 
