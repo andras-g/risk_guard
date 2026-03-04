@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb86c056a001T6dtjks0a473sX",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620612976
+  },
+  "summary": {
+    "title": "User feedback and recommendations",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

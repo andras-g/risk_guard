@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8521759001A0vI7WJH7a172P",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772618913631
+  },
+  "summary": {
+    "title": "C programming language basics",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

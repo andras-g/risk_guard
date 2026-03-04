@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb878529e0015q6kff4EgP0JrY",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772621419172
+  },
+  "summary": {
+    "title": "Greenfield project brainstorming initiation",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

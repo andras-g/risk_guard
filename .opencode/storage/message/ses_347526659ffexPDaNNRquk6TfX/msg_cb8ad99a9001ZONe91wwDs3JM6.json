@@ -1,0 +1,22 @@
+{
+  "id": "msg_cb8ad99a9001ZONe91wwDs3JM6",
+  "sessionID": "ses_347526659ffexPDaNNRquk6TfX",
+  "role": "user",
+  "time": {
+    "created": 1772624910762
+  },
+  "summary": {
+    "title": "Fintech SaaS 30-day MVP Roadmap Analysis",
+    "diffs": []
+  },
+  "agent": "general",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  },
+  "tools": {
+    "todowrite": false,
+    "todoread": false,
+    "task": false
+  }
+}

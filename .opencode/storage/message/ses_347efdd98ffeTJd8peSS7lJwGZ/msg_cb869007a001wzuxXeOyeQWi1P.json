@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb869007a001wzuxXeOyeQWi1P",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620415103
+  },
+  "summary": {
+    "title": "Minimal input message",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

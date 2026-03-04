@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8a25f99001iqW3Yc0l1J4CA5",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772624175010
+  },
+  "summary": {
+    "title": "Pattern lookup and confirmation",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

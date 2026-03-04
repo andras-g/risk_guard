@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb89dc33b00176De7oTGbcJnai",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772623872834
+  },
+  "summary": {
+    "title": "EPR workflow and CSV export process",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

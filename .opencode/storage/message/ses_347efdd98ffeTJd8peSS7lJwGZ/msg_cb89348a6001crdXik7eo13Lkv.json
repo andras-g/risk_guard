@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb89348a6001crdXik7eo13Lkv",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772623186095
+  },
+  "summary": {
+    "title": "Single letter message",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

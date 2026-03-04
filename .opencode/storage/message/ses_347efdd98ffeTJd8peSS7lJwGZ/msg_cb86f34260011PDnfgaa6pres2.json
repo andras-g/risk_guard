@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb86f34260011PDnfgaa6pres2",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620821549
+  },
+  "summary": {
+    "title": "Self-healing features and AI use cases",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

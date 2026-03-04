@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8ad88060014phtMTxEdKL8UD",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772624906255
+  },
+  "summary": {
+    "title": "Brief message investigation",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

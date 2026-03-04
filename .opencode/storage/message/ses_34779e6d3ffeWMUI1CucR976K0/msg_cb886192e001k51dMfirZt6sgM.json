@@ -1,0 +1,22 @@
+{
+  "id": "msg_cb886192e001k51dMfirZt6sgM",
+  "sessionID": "ses_34779e6d3ffeWMUI1CucR976K0",
+  "role": "user",
+  "time": {
+    "created": 1772622321968
+  },
+  "summary": {
+    "title": "Fintech SaaS EPR and Screening Engine Refinement",
+    "diffs": []
+  },
+  "agent": "general",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  },
+  "tools": {
+    "todowrite": false,
+    "todoread": false,
+    "task": false
+  }
+}

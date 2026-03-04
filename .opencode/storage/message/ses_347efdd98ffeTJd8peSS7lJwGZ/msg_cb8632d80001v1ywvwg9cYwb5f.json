@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8632d80001v1ywvwg9cYwb5f",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620033415
+  },
+  "summary": {
+    "title": "Autonomous decision making request",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

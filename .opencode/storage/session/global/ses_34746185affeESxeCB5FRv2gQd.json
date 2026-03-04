@@ -1,0 +1,35 @@
+{
+  "id": "ses_34746185affeESxeCB5FRv2gQd",
+  "slug": "glowing-wolf",
+  "version": "1.1.53",
+  "projectID": "global",
+  "directory": "/home/andras/dev/risk_guard",
+  "parentID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "title": "Optimize NFRs for Authentication, SEO, and Scale-to-Zero (@general subagent)",
+  "permission": [
+    {
+      "permission": "todowrite",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "todoread",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "task",
+      "action": "deny",
+      "pattern": "*"
+    }
+  ],
+  "time": {
+    "created": 1772625717157,
+    "updated": 1772625737787
+  },
+  "summary": {
+    "additions": 0,
+    "deletions": 0,
+    "files": 0
+  }
+}

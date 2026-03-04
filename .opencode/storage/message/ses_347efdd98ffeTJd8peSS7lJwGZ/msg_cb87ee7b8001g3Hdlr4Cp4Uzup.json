@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb87ee7b8001g3Hdlr4Cp4Uzup",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772621850558
+  },
+  "summary": {
+    "title": "Feedback on MVP features and demo limits",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

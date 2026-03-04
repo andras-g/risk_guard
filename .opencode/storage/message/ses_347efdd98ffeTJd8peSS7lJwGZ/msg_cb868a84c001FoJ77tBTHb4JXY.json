@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb868a84c001FoJ77tBTHb4JXY",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620392530
+  },
+  "summary": {
+    "title": "Delayed step clarification",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

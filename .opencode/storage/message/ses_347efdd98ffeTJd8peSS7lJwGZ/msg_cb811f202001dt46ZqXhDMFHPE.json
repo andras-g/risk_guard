@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb811f202001dt46ZqXhDMFHPE",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772614709770
+  },
+  "summary": {
+    "title": "partnerRadar.md ideas review",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "ses_34779e6d3ffeWMUI1CucR976K0",
+  "slug": "eager-mountain",
+  "version": "1.1.53",
+  "projectID": "global",
+  "directory": "/home/andras/dev/risk_guard",
+  "parentID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "title": "Advanced Elicitation for Success Criteria and Scope (@general subagent)",
+  "permission": [
+    {
+      "permission": "todowrite",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "todoread",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "task",
+      "action": "deny",
+      "pattern": "*"
+    }
+  ],
+  "time": {
+    "created": 1772622321964,
+    "updated": 1772622342074
+  },
+  "summary": {
+    "additions": 0,
+    "deletions": 0,
+    "files": 0
+  }
+}

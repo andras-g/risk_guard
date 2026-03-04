@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8956d1b001eZDOt1VHdI4OI9",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772623326500
+  },
+  "summary": {
+    "title": "Data Temporarily not available choice",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

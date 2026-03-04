@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb81aba40001F081fiRKo0HVtO",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772615285320
+  },
+  "summary": {
+    "title": "Partner reliability and digital expansion goals",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

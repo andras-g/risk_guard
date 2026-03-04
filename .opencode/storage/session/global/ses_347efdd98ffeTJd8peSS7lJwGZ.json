@@ -1,0 +1,17 @@
+{
+  "id": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "slug": "neon-nebula",
+  "version": "1.1.53",
+  "projectID": "global",
+  "directory": "/home/andras/dev/risk_guard",
+  "title": "Getting started with SaaS product idea",
+  "time": {
+    "created": 1772614591080,
+    "updated": 1772625940997
+  },
+  "summary": {
+    "additions": 535,
+    "deletions": 0,
+    "files": 4
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8466616001sXRHkmuVRc0uzE",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772618147356
+  },
+  "summary": {
+    "title": "Programming in C",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

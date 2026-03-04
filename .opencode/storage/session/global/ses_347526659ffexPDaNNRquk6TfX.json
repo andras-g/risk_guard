@@ -1,0 +1,35 @@
+{
+  "id": "ses_347526659ffexPDaNNRquk6TfX",
+  "slug": "happy-tiger",
+  "version": "1.1.53",
+  "projectID": "global",
+  "directory": "/home/andras/dev/risk_guard",
+  "parentID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "title": "Optimize Scoping and Timeline for 30-day Solo Launch (@general subagent)",
+  "permission": [
+    {
+      "permission": "todowrite",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "todoread",
+      "action": "deny",
+      "pattern": "*"
+    },
+    {
+      "permission": "task",
+      "action": "deny",
+      "pattern": "*"
+    }
+  ],
+  "time": {
+    "created": 1772624910758,
+    "updated": 1772624926409
+  },
+  "summary": {
+    "additions": 0,
+    "deletions": 0,
+    "files": 0
+  }
+}

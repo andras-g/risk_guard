@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb8b9cbae001eihYQGc5po2QDA",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772625710006
+  },
+  "summary": {
+    "title": "Single character input",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

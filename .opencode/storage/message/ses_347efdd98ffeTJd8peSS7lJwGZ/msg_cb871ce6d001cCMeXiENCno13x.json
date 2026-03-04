@@ -1,0 +1,17 @@
+{
+  "id": "msg_cb871ce6d001cCMeXiENCno13x",
+  "sessionID": "ses_347efdd98ffeTJd8peSS7lJwGZ",
+  "role": "user",
+  "time": {
+    "created": 1772620992116
+  },
+  "summary": {
+    "title": "MVP Roadmap and Deterministic Features",
+    "diffs": []
+  },
+  "agent": "bmad-master",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  }
+}

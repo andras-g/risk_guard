@@ -1,0 +1,22 @@
+{
+  "id": "msg_cb8b9e7a8001U47CBikaopTu8X",
+  "sessionID": "ses_34746185affeESxeCB5FRv2gQd",
+  "role": "user",
+  "time": {
+    "created": 1772625717161
+  },
+  "summary": {
+    "title": "risk_guard NFR analysis and SEO strategy",
+    "diffs": []
+  },
+  "agent": "general",
+  "model": {
+    "providerID": "google",
+    "modelID": "gemini-3-flash-preview"
+  },
+  "tools": {
+    "todowrite": false,
+    "todoread": false,
+    "task": false
+  }
+}
