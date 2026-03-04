@@ -1,5 +1,5 @@
 ---
-stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys"]
+stepsCompleted: ["step-01-init", "step-02-discovery", "step-03-success", "step-04-journeys", "step-05-domain"]
 inputDocuments: ["/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md", "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md", "/home/andras/dev/risk_guard/partnerRadar.md"]
 documentCounts:
   briefs: 1
@@ -86,4 +86,27 @@ workflowType: 'prd'
 - **Semantic KF-Code Constructor:** Internal graph-based validation for EPR codes.
 - **Last-Mile Export Service:** Generation of MOHU-ready files with a built-in "Submission Guide."
 - **Persistence & Alerting:** Reliable tracking of status changes and notification triggers.
+
+---
+
+## Domain-Specific Requirements
+
+### Compliance & Regulatory
+- **Hungarian EPR Law:** Strict adherence to 2026 material category mapping.
+- **GDPR & Privacy:** Full audit logging of all partner searches to comply with Hungarian "Jogos érdek" (Legitimate Interest) data processing rules.
+- **Information Provider Disclaimer:** A standard "No Advice" and "Third-Party Source" disclaimer displayed on every report.
+    - *Text:* "A szolgáltatott adatok tájékoztató jellegűek. Az adatok hivatalos állami forrásokból (NAV, e-Cégjegyzék) származnak; a PartnerRadar nem vállal felelősséget a forrásadatok esetleges pontatlanságáért vagy az ezek alapján meghozott üzleti döntésekért."
+
+### Technical Constraints
+- **State-Machine Verdicts:** Risk assessment must be a closed-loop state machine with no "fuzzy" logic for core status.
+- **Suspended Tax Number Handling:** Detection of `TAX_SUSPENDED` flag from NAV, triggering a "Manual Review Required" state.
+- **Source-to-Snapshot Traceability:** Display timestamp and official source URL for every data point.
+
+### Integration Requirements
+- **NAV Open Data Ingestor:** Daily processing of bulk JSON/CSV debt lists.
+- **MOHU Schema Validation:** Internal XSD validation for all EPR exports.
+
+### Risk Mitigations
+- **Liability Shield:** "Informational Purpose Only" clause in Terms of Service.
+- **Data Freshness Guard:** Auto-shift to "Unavailable" status if source data age > 48 hours.
 
