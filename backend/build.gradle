@@ -62,8 +62,9 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
-	testImplementation 'org.testcontainers:postgresql'
-	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql:1.20.4'
+	testImplementation 'org.testcontainers:junit-jupiter:1.20.4'
+
 	
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
@@ -78,22 +79,32 @@ jooq {
 	version = '3.19.16'
 	configurations {
 		main {
-			generate {
-				deprecated = false
-				records = true
-				immutablePojos = true
-				fluentSetters = true
-			}
-			target {
-				packageName = 'hu.riskguard.jooq'
-				directory = 'build/generated-sources/jooq'
-			}
-			strategy {
-				name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+			generationTool {
+				generator {
+					database {
+						name = 'org.jooq.meta.postgres.PostgresDatabase'
+						inputSchema = 'public'
+					}
+					generate {
+						deprecated = false
+						records = true
+						immutablePojos = true
+						fluentSetters = true
+					}
+					target {
+						packageName = 'hu.riskguard.jooq'
+						directory = 'build/generated-sources/jooq'
+					}
+					strategy {
+						name = 'org.jooq.codegen.DefaultGeneratorStrategy'
+					}
+				}
 			}
 		}
 	}
 }
+
+
 
 hibernate {
 	enhancement {
