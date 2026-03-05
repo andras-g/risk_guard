@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: risk-guard
+  datasource:
+    url: jdbc:postgresql://localhost:5432/riskguard
+    username: riskguard
+    password: localdev
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:fake}
+            client-secret: ${GOOGLE_CLIENT_SECRET:fake}
+          microsoft:
+            client-id: ${MICROSOFT_CLIENT_ID:fake}
+            client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
+
+risk-guard:
+   fresh-threshold-hours: 6
+   stale-threshold-hours: 24
+   unavailable-threshold-hours: 48
