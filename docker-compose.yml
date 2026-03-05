@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: risk-guard-db
+    environment:
+      POSTGRES_DB: riskguard
+      POSTGRES_USER: riskguard
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

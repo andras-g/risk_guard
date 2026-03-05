@@ -1,0 +1,455 @@
+---
+stepsCompleted: [1, 2, 3, 4]
+inputDocuments: 
+  - "_bmad-output/planning-artifacts/prd.md"
+  - "_bmad-output/planning-artifacts/architecture.md"
+  - "Party Mode Synthesis (March 2026)"
+---
+
+# risk_guard - Epic Breakdown
+
+## Overview
+
+This document provides the complete epic and story breakdown for risk_guard, decomposing the requirements from the PRD, UX Design concepts, and Architecture requirements into implementable stories.
+
+## Requirements Inventory
+
+### Functional Requirements
+
+- **FR1:** Users can search partners via 8-digit or 11-digit Hungarian Tax Numbers.
+- **FR2:** System retrieves factual status from NAV Open Data and registration data from e-Cégjegyzék.
+- **FR3:** System executes deterministic state-machine check for "Reliable/At-Risk" binary verdicts.
+- **FR4:** System flags "Suspended Tax Numbers" for manual review.
+- **FR5:** Authenticated Users can manage a private Watchlist of partners.
+- **FR6:** System monitors Watchlist partners for status changes every 24 hours.
+- **FR7:** System triggers Resend email alerts on partner status deviations.
+- **FR8:** Users can navigate a multi-step questionnaire for material classification (EPR Wizard).
+- **FR9:** System validates inputs via backend JSON-driven Directed Graph (DAG).
+- **FR10:** System generates schema-perfect CSV/XLSX exports for MOHU reporting.
+- **FR11:** Administrators can monitor scraper success rates via a health dashboard.
+- **FR12:** Administrators can update EPR logic via JSON configuration without code redeploys.
+- **FR13:** Users can save and manage material templates in a personal "EPR Library."
+- **FR14:** Users can generate a bulk PDF export of their Watchlist status including SHA-256 verification hashes.
+
+### NonFunctional Requirements
+
+- **NFR1:** 95% of search requests return a verdict in < 30 seconds.
+- **NFR2:** GraalVM native images ensure container startup times of < 200ms (Post-MVP optimization).
+- **NFR3:** System maintains Min-Instances: 1 on Cloud Run during Hungarian business hours (8:00-17:00 CET).
+- **NFR4:** Every risk check is recorded with a SHA-256 Cryptographic Hash for court-ready evidence.
+- **NFR5:** Encryption at rest (AES-256) and in transit (TLS 1.3).
+- **NFR6:** System generates indexable public "Gateway Stubs" for Hungarian companies using JSON-LD.
+- **NFR7:** System scales to zero during off-peak hours (Requires NFR2).
+
+### Additional Requirements (UX & Tech)
+
+- **TECH-1:** Initialize project using Java 25, Spring Boot 4.0.3, Spring Modulith, and jOOQ.
+- **TECH-2:** Enforce Multi-tenancy via `TenantFilter` and database-level `tenant_id NOT NULL`.
+- **TECH-3:** Use standalone `resilience4j-spring-boot3` for scraper circuit breakers.
+- **UX-1:** Visual Color Palette: Slate 900 (Nav), Indigo 600 (Primary), Emerald 500 (Reliable), Rose 600 (At-Risk).
+- **UX-2:** Implement Skeleton Screen animations showing source resolution (e.g., "[✔] NAV checked").
+- **UX-3:** Searchable Context Switcher in top-bar for accountants to jump between client tenants.
+- **UX-4:** Provenance Sidebar on verdict pages showing specific scrape timestamps.
+- **i18n:** Primary language is Hungarian (hu); secondary fallback is English (en).
+
+### FR Coverage Map
+
+- **FR1:** Epic 2 - Tax Number Search
+- **FR2:** Epic 2 - Gov Data Retrieval
+- **FR2:** Epic 2 - Gov Data Retrieval
+- **FR3:** Epic 2 - State-Machine Verdict
+- **FR4:** Epic 2 - Suspended Tax Flag
+- **FR5:** Epic 3 - Watchlist CRUD
+- **FR6:** Epic 3 - 24h Monitoring
+- **FR7:** Epic 3 - Email Alerts
+- **FR8:** Epic 4 - Material Questionnaire
+- **FR9:** Epic 4 - DAG Validation
+- **FR10:** Epic 5 - MOHU CSV Export
+- **FR11:** Epic 6 - Scraper Health Dashboard
+- **FR12:** Epic 6 - JSON Logic Hot-swap
+- **FR13:** Epic 4 - Material Library
+- **FR14:** Epic 5 - Watchlist PDF Export
+
+## Epic List
+
+### Epic 1: Identity, Multi-Tenancy & Foundation
+Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
+**FRs covered:** TECH-1, TECH-2, UX-3.
+
+### Epic 2: The Partner Risk Radar (Screening Engine)
+Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds.
+**FRs covered:** FR1, FR2, FR3, FR4, NFR1, NFR4, UX-2.
+
+### Epic 3: Automated Monitoring & Alerts (Watchlist)
+Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
+**FRs covered:** FR5, FR6, FR7.
+
+### Epic 4: EPR Material Library & Questionnaire
+Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
+**FRs covered:** FR8, FR9, FR13.
+
+### Epic 5: Compliance Reporting & Exports
+Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist.
+**FRs covered:** FR10, FR14, UX-6.
+
+### Epic 6: System Administration & Integrity
+Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes.
+**FRs covered:** FR11, FR12, UX-5.
+
+## Epic 1: Identity, Multi-Tenancy & Foundation
+**Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
+
+### Story 1.1: Project Initialization & Monorepo Foundation
+As a Developer,
+I want to initialize the Java 25 / Spring Boot 4.0.3 backend and Nuxt 3 frontend monorepo,
+So that I have a consistent, type-safe foundation for all future modules.
+
+**Acceptance Criteria:**
+
+**Given** the Architecture-specified Spring Initializr command
+**When** I run the initialization scripts
+**Then** the `/backend` (Java/Gradle) and `/frontend` (Nuxt) directories are created
+**And** the root `docker-compose.yml` starts a PostgreSQL 17 database
+**And** the `risk-guard-tokens.json` file is present in the root and readable by both stacks.
+
+### Story 1.2: Multi-Tenant Schema & Isolation
+As a System,
+I want to enforce strict tenant isolation at the database and repository layers,
+So that users can never accidentally see data belonging to another company.
+
+**Acceptance Criteria:**
+
+**Given** a PostgreSQL 17 database
+**When** I create the `tenants` and `users` tables via Flyway
+**Then** every table contains a `tenant_id NOT NULL` column
+**And** the Spring `TenantFilter` correctly populates the `SecurityContext` from a mock JWT
+**And** any jOOQ query without a `tenant_id` filter is rejected by a test.
+
+### Story 1.3: Google & Microsoft SSO Integration
+As a User,
+I want to log in using my existing Google or Microsoft account,
+So that I don't have to manage another password.
+
+**Acceptance Criteria:**
+
+**Given** a Nuxt 3 frontend and Spring Security 6 backend
+**When** I click the "Login with Google" button
+**Then** I am redirected to the provider's OAuth2 consent screen
+**And** upon successful return, a new User/Tenant record is created if none exists
+**And** a dual-claim JWT (`home_tenant_id`, `active_tenant_id`) is issued.
+
+### Story 1.4: Accountant Context-Switcher UI
+As an Accountant,
+I want a searchable dropdown in the top-bar to switch between client accounts,
+So that I can check different companies' status without logging out.
+
+**Acceptance Criteria:**
+
+**Given** a user with the `ACCOUNTANT` role and multiple `tenant_mandates`
+**When** I search for a client name in the Context Switcher
+**Then** the UI displays matching clients
+**And** selecting one triggers an API call that issues a new short-lived JWT with the updated `active_tenant_id`
+**And** the entire dashboard reloads with the new client's context.
+
+### Story 1.5: Automated CI/CD & GCP Infrastructure
+As a Developer,
+I want a GitHub Actions pipeline that builds and deploys the monorepo to GCP,
+So that I can ship features continuously to a production-like environment.
+
+**Acceptance Criteria:**
+
+**Given** a GitHub repository and a GCP Project (Frankfurt/Warsaw region)
+**When** I push code to the `main` branch
+**Then** the 12-step CI pipeline (Compile -> ArchUnit -> OpenAPI -> tsc) runs successfully
+**And** the backend is containerized and deployed to Cloud Run with Min-Instances: 1
+**And** the frontend is built and deployed to Cloud Storage + Cloud CDN (Nuxt Hybrid Rendering enabled)
+**And** sensitive secrets (DB password, SSO keys) are managed via GCP Secret Manager.
+
+## Epic 2: The Partner Risk Radar (Screening Engine)
+**Goal:** Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds.
+
+### Story 2.1: Tax Number Search & Skeleton UI
+As a User,
+I want to enter an 8 or 11-digit tax number and see a loading animation that tracks the search progress,
+So that I know the system is actively retrieving government data.
+
+**Acceptance Criteria:**
+
+**Given** the `screening` module frontend dashboard
+**When** I enter a valid 11-digit Hungarian tax number
+**Then** a `PartnerSearchRequest` is sent to the backend
+**And** the UI displays Skeleton Screen animations listing the sources: `[ ] NAV Debt`, `[ ] Legal Status`, etc.
+**And** invalid tax number formats are rejected by frontend Zod validation.
+
+### Story 2.2: Virtual-Thread Parallel Scraper Engine
+As a System,
+I want to scrape NAV Open Data and e-Cégjegyzék in parallel using Java 25 Virtual Threads,
+So that I can deliver a full partner profile in under 30 seconds.
+
+**Acceptance Criteria:**
+
+**Given** a valid tax number
+**When** the `CompanyDataAggregator` is triggered
+**Then** it spawns `StructuredTaskScope` virtual threads for the JSoup adapters (NAV and e-Cégjegyzék)
+**And** it handles timeouts/outages via Resilience4j circuit breakers
+**And** it returns a consolidated `CompanySnapshot` JSON object.
+
+### Story 2.3: Deterministic Verdict State-Machine
+As a System,
+I want to process the company snapshot through a pure-function state machine,
+So that I provide an immutable, binary "Reliable" or "At-Risk" verdict.
+
+**Acceptance Criteria:**
+
+**Given** a `CompanySnapshot` containing debt and legal data
+**When** the `VerdictEngine` runs
+**Then** it detects `TAX_SUSPENDED` flags or active debt to produce an `AT_RISK` status
+**And** it produces a `RELIABLE` status only if all critical markers are clean
+**And** the logic passes 100% of the 50+ Golden Case regression tests.
+
+### Story 2.4: Verdict Result Card & Provenance Sidebar
+As a User,
+I want to see the final verdict in a high-contrast card with a sidebar showing exact data timestamps,
+So that I can trust the freshness of the data.
+
+**Acceptance Criteria:**
+
+**Given** a completed search
+**When** the verdict is returned to the UI
+**Then** the UI shows an Emerald Shield (Reliable) or Rose Shield (At-Risk)
+**And** a Provenance Sidebar lists the source URLs and "Last Scraped" times (e.g., `2 minutes ago`)
+**And** "Amber" warnings are shown for suspended tax numbers.
+
+### Story 2.5: SHA-256 Audit Logging (Legal Proof)
+As a User,
+I want every search to be cryptographically signed and logged,
+So that I have court-ready evidence of my due diligence.
+
+**Acceptance Criteria:**
+
+**Given** a search result and a disclaimer text
+**When** the verdict is rendered
+**Then** the backend generates a SHA-256 hash of the (Snapshot + Verdict + Disclaimer)
+**And** the record is stored in the `search_audit_log` table with the hash and a timestamp
+**And** the hash is displayed on the frontend result card.
+
+## Epic 3: Automated Monitoring & Alerts (Watchlist)
+**Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
+
+### Story 3.1: Watchlist Management (CRUD)
+As a User,
+I want to add searched partners to a private Watchlist,
+So that I don't have to re-enter their tax number every time I want to check them.
+
+**Acceptance Criteria:**
+
+**Given** a search result or the Watchlist page
+**When** I click "Add to Watchlist"
+**Then** the partner is saved to the `watchlist_entries` table (scoped to `tenant_id`)
+**And** I can view a PrimeVue `DataTable` of all my watched partners with their current status.
+**And** I can remove partners from the list.
+
+### Story 3.2: 24h Background Monitoring Cycle
+As a System,
+I want to automatically re-scrape all Watchlist partners every 24 hours,
+So that I can detect status changes without user intervention.
+
+**Acceptance Criteria:**
+
+**Given** a list of `watchlist_entries`
+**When** the @Scheduled `WatchlistMonitor` triggers
+**Then** it initiates a background scrape for each partner
+**And** it compares the new verdict against the `last_verdict_status`
+**And** it logs any deviations (e.g., `RELIABLE` -> `AT_RISK`).
+
+### Story 3.3: Resend Email Alerts & Outbox Pattern
+As a User,
+I want to receive an email notification the moment a partner's status changes,
+So that I can take immediate business action.
+
+**Acceptance Criteria:**
+
+**Given** a detected status change
+**When** the `PartnerStatusChanged` event is published
+**Then** a notification record is created in the `notification_outbox`
+**And** the `OutboxProcessor` sends a localized (HU/EN) email via Resend
+**And** failed emails are retried with exponential backoff.
+
+### Story 3.4: The Accountant "Portfolio Pulse" Feed
+As an Accountant,
+I want a global alert feed on my main dashboard showing status changes across all my clients' partners,
+So that I can proactively advise my clients.
+
+**Acceptance Criteria:**
+
+**Given** a user with the `ACCOUNTANT` role
+**When** I log in to the dashboard
+**Then** I see a "Portfolio Alerts" sidebar listing recent status changes for ALL client tenants I have mandates for
+**And** clicking an alert instantly switches my context to that client's dashboard.
+
+## Epic 4: EPR Material Library & Questionnaire
+**Goal:** Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
+
+### Story 4.1: EPR Material Library (Inventory management)
+As a User,
+I want to manage a library of my recurring packaging materials,
+So that I don't have to re-enter their details for every quarterly filing.
+
+**Acceptance Criteria:**
+
+**Given** the EPR Dashboard
+**When** I create a new material entry
+**Then** I can name it (e.g., "Standard Cardboard Box 1") and assign its base weight.
+**And** the record is saved to the `epr_material_templates` table.
+**And** I can edit or delete these templates later.
+
+### Story 4.2: Smart Material Wizard (DAG Questionnaire)
+As a User,
+I want a multi-step questionnaire that guides me to the correct KF-code based on my material's characteristics,
+So that I am legally compliant without needing to memorize environmental law.
+
+**Acceptance Criteria:**
+
+**Given** a PrimeVue Stepper component
+**When** I select options (Material Type -> Usage -> Subtype)
+**Then** the DagEngine.java validates the path through the JSON configuration.
+**And** the system returns the specific KF-code (e.g., `99 01 01`) and its associated fee rate.
+**And** the UI shows a breadcrumb of the logic path used (e.g., `Packaging -> Paper -> Corrugated`).
+
+### Story 4.3: Manual Override & Confidence Score
+As an Accountant,
+I want to see the system's confidence in a KF-code mapping and manually override it if necessary,
+So that I maintain professional control over the final filing.
+
+**Acceptance Criteria:**
+
+**Given** a KF-code suggestion from the Wizard
+**When** the system is unsure (low confidence)
+**Then** the UI displays an Amber Warning on the result.
+**And** a "Manual Override" button allows the user to select a different code from a searchable list.
+**And** the override is logged as a separate audit event.
+
+### Story 4.4: Material Template with KF-Code Mapping
+As a User,
+I want to link a specific KF-code to a Material Template in my library,
+So that the template is "Filing-Ready."
+
+**Acceptance Criteria:**
+
+**Given** a Material Template in the Library
+**When** I complete the Wizard for that material
+**Then** the KF-code is permanently saved to that template.
+**And** the template is marked as "Verified" in the inventory list.
+
+## Epic 5: Compliance Reporting & Exports
+**Goal:** Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist.
+
+### Story 5.1: Watchlist Bulk PDF Export
+As a User,
+I want to select partners from my watchlist and export a professional PDF status report,
+So that I can provide court-ready evidence of my due diligence to banks or auditors.
+
+**Acceptance Criteria:**
+
+**Given** the Watchlist page with a selection of partners
+**When** I click the "Export Status PDF" button
+**Then** the system generates a branded PDF containing Partner Name, Tax Number, Current Verdict, and Last Check Timestamp.
+**And** each entry includes its unique SHA-256 verification hash.
+**And** the PDF includes the "Informational Purpose Only" liability disclaimer.
+
+### Story 5.2: Quarterly EPR Filing Workflow
+As a User,
+I want to enter the quantities sold for my "Verified" material templates,
+So that I can calculate my total EPR liability for the quarter.
+
+**Acceptance Criteria:**
+
+**Given** a list of "Verified" templates in the EPR Library
+**When** I start a "New Filing" and enter the Quantity (pcs) for each item
+**Then** the FeeCalculator computes the total weight and total fee based on the current JSON fee tables.
+**And** I see a summary of the calculation before generating the final file.
+
+### Story 5.3: MOHU-Ready CSV Export
+As a User,
+I want to generate a CSV file that matches the exact schema required by the MOHU portal,
+So that I can complete my quarterly filing with zero manual edits.
+
+**Acceptance Criteria:**
+
+**Given** a completed EPR Filing calculation
+**When** I click "Export for MOHU"
+**Then** the backend generates a CSV file using semicolon delimiters and Hungarian UTF-8 BOM.
+**And** the file columns and KF-code formats match the latest MOHU schema version.
+**And** the export is logged in the `epr_exports` table with a config version reference.
+
+### Story 5.4: Export Locale Enforcement & UX Notice
+As a User,
+I want to be notified that my government exports are being generated in Hungarian, even if my UI is set to English,
+So that I am not confused by the language change in the final file.
+
+**Acceptance Criteria:**
+
+**Given** a user with UI language set to English
+**When** they trigger an "Export for MOHU"
+**Then** the UI displays an Indigo Toast notification: "Export generated in Hungarian (required by MOHU portal)."
+**And** the generated CSV content uses Hungarian material category names from messages_hu.properties.
+
+## Epic 6: System Administration & Integrity
+**Goal:** Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes.
+
+### Story 6.1: Scraper Health Dashboard (The Heartbeat)
+As an Admin,
+I want to see a live dashboard of all scraper adapters and their current health,
+So that I can detect government portal changes before users complain.
+
+**Acceptance Criteria:**
+
+**Given** the Admin Dashboard
+**When** I load the "Scrapers" tab
+**Then** the UI displays a grid of cards showing MTBF, Success Rate %, and current Circuit Breaker State for each adapter.
+**And** the data is pulled directly from the Resilience4j Actuator endpoints.
+**And** the UI shows the "Last Successful Scrape" timestamp per source.
+
+### Story 6.2: Manual Adapter Kill-Switch (Quarantine)
+As an Admin,
+I want a "Force Quarantine" toggle for each scraper adapter,
+So that I can manually disable a broken source if the canary hasn't caught it yet.
+
+**Acceptance Criteria:**
+
+**Given** a healthy or failing adapter in the dashboard
+**When** I toggle the "Quarantine" switch
+**Then** the backend instantly opens the Resilience4j circuit breaker for that adapter.
+**And** the global frontend health banner updates to show that specific source is "Under Maintenance."
+**And** all subsequent verdicts for that source are marked as "Unavailable."
+
+### Story 6.3: Hot-Swappable EPR JSON Manager
+As an Admin,
+I want to edit the EPR fee tables and KF-code logic via a browser-based editor,
+So that I can comply with legislation changes in seconds without a redeployment.
+
+**Acceptance Criteria:**
+
+**Given** the Admin "EPR Config" page
+**When** I edit the JSON configuration in the Monaco/Code editor
+**Then** clicking "Validate" runs the EPR Golden Test Cases against the new JSON.
+**And** if validation passes, clicking "Publish" increments the `epr_configs` version and makes it the active one.
+**And** old calculations retain their reference to previous config versions for auditability.
+
+### Story 6.4: GDPR Search Audit Viewer
+As an Admin,
+I want to search and view the `search_audit_log`,
+So that I can provide proof of a specific risk check if requested by legal authorities or users.
+
+**Acceptance Criteria:**
+
+**Given** a tax number or tenant ID
+**When** I search the Audit Log
+**Then** the UI displays the timestamped entry, the SHA-256 hash, and the source URLs that were used.
+**And** I can see which User ID performed the search.
+
+
+
+
+
+

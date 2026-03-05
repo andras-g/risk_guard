@@ -1,0 +1,21 @@
+{
+  "freshness": {
+    "freshThresholdHours": 6,
+    "staleThresholdHours": 24,
+    "unavailableThresholdHours": 48
+  },
+  "guest": {
+    "maxCompanies": 10,
+    "maxDailyChecks": 3,
+    "captchaAfterChecks": 3
+  },
+  "tiers": [
+    "ALAP",
+    "PRO",
+    "PRO_EPR"
+  ],
+  "rateLimits": {
+    "searchesPerMinutePerTenant": 30,
+    "maxAlertsPerDayPerTenant": 10
+  }
+}
