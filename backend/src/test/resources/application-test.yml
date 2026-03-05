@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:riskguard;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  flyway:
+    enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: dummy
+            client-secret: dummy
+            provider: google
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://www.googleapis.com/oauth2/v4/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+

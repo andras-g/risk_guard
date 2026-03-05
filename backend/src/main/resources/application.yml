@@ -22,9 +22,17 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:fake}
             client-secret: ${GOOGLE_CLIENT_SECRET:fake}
+            provider: google
           microsoft:
             client-id: ${MICROSOFT_CLIENT_ID:fake}
             client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
+            provider: microsoft
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+          microsoft:
+            issuer-uri: https://login.microsoftonline.com/common/v2.0
+
 
 risk-guard:
    fresh-threshold-hours: 6

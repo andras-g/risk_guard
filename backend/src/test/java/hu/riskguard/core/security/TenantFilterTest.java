@@ -58,13 +58,21 @@ class TenantFilterTest {
         JwtAuthenticationToken auth = new JwtAuthenticationToken(jwt, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(auth);
 
+        // We verify the context is set by using a custom answer on the mock filterChain
+        Mockito.doAnswer(invocation -> {
+            assertEquals(tenantId, TenantContext.getCurrentTenant());
+            assertEquals(tenantId.toString(), MDC.get("tenantId"));
+            return null;
+        }).when(filterChain).doFilter(request, response);
+
         // When
         tenantFilter.doFilter(request, response, filterChain);
 
         // Then
-        assertEquals(tenantId, TenantContext.getCurrentTenant());
-        assertEquals(tenantId.toString(), MDC.get("tenantId"));
         verify(filterChain).doFilter(request, response);
+        // And verified that it's cleared after
+        assertNull(TenantContext.getCurrentTenant());
+        assertNull(MDC.get("tenantId"));
     }
 
     @Test
