@@ -21,10 +21,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
-        
+        processOAuth2User(userRequest, oAuth2User);
+        return oAuth2User;
+    }
+
+    public void processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
-        String subject = oAuth2User.getAttribute("sub"); // Google/MS unique ID
+        String subject = oAuth2User.getAttribute("sub");
         String provider = userRequest.getClientRegistration().getRegistrationId();
 
         if (email == null) {
@@ -32,8 +36,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         userRepository.findByEmail(email).orElseGet(() -> createNewUserAndTenant(email, name, provider, subject));
-
-        return oAuth2User;
     }
 
     private User createNewUserAndTenant(String email, String name, String provider, String subject) {

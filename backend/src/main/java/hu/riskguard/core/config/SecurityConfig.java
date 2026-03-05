@@ -1,6 +1,7 @@
 package hu.riskguard.core.config;
 
 import hu.riskguard.core.security.OAuth2AuthenticationSuccessHandler;
+import hu.riskguard.core.security.TenantFilter;
 import hu.riskguard.identity.domain.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -55,23 +56,5 @@ public class SecurityConfig {
                 "HmacSHA256"
         );
         return NimbusJwtDecoder.withSecretKey(secretKey).build();
-    }
-}
-
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/public/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
-
-        http.addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
     }
 }
