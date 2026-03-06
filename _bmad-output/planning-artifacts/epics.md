@@ -81,8 +81,8 @@ Users can search any tax number and receive a deterministic binary "Reliable/At-
 **FRs covered:** FR1, FR2, FR3, FR4, NFR1, NFR4, UX-2.
 
 ### Epic 3: Automated Monitoring & Alerts (Watchlist)
-Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
-**FRs covered:** FR5, FR6, FR7.
+Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse.
+**FRs covered:** FR5, FR6, FR7, UX-3, UX-FlightControl.
 
 ### Epic 4: EPR Material Library & Questionnaire
 Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
@@ -99,10 +99,10 @@ Administrators can monitor scraper health, quarantine broken adapters, and hot-s
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
 
-### Story 1.1: Project Initialization & Monorepo Foundation
-As a Developer,
+### Story 1.1: Project Initialization & Monorepo Foundation (Kick-off)
+As a Lead Developer,
 I want to initialize the Java 25 / Spring Boot 4.0.3 backend and Nuxt 3 frontend monorepo,
-So that I have a consistent, type-safe foundation for all future modules.
+So that the team has a consistent, type-safe foundation for all future modules.
 
 **Acceptance Criteria:**
 
@@ -113,9 +113,9 @@ So that I have a consistent, type-safe foundation for all future modules.
 **And** the `risk-guard-tokens.json` file is present in the root and readable by both stacks.
 
 ### Story 1.2: Multi-Tenant Schema & Isolation
-As a System,
-I want to enforce strict tenant isolation at the database and repository layers,
-So that users can never accidentally see data belonging to another company.
+As a User,
+I want my data to be strictly isolated from other companies at the database and repository layers,
+So that I can trust that my sensitive information is never accidentally exposed.
 
 **Acceptance Criteria:**
 
@@ -137,6 +137,7 @@ So that I don't have to manage another password.
 **Then** I am redirected to the provider's OAuth2 consent screen
 **And** upon successful return, a new User/Tenant record is created if none exists
 **And** a dual-claim JWT (`home_tenant_id`, `active_tenant_id`) is issued.
+**And** failed login attempts show a clear, localized error message.
 
 ### Story 1.4: Accountant Context-Switcher UI
 As an Accountant,
@@ -150,11 +151,12 @@ So that I can check different companies' status without logging out.
 **Then** the UI displays matching clients
 **And** selecting one triggers an API call that issues a new short-lived JWT with the updated `active_tenant_id`
 **And** the entire dashboard reloads with the new client's context.
+**And** if the tenant switch fails (e.g., token expired), a safety interstitial (ContextGuard) blocks access.
 
 ### Story 1.5: Automated CI/CD & GCP Infrastructure
-As a Developer,
+As an Admin,
 I want a GitHub Actions pipeline that builds and deploys the monorepo to GCP,
-So that I can ship features continuously to a production-like environment.
+So that I can deliver features continuously and reliably to a production-like environment.
 
 **Acceptance Criteria:**
 
@@ -181,10 +183,10 @@ So that I know the system is actively retrieving government data.
 **And** the UI displays Skeleton Screen animations listing the sources: `[ ] NAV Debt`, `[ ] Legal Status`, etc.
 **And** invalid tax number formats are rejected by frontend Zod validation.
 
-### Story 2.2: Virtual-Thread Parallel Scraper Engine
-As a System,
-I want to scrape NAV Open Data and e-Cégjegyzék in parallel using Java 25 Virtual Threads,
-So that I can deliver a full partner profile in under 30 seconds.
+### Story 2.2: Parallel Scraper Engine & Outage Resilience
+As a User,
+I want the system to retrieve government data in parallel using modern virtual threads,
+So that I receive my partner risk verdict in under 30 seconds even if some sources are slow.
 
 **Acceptance Criteria:**
 
@@ -193,11 +195,12 @@ So that I can deliver a full partner profile in under 30 seconds.
 **Then** it spawns `StructuredTaskScope` virtual threads for the JSoup adapters (NAV and e-Cégjegyzék)
 **And** it handles timeouts/outages via Resilience4j circuit breakers
 **And** it returns a consolidated `CompanySnapshot` JSON object.
+**And** if a source is timed out, the result is marked as `SourceUnavailable` to trigger the "Grey Shield" UI.
 
 ### Story 2.3: Deterministic Verdict State-Machine
-As a System,
-I want to process the company snapshot through a pure-function state machine,
-So that I provide an immutable, binary "Reliable" or "At-Risk" verdict.
+As a User,
+I want a clear, deterministic "Reliable" or "At-Risk" verdict based on my partner's data,
+So that I can make quick, objective business decisions without guessing.
 
 **Acceptance Criteria:**
 
@@ -205,6 +208,7 @@ So that I provide an immutable, binary "Reliable" or "At-Risk" verdict.
 **When** the `VerdictEngine` runs
 **Then** it detects `TAX_SUSPENDED` flags or active debt to produce an `AT_RISK` status
 **And** it produces a `RELIABLE` status only if all critical markers are clean
+**And** it produces an `INCOMPLETE` status if critical sources are `SourceUnavailable` (Grey Shield logic).
 **And** the logic passes 100% of the 50+ Golden Case regression tests.
 
 ### Story 2.4: Verdict Result Card & Provenance Sidebar
@@ -216,9 +220,10 @@ So that I can trust the freshness of the data.
 
 **Given** a completed search
 **When** the verdict is returned to the UI
-**Then** the UI shows an Emerald Shield (Reliable) or Rose Shield (At-Risk)
+**Then** the UI shows an Emerald Shield (Reliable), Rose Shield (At-Risk), or Grey Shield (Stale/Unavailable)
 **And** a Provenance Sidebar lists the source URLs and "Last Scraped" times (e.g., `2 minutes ago`)
 **And** "Amber" warnings are shown for suspended tax numbers.
+**And** if the data age exceeds the "Freshness Guard" (48h), the Grey Shield is automatically displayed with a "Stale" warning.
 
 ### Story 2.5: SHA-256 Audit Logging (Legal Proof)
 As a User,
@@ -250,9 +255,9 @@ So that I don't have to re-enter their tax number every time I want to check the
 **And** I can remove partners from the list.
 
 ### Story 3.2: 24h Background Monitoring Cycle
-As a System,
-I want to automatically re-scrape all Watchlist partners every 24 hours,
-So that I can detect status changes without user intervention.
+As a User,
+I want the system to automatically monitor my watchlist for status changes every 24 hours,
+So that I am proactively informed of any risks without manual effort.
 
 **Acceptance Criteria:**
 
@@ -261,6 +266,7 @@ So that I can detect status changes without user intervention.
 **Then** it initiates a background scrape for each partner
 **And** it compares the new verdict against the `last_verdict_status`
 **And** it logs any deviations (e.g., `RELIABLE` -> `AT_RISK`).
+**And** it handles transient failures with retries without skipping monitoring for the entire list.
 
 ### Story 3.3: Resend Email Alerts & Outbox Pattern
 As a User,
@@ -274,6 +280,7 @@ So that I can take immediate business action.
 **Then** a notification record is created in the `notification_outbox`
 **And** the `OutboxProcessor` sends a localized (HU/EN) email via Resend
 **And** failed emails are retried with exponential backoff.
+**And** the email includes the "Audit Proof" SHA-256 hash for verification.
 
 ### Story 3.4: The Accountant "Portfolio Pulse" Feed
 As an Accountant,
@@ -287,13 +294,27 @@ So that I can proactively advise my clients.
 **Then** I see a "Portfolio Alerts" sidebar listing recent status changes for ALL client tenants I have mandates for
 **And** clicking an alert instantly switches my context to that client's dashboard.
 
+### Story 3.5: Accountant "Flight Control" Dashboard
+As an Accountant,
+I want a dedicated, high-density dashboard that aggregates my entire client portfolio,
+So that I can see at a glance which clients have the most "At-Risk" or "Stale" partners.
+
+**Acceptance Criteria:**
+
+**Given** a user with the `ACCOUNTANT` role
+**When** I navigate to the "Flight Control" page
+**Then** I see a sortable table of all client tenants I manage
+**And** each row displays a summary count of "Reliable", "At-Risk", and "Stale" partners
+**And** I can filter by client name or risk level.
+**And** clicking a client name navigates to their specific dashboard using the context switch.
+
 ## Epic 4: EPR Material Library & Questionnaire
 **Goal:** Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
 
-### Story 4.1: EPR Material Library (Inventory management)
+### Story 4.1: EPR Material Library & Seasonal Templates
 As a User,
-I want to manage a library of my recurring packaging materials,
-So that I don't have to re-enter their details for every quarterly filing.
+I want to manage a library of recurring packaging materials, including seasonal templates and "Copy from Previous" logic,
+So that my quarterly filing process is as efficient as possible.
 
 **Acceptance Criteria:**
 
@@ -301,6 +322,8 @@ So that I don't have to re-enter their details for every quarterly filing.
 **When** I create a new material entry
 **Then** I can name it (e.g., "Standard Cardboard Box 1") and assign its base weight.
 **And** the record is saved to the `epr_material_templates` table.
+**And** I can mark templates as "Seasonal" (e.g., "Christmas Packaging") to toggle their visibility.
+**And** I can click "Copy from Previous" to duplicate an entire library structure from the prior quarter.
 **And** I can edit or delete these templates later.
 
 ### Story 4.2: Smart Material Wizard (DAG Questionnaire)
@@ -344,10 +367,10 @@ So that the template is "Filing-Ready."
 ## Epic 5: Compliance Reporting & Exports
 **Goal:** Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist.
 
-### Story 5.1: Watchlist Bulk PDF Export
+### Story 5.1: Watchlist Bulk PDF Export & Mobile Dispatcher
 As a User,
-I want to select partners from my watchlist and export a professional PDF status report,
-So that I can provide court-ready evidence of my due diligence to banks or auditors.
+I want to select partners from my watchlist and export a professional PDF status report with a native mobile share option,
+So that I can provide court-ready evidence of my due diligence to banks or auditors instantly from my device.
 
 **Acceptance Criteria:**
 
@@ -356,6 +379,7 @@ So that I can provide court-ready evidence of my due diligence to banks or audit
 **Then** the system generates a branded PDF containing Partner Name, Tax Number, Current Verdict, and Last Check Timestamp.
 **And** each entry includes its unique SHA-256 verification hash.
 **And** the PDF includes the "Informational Purpose Only" liability disclaimer.
+**And** on mobile devices, the `AuditDispatcher` uses `navigator.share` to allow instant dispatching to email, Slack, or WhatsApp.
 
 ### Story 5.2: Quarterly EPR Filing Workflow
 As a User,

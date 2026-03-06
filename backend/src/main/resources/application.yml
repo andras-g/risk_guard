@@ -23,18 +23,27 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID:fake}
             client-secret: ${GOOGLE_CLIENT_SECRET:fake}
             provider: google
-          microsoft:
-            client-id: ${MICROSOFT_CLIENT_ID:fake}
-            client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
-            provider: microsoft
+#          microsoft:
+#            client-id: ${MICROSOFT_CLIENT_ID:fake}
+#            client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
+#            provider: microsoft
         provider:
           google:
             issuer-uri: https://accounts.google.com
-          microsoft:
-            issuer-uri: https://login.microsoftonline.com/common/v2.0
+#          microsoft:
+#            issuer-uri: https://login.microsoftonline.com/common/v2.0
 
 
 risk-guard:
-   fresh-threshold-hours: 6
-   stale-threshold-hours: 24
-   unavailable-threshold-hours: 48
+   freshness:
+     fresh-threshold-hours: 6
+     stale-threshold-hours: 24
+     unavailable-threshold-hours: 48
+   guest:
+     max-companies: 10
+     max-daily-checks: 3
+     captcha-after-checks: 3
+   tiers: ["ALAP", "PRO", "PRO_EPR"]
+   rate-limits:
+     searches-per-minute-per-tenant: 30
+     max-alerts-per-day-per-tenant: 10

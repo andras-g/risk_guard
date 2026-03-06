@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>risk_guard Visual Foundation Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #0F172A; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto space-y-12">
+        <header>
+            <h1 class="text-3xl font-bold text-[#0F172A]">Visual Foundation: "The Safe Harbor"</h1>
+            <p class="text-slate-500 mt-2">UX Design Preview for risk_guard (PartnerRadar)</p>
+        </header>
+
+        <!-- Color Palette -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-semibold border-b pb-2">1. Color System</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="space-y-2">
+                    <div class="h-20 w-full bg-[#0F172A] rounded-md shadow-sm border border-slate-200"></div>
+                    <p class="text-xs font-medium">Primary: Navy<br><span class="text-slate-400">#0F172A</span></p>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-20 w-full bg-[#64748B] rounded-md shadow-sm border border-slate-200"></div>
+                    <p class="text-xs font-medium">Secondary: Slate<br><span class="text-slate-400">#64748B</span></p>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-20 w-full bg-[#15803D] rounded-md shadow-sm border border-slate-200"></div>
+                    <p class="text-xs font-medium">Success: Emerald<br><span class="text-slate-400">#15803D</span></p>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-20 w-full bg-[#B91C1C] rounded-md shadow-sm border border-slate-200"></div>
+                    <p class="text-xs font-medium">Danger: Crimson<br><span class="text-slate-400">#B91C1C</span></p>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-20 w-full bg-[#B45309] rounded-md shadow-sm border border-slate-200"></div>
+                    <p class="text-xs font-medium">Warning: Amber<br><span class="text-slate-400">#B45309</span></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-semibold border-b pb-2">2. Typography Hierarchy</h2>
+            <div class="bg-white p-6 rounded-lg border border-slate-200 space-y-4">
+                <h1 class="text-4xl font-bold">Reliability Verdict: RELIABLE</h1>
+                <h2 class="text-2xl font-semibold text-slate-700">Partner Risk Profile Summary</h2>
+                <p class="text-base text-slate-600 leading-relaxed">This company has no active NAV debt and is registered in the official e-Cégjegyzék. Last checked: March 5, 2026.</p>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded mono text-sm text-slate-500">
+                    Audit Hash: 8f23...a1b2 | Source: nav.gov.hu/data/12345678
+                </div>
+            </div>
+        </section>
+
+        <!-- Component Mockups -->
+        <section class="space-y-4">
+            <h2 class="text-xl font-semibold border-b pb-2">3. Component Concept: The Shield Card</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Mobile Decision Card -->
+                <div class="bg-white p-6 rounded-xl border-2 border-[#15803D] shadow-lg flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-[#15803D] text-white rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    </div>
+                    <span class="uppercase tracking-widest text-xs font-bold text-[#15803D]">Verdict</span>
+                    <h3 class="text-2xl font-bold text-[#0F172A]">Reliable Partner</h3>
+                    <p class="text-slate-500 text-sm mt-2">TechnoTrade Kft (12345678-1-12)</p>
+                    <button class="mt-6 w-full py-3 bg-[#0F172A] text-white rounded-lg font-semibold shadow-md">Send Audit Proof</button>
+                </div>
+
+                <!-- Desktop Table Row -->
+                <div class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-2 font-semibold">Partner</th>
+                                <th class="px-4 py-2 font-semibold">Status</th>
+                                <th class="px-4 py-2 font-semibold">Last Checked</th>
+                                <th class="px-4 py-2 font-semibold text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b">
+                                <td class="px-4 py-3 font-medium">TechnoTrade Kft.</td>
+                                <td class="px-4 py-3"><span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded uppercase">Reliable</span></td>
+                                <td class="px-4 py-3 text-slate-500">2h ago</td>
+                                <td class="px-4 py-3 text-right"><button class="text-navy-600 font-semibold underline">Export</button></td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 font-medium">RiskCorp Inc.</td>
+                                <td class="px-4 py-3"><span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded uppercase">At Risk</span></td>
+                                <td class="px-4 py-3 text-slate-500">Just now</td>
+                                <td class="px-4 py-3 text-right"><button class="text-navy-600 font-semibold underline">Export</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

@@ -13,3 +13,10 @@ workflow_status:
     metadata:
       project_name: "risk_guard"
       author: "Andras"
+  create-ux-design:
+    status: completed
+    output_file: "/home/andras/dev/risk_guard/_bmad-output/planning-artifacts/ux-design-specification.md"
+    completed_at: "2026-03-05T16:45:00Z"
+    metadata:
+      project_name: "risk_guard"
+      author: "Andras"

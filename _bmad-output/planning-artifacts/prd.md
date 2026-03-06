@@ -46,7 +46,7 @@ risk_guard (PartnerRadar) is a multi-tenant B2B SaaS platform providing Hungaria
 ### MVP (Phase 1: 4-Week Sprint)
 - **State-Machine Engine:** Factual retrieval and logic processing of NAV Debt, Insolvency, and Tax Status.
 - **Verdict Dashboard:** Mobile-optimized UI providing binary "Reliable/At-Risk" statuses.
-- **Watchlist:** Automated 24h monitoring for assigned partners with Resend email alerts.
+- **Watchlist:** Automated 24h monitoring for assigned partners with automated email alerts.
 - **JSON-Driven EPR Wizard:** Linear questionnaire for material classification based on a "Top-20 Common KF-Codes" semantic constructor.
 - **Schema-Perfect Export:** High-fidelity CSV/XLS export for MOHU reporting with built-in "Submission Guide."
 - **Demo Mode:** Guest searches limited to 10 companies and 3 instant checks per day.
@@ -74,6 +74,7 @@ A user attempts a search while a government portal is down. The UI clearly state
 - **2026 EPR Law:** Precise material category mapping and weight reporting.
 - **Liability Protection:** Every report displays an "Informational Purpose Only" disclaimer clarifying third-party source origins.
 - **GDPR Audit Trail:** Full logging of partner searches to support "Legitimate Interest" data processing.
+- **Accessibility Standards:** 100% compliance with WCAG 2.1 AA for all public-facing and SME-admin interfaces, ensuring GovTech compatibility.
 
 ### Technical Constraints
 - **State-Machine Verdicts:** Risk assessment must be a closed-loop system with zero "fuzzy" logic for core status.
@@ -111,11 +112,11 @@ A user attempts a search while a government portal is down. The UI clearly state
 ### Monitoring & Alerts
 - **FR5:** Authenticated Users can manage a private Watchlist of partners.
 - **FR6:** System monitors Watchlist partners for status changes every 24 hours.
-- **FR7:** System triggers Resend email alerts on partner status deviations.
+- **FR7:** System triggers automated email alerts on partner status deviations.
 
 ### EPR Compliance
 - **FR8:** Users can navigate a multi-step questionnaire for material classification.
-- **FR9:** System validates inputs via backend JSON-driven Directed Graph (DAG).
+- **FR9:** System validates inputs via a backend-driven Directed Graph (DAG).
 - **FR10:** System generates schema-perfect CSV/XLSX exports for MOHU reporting.
 
 ### Administration
@@ -126,12 +127,12 @@ A user attempts a search while a government portal is down. The UI clearly state
 
 ### Performance & Scaling
 - **NFR1:** 95% of search requests return a verdict in **< 30 seconds**.
-- **NFR2:** GraalVM native images ensure container startup times of **< 200ms**.
-- **NFR3:** System maintains **Min-Instances: 1** on Cloud Run during Hungarian business hours (8:00-17:00 CET).
+- **NFR2:** Native-optimized binaries ensure container startup times of **< 200ms**.
+- **NFR3:** System maintains high-availability during Hungarian business hours (8:00-17:00 CET) with zero cold-starts.
 
 ### Trust & Legal Integrity
-- **NFR4:** Every risk check is recorded with a **SHA-256 Cryptographic Hash** for court-ready due diligence evidence.
-- **NFR5:** Encryption at rest (AES-256) and in transit (TLS 1.3).
+- **NFR4:** Every risk check is recorded with a cryptographic hash for court-ready due diligence evidence.
+- **NFR5:** Industry-standard encryption at rest and in transit.
 
 ### SEO & Growth
 - **NFR6:** System generates indexable public "Gateway Stubs" for Hungarian companies using JSON-LD Rich Snippets to drive organic traffic.

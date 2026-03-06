@@ -6,6 +6,11 @@ services:
       POSTGRES_DB: riskguard
       POSTGRES_USER: riskguard
       POSTGRES_PASSWORD: localdev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U riskguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"
     volumes:
