@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.PostConstruct;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ClassPathResource;
 
 @Data
 @Component
@@ -12,9 +16,30 @@ import org.springframework.stereotype.Component;
 public class RiskGuardProperties {
     private Freshness freshness = new Freshness();
     private Guest guest = new Guest();
-    private List<String> tiers = new ArrayList<>();
+    private Identity identity = new Identity();
     private RateLimits rateLimits = new RateLimits();
     private Security security = new Security();
+
+    @PostConstruct
+    public void init() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(new ClassPathResource("risk-guard-tokens.json").getInputStream());
+            if (node.has("cookieName")) {
+                this.identity.setCookieName(node.get("cookieName").asText());
+            }
+        } catch (Exception e) {
+            // fallback
+        }
+    }
+
+    @Data
+    public static class Identity {
+        private String defaultTier = "ALAP";
+        private String defaultLanguage = "hu";
+        private String defaultUserRole = "SME_ADMIN";
+        private String cookieName = "auth_token";
+    }
 
     @Data
     public static class Freshness {
@@ -40,5 +65,6 @@ public class RiskGuardProperties {
     public static class Security {
         private String jwtSecret = "default_secret_must_be_overridden_in_production_32_chars_min";
         private long jwtExpirationMs = 3600000; // 1 hour
+        private String frontendBaseUrl = "http://localhost:3000";
     }
 }

@@ -22,19 +22,37 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID:fake}
             client-secret: ${GOOGLE_CLIENT_SECRET:fake}
-            provider: google
-#          microsoft:
-#            client-id: ${MICROSOFT_CLIENT_ID:fake}
-#            client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
-#            provider: microsoft
+            scope:
+              - email
+              - profile
+          microsoft:
+            client-id: ${MICROSOFT_CLIENT_ID:fake}
+            client-secret: ${MICROSOFT_CLIENT_SECRET:fake}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - User.Read
+            client-name: Microsoft
         provider:
           google:
             issuer-uri: https://accounts.google.com
-#          microsoft:
-#            issuer-uri: https://login.microsoftonline.com/common/v2.0
+          microsoft:
+            authorization-uri: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/common/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/oidc/userinfo
+            jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
+            user-name-attribute: sub
 
 
 risk-guard:
+   security:
+     jwt-secret: ${JWT_SECRET:local-dev-secret-32-chars-long-at-least-123456}
+     jwt-expiration-ms: 3600000
+     frontend-base-url: ${FRONTEND_URL:http://localhost:3000}
+     default-user-role: SME_ADMIN
    freshness:
      fresh-threshold-hours: 6
      stale-threshold-hours: 24

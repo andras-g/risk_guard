@@ -1,5 +1,8 @@
 package hu.riskguard.identity.domain;
 
+import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.CustomOAuth2User;
+import hu.riskguard.identity.internal.IdentityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -8,24 +11,25 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
-    private final UserRepository userRepository;
-    private final TenantRepository tenantRepository;
+    private final IdentityRepository identityRepository;
+    private final RiskGuardProperties properties;
 
     @Override
     @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
-        processOAuth2User(userRequest, oAuth2User);
-        return oAuth2User;
+        User user = processOAuth2User(userRequest, oAuth2User);
+        return new CustomOAuth2User(oAuth2User, user.getId(), user.getTenantId());
     }
 
-    public void processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
+    public User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {
         String email = oAuth2User.getAttribute("email");
         String name = oAuth2User.getAttribute("name");
         String subject = oAuth2User.getAttribute("sub");
@@ -35,14 +39,16 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw new OAuth2AuthenticationException("Email not found from OAuth2 provider");
         }
 
-        userRepository.findByEmail(email).orElseGet(() -> createNewUserAndTenant(email, name, provider, subject));
+        return identityRepository.findUserByEmail(email)
+                .orElseGet(() -> createNewUserAndTenant(email, name, provider, subject));
     }
 
     private User createNewUserAndTenant(String email, String name, String provider, String subject) {
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID());
         tenant.setName(name != null ? name + "'s Tenant" : email + "'s Tenant");
-        tenantRepository.save(tenant);
+        tenant.setTier(properties.getIdentity().getDefaultTier());
+        identityRepository.saveTenant(tenant);
 
         User user = new User();
         user.setId(UUID.randomUUID());
@@ -51,7 +57,17 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setName(name);
         user.setSsoProvider(provider);
         user.setSsoSubject(subject);
-        user.setRole("SME_ADMIN");
-        return userRepository.save(user);
+        user.setRole(properties.getIdentity().getDefaultUserRole());
+        user.setPreferredLanguage(properties.getIdentity().getDefaultLanguage());
+        User savedUser = identityRepository.saveUser(user);
+
+        TenantMandate mandate = new TenantMandate();
+        mandate.setId(UUID.randomUUID());
+        mandate.setAccountantUserId(savedUser.getId());
+        mandate.setTenantId(tenant.getId());
+        mandate.setValidFrom(OffsetDateTime.now());
+        identityRepository.saveTenantMandate(mandate);
+
+        return savedUser;
     }
 }

@@ -1,17 +1,21 @@
 package hu.riskguard.core.config;
 
+import hu.riskguard.core.security.OAuth2AuthenticationFailureHandler;
 import hu.riskguard.core.security.OAuth2AuthenticationSuccessHandler;
 import hu.riskguard.core.security.TenantFilter;
-import hu.riskguard.identity.domain.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -20,13 +24,13 @@ import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
-@Profile("!test")
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final TenantFilter tenantFilter;
-    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2UserService<OAuth2UserRequest, OAuth2User> customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oauth2FailureHandler;
     private final RiskGuardProperties properties;
 
     @Bean
@@ -41,12 +45,32 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 .successHandler(oauth2SuccessHandler)
+                .failureHandler(oauth2FailureHandler)
             )
-            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder())));
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .bearerTokenResolver(cookieBearerTokenResolver())
+                .jwt(jwt -> jwt.decoder(jwtDecoder())));
 
         http.addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private BearerTokenResolver cookieBearerTokenResolver() {
+        DefaultBearerTokenResolver resolver = new DefaultBearerTokenResolver();
+        return request -> {
+            String token = resolver.resolve(request);
+            if (token != null) return token;
+
+            if (request.getCookies() != null) {
+                for (var cookie : request.getCookies()) {
+                    if (properties.getIdentity().getCookieName().equals(cookie.getName())) {
+                        return cookie.getValue();
+                    }
+                }
+            }
+            return null;
+        };
     }
 
     @Bean

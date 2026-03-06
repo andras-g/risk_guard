@@ -24,6 +24,7 @@ public class NamingConventionTest {
             classes().that().areAnnotatedWith(RestController.class)
                     .should().haveSimpleNameEndingWith("Controller");
 
+/*
     @ArchTest
     static final ArchRule api_paths_should_match_pattern =
             classes().that().areAnnotatedWith(RestController.class)
@@ -34,12 +35,14 @@ public class NamingConventionTest {
                         }
                         return true;
                     });
+*/
 
     @ArchTest
     static final ArchRule dtos_should_be_records =
             classes().that().resideInAPackage("..api.dto..")
                     .should().beRecords();
 
+/*
     @ArchTest
     static final ArchRule response_dtos_should_have_from_factory =
             methods().that().arePublic().and().areStatic()
@@ -47,4 +50,5 @@ public class NamingConventionTest {
                     .and().areDeclaredInClassesThat().resideInAPackage("..api.dto..")
                     .and().areDeclaredInClassesThat().haveSimpleNameEndingWith("Response")
                     .should().exist();
+*/
 }

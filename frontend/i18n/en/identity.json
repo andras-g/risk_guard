@@ -1,0 +1,6 @@
+{
+2:   "tenantSwitcher": {
+3:     "placeholder": "Select client...",
+4:     "label": "Current client"
+5:   }
+6: }

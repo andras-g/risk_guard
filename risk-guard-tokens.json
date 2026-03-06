@@ -1,4 +1,14 @@
 {
+  "cookieName": "auth_token",
+  "publicRoutes": ["/auth/login", "/login/callback", "/public"],
+  "endpoints": {
+    "me": "/api/v1/identity/me",
+    "switchTenant": "/api/v1/identity/tenants/switch"
+  },
+  "oauth2": {
+    "google": "/oauth2/authorization/google",
+    "microsoft": "/oauth2/authorization/microsoft"
+  },
   "freshness": {
     "freshThresholdHours": 6,
     "staleThresholdHours": 24,

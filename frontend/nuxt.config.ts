@@ -15,8 +15,16 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: [
-      { code: 'hu', file: 'hu.json', name: 'Magyar' },
-      { code: 'en', file: 'en.json', name: 'English' }
+      { 
+        code: 'hu', 
+        name: 'Magyar',
+        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json']
+      },
+      { 
+        code: 'en', 
+        name: 'English',
+        files: ['en/common.json', 'en/auth.json', 'en/identity.json']
+      }
     ],
     lazy: true,
     langDir: 'i18n/',

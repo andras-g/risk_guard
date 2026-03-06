@@ -49,7 +49,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.5'
+	
 	implementation 'org.springframework.modulith:spring-modulith-starter-core'
 	implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
 	
@@ -68,6 +68,9 @@ dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
 	testImplementation 'com.tngtech.archunit:archunit-junit5:1.3.0'
 	testImplementation 'com.h2database:h2'
@@ -133,3 +136,9 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
+
+processResources {
+    from('../risk-guard-tokens.json') {
+        into('.')
+    }
+}

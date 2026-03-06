@@ -36,9 +36,9 @@ story_location: "/home/andras/dev/risk_guard/_bmad-output/implementation-artifac
 
 development_status:
   epic-1: in-progress
-  1-1-project-initialization-and-monorepo-foundation: review
-  1-2-multi-tenant-schema-and-isolation: backlog
-  1-3-google-and-microsoft-sso-integration: backlog
+  1-1-project-initialization-and-monorepo-foundation: done
+  1-2-multi-tenant-schema-and-isolation: done
+  1-3-google-and-microsoft-sso-integration: done
   1-4-accountant-context-switcher-ui: backlog
   1-5-automated-ci-cd-and-gcp-infrastructure: backlog
   epic-1-retrospective: optional
