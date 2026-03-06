@@ -8,6 +8,7 @@ import hu.riskguard.identity.api.dto.TenantSwitchResponse;
 import hu.riskguard.identity.api.dto.UserResponse;
 import hu.riskguard.identity.domain.User;
 import hu.riskguard.identity.internal.IdentityRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -49,6 +50,7 @@ public class IdentityController {
     public TenantSwitchResponse switchTenant(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody TenantSwitchRequest request,
+            HttpServletRequest servletRequest,
             HttpServletResponse response) {
         
         String email = jwt.getSubject();
@@ -66,7 +68,7 @@ public class IdentityController {
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), newToken)
                 .path("/")
                 .maxAge(properties.getSecurity().getJwtExpirationMs() / 1000)
-                .secure(true) 
+                .secure(servletRequest.isSecure()) 
                 .httpOnly(true)
                 .sameSite("Lax")
                 .build();

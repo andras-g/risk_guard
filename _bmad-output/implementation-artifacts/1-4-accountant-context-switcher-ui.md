@@ -1,6 +1,6 @@
 # Story 1.4: Accountant Context-Switcher UI
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -40,13 +40,15 @@ so that I can check different companies' status without logging out.
 - [x] [AI-Review][MEDIUM] Redundant non-HttpOnly cookie setting in auth.ts [frontend/stores/auth.ts:44]
 - [x] [AI-Review][LOW] IdentityRepository.java modification claimed but not found in git history [_bmad-output/implementation-artifacts/1-4-accountant-context-switcher-ui.md:86]
 - [x] [AI-Review][LOW] Naming inconsistency between story (ContextSwitcher) and code (TenantSwitcher) [frontend/components/Identity/TenantSwitcher.vue]
-- [ ] [AI-Review][HIGH] Hardcoded .secure(true) cookie breaks local HTTP development [backend/src/main/java/hu/riskguard/identity/api/IdentityController.java:69]
-- [ ] [AI-Review][LOW] Inconsistent DTO pattern: TenantSwitchRequest missing from() or consistent record structure
+- [x] [AI-Review][HIGH] Hardcoded .secure(true) cookie breaks local HTTP development [backend/src/main/java/hu/riskguard/identity/api/IdentityController.java:69]
+- [x] [AI-Review][LOW] Inconsistent DTO pattern: TenantSwitchRequest missing from() or consistent record structure
 ...
 ### Completion Notes List
 
 - [x] Implemented `IdentityController.getMandates` endpoint to retrieve user's tenant access list.
 - [x] Refactored `IdentityController.switchTenant` to use `RiskGuardProperties` for cookie attributes.
+- [x] Resolved security vulnerability by using `request.isSecure()` for JWT cookies.
+- [x] Standardized DTO patterns with consistent static factory methods.
 - [x] Updated `IdentityRepository` with join-based mandate retrieval logic.
 - [x] Created `default.vue` layout with a top-bar and integrated the `TenantSwitcher`.
 - [x] Refactored `TenantSwitcher.vue` to use real data from the auth store, added `ACCOUNTANT` role check, and enabled filtering.
@@ -60,16 +62,17 @@ so that I can check different companies' status without logging out.
 - `backend/src/main/java/hu/riskguard/identity/api/IdentityController.java` (Added mandates endpoint and fixed cookie logic)
 - `backend/src/main/java/hu/riskguard/identity/internal/IdentityRepository.java` (Mandate retrieval logic)
 - `backend/src/main/java/hu/riskguard/identity/api/dto/TenantResponse.java` (New DTO)
-- `frontend/layouts/default.vue` (New application layout)
+- `backend/src/main/java/hu/riskguard/identity/api/dto/TenantSwitchRequest.java` (Aligned DTO pattern)
+- `frontend/app/layouts/default.vue` (New application layout)
 - `frontend/app/app.vue` (Integrated layout)
-- `frontend/components/Identity/TenantSwitcher.vue` (Refactored UI)
-- `frontend/components/Identity/ContextGuard.vue` (Fixed reactivity)
-- `frontend/stores/auth.ts` (State for role and mandates)
-- `frontend/i18n/hu/identity.json`
-- `frontend/i18n/en/identity.json`
+- `frontend/app/components/Identity/TenantSwitcher.vue` (Refactored UI)
+- `frontend/app/components/Identity/ContextGuard.vue` (Fixed reactivity)
+- `frontend/app/stores/auth.ts` (State for role and mandates)
+- `frontend/app/i18n/hu/identity.json`
+- `frontend/app/i18n/en/identity.json`
 
 ## Story Completion Status
 
-Status: in-progress
-Completion Note: Context Switcher implemented but requires a fix for local development (secure cookie logic) and DTO pattern alignment.
+Status: review
+Completion Note: Context Switcher fully implemented and all code review findings resolved. Secure cookie logic now supports local development and DTO patterns are standardized.
 
