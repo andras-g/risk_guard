@@ -1,0 +1,88 @@
+# generated: Fri Mar 06 2026
+# project: risk_guard
+# project_key: risk_guard
+# tracking_system: file-system
+# story_location: /home/andras/dev/risk_guard/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Mark epic as 'in-progress' when starting work on its first story
+# - SM typically creates next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then Dev runs code-review (fresh context, ideally different LLM)
+
+generated: Fri Mar 06 2026
+project: risk_guard
+project_key: risk_guard
+tracking_system: file-system
+story_location: "/home/andras/dev/risk_guard/_bmad-output/implementation-artifacts"
+
+development_status:
+  epic-1: in-progress
+  1-1-project-initialization-and-monorepo-foundation: review
+  1-2-multi-tenant-schema-and-isolation: backlog
+  1-3-google-and-microsoft-sso-integration: backlog
+  1-4-accountant-context-switcher-ui: backlog
+  1-5-automated-ci-cd-and-gcp-infrastructure: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-tax-number-search-and-skeleton-ui: backlog
+  2-2-parallel-scraper-engine-and-outage-resilience: backlog
+  2-3-deterministic-verdict-state-machine: backlog
+  2-4-verdict-result-card-and-provenance-sidebar: backlog
+  2-5-sha-256-audit-logging-legal-proof: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-watchlist-management-crud: backlog
+  3-2-24h-background-monitoring-cycle: backlog
+  3-3-resend-email-alerts-and-outbox-pattern: backlog
+  3-4-the-accountant-portfolio-pulse-feed: backlog
+  3-5-accountant-flight-control-dashboard: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-epr-material-library-and-seasonal-templates: backlog
+  4-2-smart-material-wizard-dag-questionnaire: backlog
+  4-3-manual-override-and-confidence-score: backlog
+  4-4-material-template-with-kf-code-mapping: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: backlog
+  5-2-quarterly-epr-filing-workflow: backlog
+  5-3-mohu-ready-csv-export: backlog
+  5-4-export-locale-enforcement-and-ux-notice: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-scraper-health-dashboard-the-heartbeat: backlog
+  6-2-manual-adapter-kill-switch-quarantine: backlog
+  6-3-hot-swappable-epr-json-manager: backlog
+  6-4-gdpr-search-audit-viewer: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-payment-provider-integration-stripe-barion: backlog
+  7-2-automated-invoicing-integration-szamlazz-hu-billingo: backlog
+  7-3-subscription-based-feature-gating: backlog
+  7-4-user-billing-dashboard: backlog
+  epic-7-retrospective: optional
