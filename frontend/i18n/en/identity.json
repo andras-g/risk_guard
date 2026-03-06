@@ -1,6 +1,10 @@
 {
-2:   "tenantSwitcher": {
-3:     "placeholder": "Select client...",
-4:     "label": "Current client"
-5:   }
-6: }
+  "tenantSwitcher": {
+    "placeholder": "Select client...",
+    "label": "Current client"
+  },
+  "contextGuard": {
+    "switching": "Switching to client context...",
+    "errorTitle": "Error switching context"
+  }
+}

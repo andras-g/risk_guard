@@ -83,6 +83,24 @@ export const useAuthStore = defineStore('auth', {
         // If no non-HttpOnly cookie, try fetching /me which will check for HttpOnly cookie
         await this.fetchMe()
       }
+    },
+
+    async switchTenant(tenantId: string) {
+      try {
+        const response = await $fetch<{ token: string }>(authConfig.endpoints.switchTenant, {
+          method: 'POST',
+          body: { tenantId }
+        })
+
+        // The backend also sets the HttpOnly cookie, but we update our store
+        this.setToken(response.token)
+        
+        // Trigger a full page reload to ensure all data is refreshed for the new tenant
+        window.location.reload()
+      } catch (error) {
+        console.error('Failed to switch tenant:', error)
+        throw error
+      }
     }
   }
 })
