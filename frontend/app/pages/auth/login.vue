@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import authConfig from '~/risk-guard-tokens.json'
+import authConfig from '../../risk-guard-tokens.json'
 const { t, te } = useI18n()
 const config = useRuntimeConfig()
 
@@ -48,25 +48,29 @@ onMounted(async () => {
     <Toast />
     <div class="w-full max-w-md p-8 bg-surface-0 border border-surface-200 rounded-xl shadow-lg">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-surface-900 mb-2">{{ t('auth.login.title') }}</h1>
-        <p class="text-surface-600">{{ t('auth.login.subtitle') }}</p>
+        <h1 class="text-3xl font-bold text-surface-900 mb-2">
+          {{ t('auth.login.title') }}
+        </h1>
+        <p class="text-surface-600">
+          {{ t('auth.login.subtitle') }}
+        </p>
       </div>
 
       <div class="flex flex-col gap-4">
         <Button 
           icon="pi pi-google" 
           :label="t('auth.login.google')" 
-          @click="loginWithGoogle" 
-          class="w-full p-button-outlined"
+          class="w-full p-button-outlined" 
           severity="secondary"
+          @click="loginWithGoogle"
         />
         
         <Button 
           icon="pi pi-microsoft" 
           :label="t('auth.login.microsoft')" 
-          @click="loginWithMicrosoft" 
-          class="w-full p-button-outlined"
+          class="w-full p-button-outlined" 
           severity="secondary"
+          @click="loginWithMicrosoft"
         />
       </div>
     </div>

@@ -1,15 +1,18 @@
 package hu.riskguard.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
-import jakarta.persistence.Table;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
 
 @AnalyzeClasses(packages = "hu.riskguard")
 public class NamingConventionTest {
@@ -24,31 +27,46 @@ public class NamingConventionTest {
             classes().that().areAnnotatedWith(RestController.class)
                     .should().haveSimpleNameEndingWith("Controller");
 
-/*
     @ArchTest
     static final ArchRule api_paths_should_match_pattern =
             classes().that().areAnnotatedWith(RestController.class)
-                    .should().beAnnotatedWith(RequestMapping.class)
-                    .andShould().haveAnnotationWithAttributeValue(RequestMapping.class, "value", pattern -> {
-                        for (String path : (String[]) pattern) {
-                            if (!path.matches("/api/v[0-9]+/[a-z-]+")) return false;
+                    .should(new ArchCondition<JavaClass>("have RequestMapping matching /api/v[0-9]+/[a-z-]+") {
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            if (!javaClass.isAnnotatedWith(RequestMapping.class)) {
+                                events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " is not annotated with @RequestMapping"));
+                                return;
+                            }
+                            RequestMapping mapping = javaClass.getAnnotationOfType(RequestMapping.class);
+                            String[] paths = mapping.value();
+                            if (paths.length == 0) {
+                                events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has empty @RequestMapping"));
+                            }
+                            for (String path : paths) {
+                                if (!path.matches("/api/v[0-9]+/[a-z-]+")) {
+                                    events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has invalid path " + path));
+                                }
+                            }
                         }
-                        return true;
                     });
-*/
 
     @ArchTest
     static final ArchRule dtos_should_be_records =
             classes().that().resideInAPackage("..api.dto..")
                     .should().beRecords();
 
-/*
     @ArchTest
     static final ArchRule response_dtos_should_have_from_factory =
-            methods().that().arePublic().and().areStatic()
-                    .and().haveName("from")
-                    .and().areDeclaredInClassesThat().resideInAPackage("..api.dto..")
-                    .and().areDeclaredInClassesThat().haveSimpleNameEndingWith("Response")
-                    .should().exist();
-*/
+            classes().that().resideInAPackage("..api.dto..")
+                    .and().haveSimpleNameEndingWith("Response")
+                    .should(new ArchCondition<JavaClass>("have a static from factory method") {
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            boolean hasFrom = javaClass.getMethods().stream()
+                                    .anyMatch(m -> m.getName().equals("from") && m.getModifiers().contains(JavaModifier.STATIC));
+                            if (!hasFrom) {
+                                events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " is missing static from() method"));
+                            }
+                        }
+                    });
 }

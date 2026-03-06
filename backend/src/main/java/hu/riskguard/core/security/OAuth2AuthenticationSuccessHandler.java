@@ -36,7 +36,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        String targetUrl = properties.getSecurity().getFrontendBaseUrl() + "/auth/login";
+        String targetUrl = properties.getSecurity().getFrontendBaseUrl() + "/login/callback?token=" + token;
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

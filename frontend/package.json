@@ -16,13 +16,15 @@
   },
   "devDependencies": {
     "@intlify/eslint-plugin-vue-i18n": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^9.16.0",
     "eslint-plugin-vue": "^9.32.0",
     "openapi-typescript": "^7.4.4",
     "openapi-zod-client": "^1.18.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8",
-    "@vue/test-utils": "^2.4.6"
+    "vitest": "^2.1.8"
   },
   "dependencies": {
     "@nuxtjs/i18n": "^10.2.3",

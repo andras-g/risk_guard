@@ -1,4 +1,4 @@
-import authConfig from '~/risk-guard-tokens.json'
+import authConfig from '../risk-guard-tokens.json'
 
 export default defineNuxtRouteMiddleware(async (to, from) => {
   const authStore = useAuthStore()

@@ -1,6 +1,7 @@
 package hu.riskguard.identity.internal;
 
 import hu.riskguard.core.repository.BaseRepository;
+import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.domain.Tenant;
 import hu.riskguard.identity.domain.TenantMandate;
 import hu.riskguard.identity.domain.User;
@@ -11,6 +12,7 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +41,14 @@ public class IdentityRepository extends BaseRepository {
                         .where(TENANT_MANDATES.ACCOUNTANT_USER_ID.eq(userId))
                         .and(TENANT_MANDATES.TENANT_ID.eq(tenantId))
         );
+    }
+
+    public List<TenantResponse> findMandatedTenants(UUID userId) {
+        return dsl.select(TENANTS.ID, TENANTS.NAME, TENANTS.TIER)
+                .from(TENANTS)
+                .join(TENANT_MANDATES).on(TENANT_MANDATES.TENANT_ID.eq(TENANTS.ID))
+                .where(TENANT_MANDATES.ACCOUNTANT_USER_ID.eq(userId))
+                .fetchInto(TenantResponse.class);
     }
 
     @Transactional

@@ -40,16 +40,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         }
 
         return identityRepository.findUserByEmail(email)
-                .orElseGet(() -> createNewUserAndTenant(email, name, provider, subject));
+                .orElseGet(() -> provisionNewUserAndTenant(email, name, provider, subject));
     }
 
-    private User createNewUserAndTenant(String email, String name, String provider, String subject) {
+    private User provisionNewUserAndTenant(String email, String name, String provider, String subject) {
+        // Create Tenant
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID());
         tenant.setName(name != null ? name + "'s Tenant" : email + "'s Tenant");
         tenant.setTier(properties.getIdentity().getDefaultTier());
         identityRepository.saveTenant(tenant);
 
+        // Create User
         User user = new User();
         user.setId(UUID.randomUUID());
         user.setTenantId(tenant.getId());
@@ -61,6 +63,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setPreferredLanguage(properties.getIdentity().getDefaultLanguage());
         User savedUser = identityRepository.saveUser(user);
 
+        // Create Initial Mandate (Self-access)
         TenantMandate mandate = new TenantMandate();
         mandate.setId(UUID.randomUUID());
         mandate.setAccountantUserId(savedUser.getId());

@@ -21,6 +21,8 @@ onMounted(() => {
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-surface-50">
     <ProgressSpinner />
-    <p class="mt-4 text-surface-600">{{ t('common.states.loading') }}</p>
+    <p class="mt-4 text-surface-600">
+      {{ t('common.states.loading') }}
+    </p>
   </div>
 </template>

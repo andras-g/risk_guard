@@ -3,10 +3,7 @@ import { useAuthStore } from '~/stores/auth'
 import { storeToRefs } from 'pinia'
 
 const authStore = useAuthStore()
-const { activeTenantId } = storeToRefs(authStore)
-
-// In a real implementation, mandates would come from /me or a separate endpoint
-const mandates = ref<{ id: string, name: string }[]>([])
+const { activeTenantId, mandates, isAccountant } = storeToRefs(authStore)
 
 const selectedTenantId = ref(activeTenantId.value)
 
@@ -27,15 +24,19 @@ async function onTenantChange() {
 </script>
 
 <template>
-  <div v-if="authStore.isAuthenticated" class="flex items-center gap-2">
+  <div
+    v-if="authStore.isAuthenticated && isAccountant"
+    class="flex items-center gap-2"
+  >
     <span class="text-sm font-medium text-slate-400">
       {{ $t('identity.tenantSwitcher.label') }}:
     </span>
     <Select
       v-model="selectedTenantId"
       :options="mandates"
-      optionLabel="name"
-      optionValue="id"
+      option-label="name"
+      option-value="id"
+      filter
       :placeholder="$t('identity.tenantSwitcher.placeholder')"
       class="w-full md:w-64"
       @change="onTenantChange"

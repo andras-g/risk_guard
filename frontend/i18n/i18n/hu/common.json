@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "save": "Mentés",
+    "cancel": "Mégse",
+    "delete": "Törlés",
+    "search": "Keresés",
+    "retry": "Próbálja újra"
+  },
+  "states": {
+    "loading": "Betöltés...",
+    "error": "Hiba történt"
+  }
+}

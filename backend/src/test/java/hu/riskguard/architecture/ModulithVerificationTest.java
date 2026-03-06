@@ -11,6 +11,7 @@ class ModulithVerificationTest {
 
     @Test
     void verifyModulith() {
+        System.out.println("Detected modules: " + modules.stream().map(m -> m.getName()).toList());
         modules.verify();
     }
 

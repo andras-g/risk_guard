@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
-import authConfig from '~/risk-guard-tokens.json'
+import authConfig from '../risk-guard-tokens.json'
 
 interface AuthState {
   token: string | null
   email: string | null
+  name: string | null
+  role: string | null
   homeTenantId: string | null
   activeTenantId: string | null
+  mandates: Array<{ id: string, name: string }>
 }
 
 interface DecodedToken {
@@ -20,13 +23,17 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: null,
     email: null,
+    name: null,
+    role: null,
     homeTenantId: null,
-    activeTenantId: null
+    activeTenantId: null,
+    mandates: []
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.email || !!state.token,
-    hasActiveTenant: (state) => !!state.activeTenantId
+    hasActiveTenant: (state) => !!state.activeTenantId,
+    isAccountant: (state) => state.role === 'ACCOUNTANT'
   },
 
   actions: {
@@ -37,16 +44,6 @@ export const useAuthStore = defineStore('auth', {
         this.email = decoded.sub
         this.homeTenantId = decoded.home_tenant_id
         this.activeTenantId = decoded.active_tenant_id
-        
-        // Persist to cookie (secure, httpOnly=false for JS access ONLY IF token is passed manually)
-        // Note: For SSO, the backend sets an HttpOnly cookie, so we don't need this.
-        // But for manual token setting (like switching tenants), we might want to refresh it.
-        const cookie = useCookie(authConfig.cookieName, {
-          maxAge: 3600,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax'
-        })
-        cookie.value = token
       } catch (e) {
         console.error('Failed to decode token', e)
       }
@@ -54,21 +51,39 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchMe() {
       try {
-        // This will send the HttpOnly cookie automatically
         const data = await $fetch<any>(authConfig.endpoints.me)
         this.email = data.email
+        this.name = data.name
+        this.role = data.role
         this.homeTenantId = data.homeTenantId
         this.activeTenantId = data.activeTenantId
+        
+        // If accountant, auto-fetch mandates
+        if (this.isAccountant) {
+          await this.fetchMandates()
+        }
       } catch (e) {
         this.clearAuth()
+      }
+    },
+
+    async fetchMandates() {
+      try {
+        const data = await $fetch<any[]>(authConfig.endpoints.mandates)
+        this.mandates = data.map(m => ({ id: m.id, name: m.name }))
+      } catch (e) {
+        console.error('Failed to fetch mandates', e)
       }
     },
 
     clearAuth() {
       this.token = null
       this.email = null
+      this.name = null
+      this.role = null
       this.homeTenantId = null
       this.activeTenantId = null
+      this.mandates = []
       
       const cookie = useCookie(authConfig.cookieName)
       cookie.value = null
@@ -79,10 +94,10 @@ export const useAuthStore = defineStore('auth', {
       const cookie = useCookie(authConfig.cookieName)
       if (cookie.value) {
         this.setToken(cookie.value as string)
-      } else {
-        // If no non-HttpOnly cookie, try fetching /me which will check for HttpOnly cookie
-        await this.fetchMe()
       }
+      
+      // Always fetch /me to get full profile and re-validate session via HttpOnly cookie
+      await this.fetchMe()
     },
 
     async switchTenant(tenantId: string) {
@@ -92,7 +107,6 @@ export const useAuthStore = defineStore('auth', {
           body: { tenantId }
         })
 
-        // The backend also sets the HttpOnly cookie, but we update our store
         this.setToken(response.token)
         
         // Trigger a full page reload to ensure all data is refreshed for the new tenant

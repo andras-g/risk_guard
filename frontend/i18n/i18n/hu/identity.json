@@ -1,0 +1,10 @@
+{
+  "tenantSwitcher": {
+    "placeholder": "Válasszon ügyfelet...",
+    "label": "Jelenlegi ügyfél"
+  },
+  "contextGuard": {
+    "switching": "Váltás az ügyfél kontextusára...",
+    "errorTitle": "Hiba történt a váltás során"
+  }
+}

@@ -1,11 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-const huPath = './i18n/hu.json';
-const enPath = './i18n/en.json';
-
-const hu = JSON.parse(fs.readFileSync(huPath, 'utf8'));
-const en = JSON.parse(fs.readFileSync(enPath, 'utf8'));
+const i18nRoot = './i18n';
+const languages = ['hu', 'en'];
+const baseLang = 'hu';
+const targetLangs = ['en'];
 
 function getAllKeys(obj, prefix = '') {
   return Object.keys(obj).reduce((res, el) => {
@@ -19,21 +18,46 @@ function getAllKeys(obj, prefix = '') {
   }, []);
 }
 
-const huKeys = getAllKeys(hu).sort();
-const enKeys = getAllKeys(en).sort();
+const baseModules = fs.readdirSync(path.join(i18nRoot, baseLang))
+  .filter(file => file.endsWith('.json'));
 
-const huMissing = enKeys.filter(key => !huKeys.includes(key));
-const enMissing = huKeys.filter(key => !enKeys.includes(key));
+let globalError = false;
 
-if (huMissing.length > 0) {
-  console.error('Missing keys in hu.json:', huMissing);
-}
-if (enMissing.length > 0) {
-  console.error('Missing keys in en.json:', enMissing);
-}
+baseModules.forEach(moduleFile => {
+  const moduleName = path.basename(moduleFile, '.json');
+  console.log(`Checking module: ${moduleName}`);
+  
+  const basePath = path.join(i18nRoot, baseLang, moduleFile);
+  const baseContent = JSON.parse(fs.readFileSync(basePath, 'utf8'));
+  const baseKeys = getAllKeys(baseContent).sort();
 
-if (huMissing.length > 0 || enMissing.length > 0) {
+  targetLangs.forEach(lang => {
+    const targetPath = path.join(i18nRoot, lang, moduleFile);
+    if (!fs.existsSync(targetPath)) {
+      console.error(`Error: Module file ${moduleFile} is missing for language ${lang}`);
+      globalError = true;
+      return;
+    }
+
+    const targetContent = JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+    const targetKeys = getAllKeys(targetContent).sort();
+
+    const missingInTarget = baseKeys.filter(key => !targetKeys.includes(key));
+    const extraInTarget = targetKeys.filter(key => !baseKeys.includes(key));
+
+    if (missingInTarget.length > 0) {
+      console.error(`Missing keys in ${lang}/${moduleFile}:`, missingInTarget);
+      globalError = true;
+    }
+    if (extraInTarget.length > 0) {
+      console.error(`Extra keys in ${lang}/${moduleFile} (not in ${baseLang}):`, extraInTarget);
+      globalError = true;
+    }
+  });
+});
+
+if (globalError) {
   process.exit(1);
 }
 
-console.log('✓ i18n key parity check passed');
+console.log('✓ i18n key parity check passed for all modules');

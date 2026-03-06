@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
@@ -28,21 +29,40 @@ function logout() {
 </script>
 
 <template>
-  <div v-if="isTransitioning || error" class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+  <div
+    v-if="isTransitioning || error"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
+  >
     <div class="max-w-md w-full p-8 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-center">
       <div v-if="isTransitioning">
         <ProgressSpinner />
-        <p class="mt-4 text-slate-200 font-medium">{{ $t('identity.contextGuard.switching') }}</p>
+        <p class="mt-4 text-slate-200 font-medium">
+          {{ $t('identity.contextGuard.switching') }}
+        </p>
       </div>
       
       <div v-else-if="error">
-        <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-4"></i>
-        <h2 class="text-xl font-bold text-white mb-2">{{ $t('identity.contextGuard.errorTitle') }}</h2>
-        <p class="text-slate-400 mb-6">{{ error }}</p>
+        <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-4" />
+        <h2 class="text-xl font-bold text-white mb-2">
+          {{ $t('identity.contextGuard.errorTitle') }}
+        </h2>
+        <p class="text-slate-400 mb-6">
+          {{ error }}
+        </p>
         
         <div class="flex flex-col gap-3">
-          <Button :label="$t('common.retry')" @click="retry" class="w-full" />
-          <Button :label="$t('auth.logout')" severity="secondary" @click="logout" variant="text" class="w-full" />
+          <Button
+            :label="$t('common.retry')"
+            class="w-full"
+            @click="retry"
+          />
+          <Button
+            :label="$t('auth.logout')"
+            severity="secondary"
+            variant="text"
+            class="w-full"
+            @click="logout"
+          />
         </div>
       </div>
     </div>

@@ -14,9 +14,9 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_DB: risk_guard
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
+          POSTGRES_DB: riskguard
+          POSTGRES_USER: riskguard
+          POSTGRES_PASSWORD: localdev
         ports:
           - 5432:5432
         options: >-
@@ -47,7 +47,7 @@ jobs:
         working-directory: backend
 
       - name: "Step 4: Run Flyway migrations"
-        run: ./gradlew flywayMigrate -Dflyway.url=jdbc:postgresql://localhost:5432/risk_guard -Dflyway.user=user -Dflyway.password=password
+        run: ./gradlew flywayMigrate -Dflyway.url=jdbc:postgresql://localhost:5432/riskguard -Dflyway.user=riskguard -Dflyway.password=localdev
         working-directory: backend
 
       - name: "Step 5: Generate OpenAPI spec"
@@ -60,7 +60,7 @@ jobs:
           name: openapi-spec
           path: backend/build/generated/openapi.json
 
-      - name: "Step 11: Backend Unit Tests"
+      - name: "Step 11a: Backend Unit Tests"
         run: ./gradlew test --exclude-task "*IntegrationTest"
         working-directory: backend
 
@@ -69,7 +69,7 @@ jobs:
         working-directory: backend
 
   frontend:
-    name: Frontend CI (Steps 6-10, 11)
+    name: Frontend CI (Steps 6-10, 11b)
     needs: backend
     runs-on: ubuntu-latest
     steps:
@@ -112,6 +112,6 @@ jobs:
         run: npm run check-types
         working-directory: frontend
 
-      - name: "Step 11: Run frontend tests"
+      - name: "Step 11b: Run frontend tests"
         run: npm run test
         working-directory: frontend
