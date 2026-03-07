@@ -3,6 +3,7 @@
   "publicRoutes": ["/auth/login", "/login/callback", "/public"],
   "endpoints": {
     "me": "/api/v1/identity/me",
+    "mandates": "/api/v1/identity/mandates",
     "switchTenant": "/api/v1/identity/tenants/switch"
   },
   "oauth2": {

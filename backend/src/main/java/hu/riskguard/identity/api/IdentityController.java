@@ -4,12 +4,12 @@ import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.api.dto.TenantSwitchRequest;
-import hu.riskguard.identity.api.dto.TenantSwitchResponse;
 import hu.riskguard.identity.api.dto.UserResponse;
+import hu.riskguard.identity.domain.IdentityService;
 import hu.riskguard.identity.domain.User;
-import hu.riskguard.identity.internal.IdentityRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,14 +26,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class IdentityController {
 
-    private final IdentityRepository identityRepository;
+    private final IdentityService identityService;
     private final TokenProvider tokenProvider;
     private final RiskGuardProperties properties;
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
         String email = jwt.getSubject();
-        User user = identityRepository.findUserByEmail(email)
+        User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return UserResponse.from(user, jwt.getClaimAsString("active_tenant_id"));
     }
@@ -41,39 +41,39 @@ public class IdentityController {
     @GetMapping("/mandates")
     public List<TenantResponse> getMandates(@AuthenticationPrincipal Jwt jwt) {
         String email = jwt.getSubject();
-        User user = identityRepository.findUserByEmail(email)
+        User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return identityRepository.findMandatedTenants(user.getId());
+        return identityService.findMandatedTenants(user.getId());
     }
 
     @PostMapping("/tenants/switch")
-    public TenantSwitchResponse switchTenant(
+    public void switchTenant(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody TenantSwitchRequest request,
+            @Valid @RequestBody TenantSwitchRequest request,
             HttpServletRequest servletRequest,
             HttpServletResponse response) {
         
         String email = jwt.getSubject();
-        User user = identityRepository.findUserByEmail(email)
+        User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
         // Verify mandate
-        if (!user.getTenantId().equals(request.tenantId()) && !identityRepository.hasMandate(user.getId(), request.tenantId())) {
+        if (!user.getTenantId().equals(request.tenantId()) && !identityService.hasMandate(user.getId(), request.tenantId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No mandate for this tenant");
         }
 
-        // Issue token
+        // Issue token — set as HttpOnly cookie ONLY (not in response body to prevent token leaking)
         String newToken = tokenProvider.createToken(email, user.getTenantId(), request.tenantId());
         
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), newToken)
                 .path("/")
                 .maxAge(properties.getSecurity().getJwtExpirationMs() / 1000)
-                .secure(servletRequest.isSecure()) 
+                .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        return TenantSwitchResponse.from(newToken);
+        response.setStatus(HttpStatus.NO_CONTENT.value());
     }
 }

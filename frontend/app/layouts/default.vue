@@ -8,10 +8,10 @@
         </div>
         
         <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-          <NuxtLink to="/dashboard" class="hover:text-white transition-colors" active-class="text-white">Dashboard</NuxtLink>
-          <NuxtLink to="/screening" class="hover:text-white transition-colors" active-class="text-white">Screening</NuxtLink>
-          <NuxtLink to="/watchlist" class="hover:text-white transition-colors" active-class="text-white">Watchlist</NuxtLink>
-          <NuxtLink to="/epr" class="hover:text-white transition-colors" active-class="text-white">EPR</NuxtLink>
+          <NuxtLink to="/dashboard" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.dashboard') }}</NuxtLink>
+          <NuxtLink to="/screening" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.screening') }}</NuxtLink>
+          <NuxtLink to="/watchlist" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.watchlist') }}</NuxtLink>
+          <NuxtLink to="/epr" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.epr') }}</NuxtLink>
         </nav>
       </div>
 

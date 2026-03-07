@@ -61,7 +61,7 @@ jobs:
           path: backend/build/generated/openapi.json
 
       - name: "Step 11a: Backend Unit Tests"
-        run: ./gradlew test --exclude-task "*IntegrationTest"
+        run: ./gradlew test --tests "!*IntegrationTest"
         working-directory: backend
 
       - name: "Step 12: Backend Integration Tests"

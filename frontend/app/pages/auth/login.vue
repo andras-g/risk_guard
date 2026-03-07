@@ -45,7 +45,6 @@ onMounted(async () => {
 
 <template>
   <div class="flex items-center justify-center min-h-screen bg-surface-50">
-    <Toast />
     <div class="w-full max-w-md p-8 bg-surface-0 border border-surface-200 rounded-xl shadow-lg">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-surface-900 mb-2">

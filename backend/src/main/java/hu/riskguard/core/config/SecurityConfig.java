@@ -41,6 +41,9 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                // NOTE: CSRF with stateless JWT is intentional — provides double-submit cookie
+                // pattern defense-in-depth. HttpOnly=false is required so JavaScript can read
+                // the CSRF token to include it in request headers.
                 .ignoringRequestMatchers("/api/public/**", "/actuator/**")
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

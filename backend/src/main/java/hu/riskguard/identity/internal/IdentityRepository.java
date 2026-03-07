@@ -27,6 +27,12 @@ public class IdentityRepository extends BaseRepository {
         super(dsl);
     }
 
+    /**
+     * Find user by email — intentionally cross-tenant.
+     * Uses dsl.select().from() (not selectFrom()) because email is globally unique
+     * and this query must work across all tenants (e.g., during OAuth2 login before
+     * tenant context is established).
+     */
     public Optional<User> findUserByEmail(String email) {
         return dsl.select(USERS.asterisk())
                 .from(USERS)
@@ -34,6 +40,10 @@ public class IdentityRepository extends BaseRepository {
                 .fetchOptionalInto(User.class);
     }
 
+    /**
+     * Check if user has a mandate for a specific tenant — intentionally cross-tenant.
+     * This must query across all tenants to verify authorization.
+     */
     public boolean hasMandate(UUID userId, UUID tenantId) {
         return dsl.fetchExists(
                 dsl.selectOne()
@@ -43,6 +53,10 @@ public class IdentityRepository extends BaseRepository {
         );
     }
 
+    /**
+     * Find all tenants a user has mandates for — intentionally cross-tenant.
+     * Returns tenants across all mandates, not scoped to active tenant.
+     */
     public List<TenantResponse> findMandatedTenants(UUID userId) {
         return dsl.select(TENANTS.ID, TENANTS.NAME, TENANTS.TIER)
                 .from(TENANTS)

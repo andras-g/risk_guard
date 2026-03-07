@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const i18nRoot = './i18n';
+// Canonical i18n directory is under app/i18n/ (Nuxt 4 compat mode)
+const i18nRoot = './app/i18n';
 const languages = ['hu', 'en'];
 const baseLang = 'hu';
 const targetLangs = ['en'];

@@ -1,7 +1,6 @@
 package hu.riskguard.core.security;
 
 import hu.riskguard.core.config.RiskGuardProperties;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +29,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), token)
                 .path("/")
                 .maxAge(3600)
-                .secure(request.isSecure())
+                .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
                 .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
-        String targetUrl = properties.getSecurity().getFrontendBaseUrl() + "/login/callback?token=" + token;
+        // Redirect WITHOUT token in query param — the HttpOnly cookie set above is sufficient.
+        // Previously, the token was appended as ?token=... which leaked it via browser history,
+        // server access logs, and Referer headers.
+        String targetUrl = properties.getSecurity().getFrontendBaseUrl() + "/login/callback";
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

@@ -9,5 +9,11 @@
   "states": {
     "loading": "Loading...",
     "error": "An error occurred"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "screening": "Screening",
+    "watchlist": "Watchlist",
+    "epr": "EPR"
   }
 }

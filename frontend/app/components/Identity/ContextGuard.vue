@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const { activeTenantId } = storeToRefs(authStore)
 
@@ -15,7 +16,7 @@ async function retry() {
       isTransitioning.value = true
       await authStore.switchTenant(activeTenantId.value)
     } catch (e) {
-      error.value = 'Switch failed. Please try again or log in.'
+      error.value = t('identity.contextGuard.switchFailed')
     } finally {
       isTransitioning.value = false
     }
@@ -24,7 +25,7 @@ async function retry() {
 
 function logout() {
   authStore.clearAuth()
-  navigateTo('/login')
+  navigateTo('/auth/login')
 }
 </script>
 
@@ -52,7 +53,7 @@ function logout() {
         
         <div class="flex flex-col gap-3">
           <Button
-            :label="$t('common.retry')"
+            :label="$t('common.actions.retry')"
             class="w-full"
             @click="retry"
           />

@@ -44,11 +44,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
     private User provisionNewUserAndTenant(String email, String name, String provider, String subject) {
+        OffsetDateTime now = OffsetDateTime.now();
+
         // Create Tenant
         Tenant tenant = new Tenant();
         tenant.setId(UUID.randomUUID());
         tenant.setName(name != null ? name + "'s Tenant" : email + "'s Tenant");
         tenant.setTier(properties.getIdentity().getDefaultTier());
+        tenant.setCreatedAt(now);
         identityRepository.saveTenant(tenant);
 
         // Create User
@@ -61,6 +64,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         user.setSsoSubject(subject);
         user.setRole(properties.getIdentity().getDefaultUserRole());
         user.setPreferredLanguage(properties.getIdentity().getDefaultLanguage());
+        user.setCreatedAt(now);
         User savedUser = identityRepository.saveUser(user);
 
         // Create Initial Mandate (Self-access)
@@ -68,7 +72,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         mandate.setId(UUID.randomUUID());
         mandate.setAccountantUserId(savedUser.getId());
         mandate.setTenantId(tenant.getId());
-        mandate.setValidFrom(OffsetDateTime.now());
+        mandate.setValidFrom(now);
         identityRepository.saveTenantMandate(mandate);
 
         return savedUser;

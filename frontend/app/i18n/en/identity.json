@@ -5,6 +5,7 @@
   },
   "contextGuard": {
     "switching": "Switching to client context...",
-    "errorTitle": "Error switching context"
+    "errorTitle": "Error switching context",
+    "switchFailed": "Switch failed. Please try again or log in."
   }
 }

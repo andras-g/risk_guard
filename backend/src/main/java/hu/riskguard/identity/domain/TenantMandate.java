@@ -11,6 +11,6 @@ public class TenantMandate {
     private UUID id;
     private UUID accountantUserId;
     private UUID tenantId;
-    private OffsetDateTime validFrom = OffsetDateTime.now();
+    private OffsetDateTime validFrom;
     private OffsetDateTime validTo;
 }

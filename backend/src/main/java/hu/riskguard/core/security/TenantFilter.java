@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +19,7 @@ import java.util.UUID;
 @Component
 public class TenantFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(TenantFilter.class);
     private static final String TENANT_ID_CLAIM = "active_tenant_id";
     private static final String MDC_TENANT_ID = "tenantId";
 
@@ -32,6 +35,11 @@ public class TenantFilter extends OncePerRequestFilter {
                 UUID tenantId = UUID.fromString(tenantIdStr);
                 TenantContext.setCurrentTenant(tenantId);
                 MDC.put(MDC_TENANT_ID, tenantIdStr);
+            } else {
+                // Authenticated user without active_tenant_id — this is a security concern.
+                // Log it so we can track requests that bypass tenant context.
+                log.warn("Authenticated request without active_tenant_id claim. Subject: {}, URI: {}",
+                        jwt.getSubject(), request.getRequestURI());
             }
         }
 

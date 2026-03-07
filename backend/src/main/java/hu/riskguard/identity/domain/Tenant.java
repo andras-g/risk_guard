@@ -12,5 +12,5 @@ public class Tenant {
     private UUID id;
     private String name;
     private String tier = "ALAP";
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    private OffsetDateTime createdAt;
 }

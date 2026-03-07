@@ -34,7 +34,7 @@ spring:
               - email
         provider:
           google:
-            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            authorization-uri: https://accounts.google.com/o/oauth2/v2.0/auth
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
@@ -55,4 +55,3 @@ risk-guard:
     default-tier: ALAP
     default-language: hu
     default-user-role: SME_ADMIN
-

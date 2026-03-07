@@ -51,7 +51,10 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchMe() {
       try {
-        const data = await $fetch<any>(authConfig.endpoints.me)
+        const config = useRuntimeConfig()
+        const data = await $fetch<any>(authConfig.endpoints.me, {
+          baseURL: config.public.apiBase as string
+        })
         this.email = data.email
         this.name = data.name
         this.role = data.role
@@ -69,7 +72,10 @@ export const useAuthStore = defineStore('auth', {
 
     async fetchMandates() {
       try {
-        const data = await $fetch<any[]>(authConfig.endpoints.mandates)
+        const config = useRuntimeConfig()
+        const data = await $fetch<any[]>(authConfig.endpoints.mandates, {
+          baseURL: config.public.apiBase as string
+        })
         this.mandates = data.map(m => ({ id: m.id, name: m.name }))
       } catch (e) {
         console.error('Failed to fetch mandates', e)
@@ -102,14 +108,16 @@ export const useAuthStore = defineStore('auth', {
 
     async switchTenant(tenantId: string) {
       try {
-        const response = await $fetch<{ token: string }>(authConfig.endpoints.switchTenant, {
+        const config = useRuntimeConfig()
+        // Token is now set via HttpOnly cookie by the backend (no token in response body)
+        await $fetch(authConfig.endpoints.switchTenant, {
           method: 'POST',
-          body: { tenantId }
+          body: { tenantId },
+          baseURL: config.public.apiBase as string
         })
 
-        this.setToken(response.token)
-        
         // Trigger a full page reload to ensure all data is refreshed for the new tenant
+        // The new JWT is already set as an HttpOnly cookie by the backend
         window.location.reload()
       } catch (error) {
         console.error('Failed to switch tenant:', error)

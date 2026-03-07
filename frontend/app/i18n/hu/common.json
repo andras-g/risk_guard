@@ -9,5 +9,11 @@
   "states": {
     "loading": "Betöltés...",
     "error": "Hiba történt"
+  },
+  "nav": {
+    "dashboard": "Irányítópult",
+    "screening": "Átvilágítás",
+    "watchlist": "Megfigyelőlista",
+    "epr": "EPR"
   }
 }

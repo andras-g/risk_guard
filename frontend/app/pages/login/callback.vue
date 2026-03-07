@@ -1,19 +1,19 @@
 <script setup lang="ts">
-const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
-onMounted(() => {
-  const token = route.query.token as string
-  if (token) {
-    authStore.setToken(token)
-    // In Story 1.3 redirect to dashboard or home
+onMounted(async () => {
+  // Token is now set as an HttpOnly cookie by the backend (not in query params).
+  // Initialize auth from the cookie via the /me endpoint.
+  await authStore.initializeAuth()
+  
+  if (authStore.isAuthenticated) {
     router.push('/')
   } else {
-    // Show error
-    console.error('No token provided in callback')
-    router.push('/auth/login?error=no_token')
+    // Auth cookie may not have been set — redirect to login with error
+    console.error('Authentication failed: no valid session after OAuth2 callback')
+    router.push('/auth/login?error=auth-failed')
   }
 })
 </script>

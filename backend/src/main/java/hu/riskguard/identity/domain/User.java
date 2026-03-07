@@ -17,5 +17,5 @@ public class User {
     private String preferredLanguage = "hu";
     private String ssoProvider;
     private String ssoSubject;
-    private OffsetDateTime createdAt = OffsetDateTime.now();
+    private OffsetDateTime createdAt;
 }

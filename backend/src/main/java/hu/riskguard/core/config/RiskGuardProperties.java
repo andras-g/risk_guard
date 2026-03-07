@@ -1,19 +1,22 @@
 package hu.riskguard.core.config;
 
 import lombok.Data;
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 
 @Data
 @Component
 @ConfigurationProperties(prefix = "risk-guard")
 public class RiskGuardProperties {
+
+    private static final Logger log = LoggerFactory.getLogger(RiskGuardProperties.class);
+
     private Freshness freshness = new Freshness();
     private Guest guest = new Guest();
     private Identity identity = new Identity();
@@ -22,6 +25,11 @@ public class RiskGuardProperties {
 
     @PostConstruct
     public void init() {
+        loadTokensConfig();
+        validateSecurityConfig();
+    }
+
+    private void loadTokensConfig() {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode node = mapper.readTree(new ClassPathResource("risk-guard-tokens.json").getInputStream());
@@ -29,7 +37,20 @@ public class RiskGuardProperties {
                 this.identity.setCookieName(node.get("cookieName").asText());
             }
         } catch (Exception e) {
-            // fallback
+            log.warn("Failed to load risk-guard-tokens.json from classpath. Using default configuration. Error: {}", e.getMessage());
+        }
+    }
+
+    private void validateSecurityConfig() {
+        String secret = security.getJwtSecret();
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException("JWT secret must be at least 32 characters. "
+                    + "Set the JWT_SECRET environment variable.");
+        }
+        // Reject known default values in non-dev profiles
+        if (secret.startsWith("default_secret") || secret.startsWith("local-dev-secret")) {
+            log.warn("SECURITY WARNING: JWT secret appears to be a default/development value. "
+                    + "Set JWT_SECRET environment variable to a strong random secret in production.");
         }
     }
 
@@ -66,5 +87,6 @@ public class RiskGuardProperties {
         private String jwtSecret = "default_secret_must_be_overridden_in_production_32_chars_min";
         private long jwtExpirationMs = 3600000; // 1 hour
         private String frontendBaseUrl = "http://localhost:3000";
+        private boolean cookieSecure = false; // Set to true behind TLS-terminating reverse proxy
     }
 }
