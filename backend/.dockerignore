@@ -1,0 +1,18 @@
+# Exclude test sources and build artifacts from Docker build context
+# This significantly reduces build context size and improves CI build speed.
+
+src/test/
+.gradle/
+build/
+compose.yaml
+HELP.md
+*.md
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db

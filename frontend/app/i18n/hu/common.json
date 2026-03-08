@@ -1,19 +1,21 @@
 {
-  "actions": {
-    "save": "Mentés",
-    "cancel": "Mégse",
-    "delete": "Törlés",
-    "search": "Keresés",
-    "retry": "Próbálja újra"
-  },
-  "states": {
-    "loading": "Betöltés...",
-    "error": "Hiba történt"
-  },
-  "nav": {
-    "dashboard": "Irányítópult",
-    "screening": "Átvilágítás",
-    "watchlist": "Megfigyelőlista",
-    "epr": "EPR"
+  "common": {
+    "actions": {
+      "save": "Mentés",
+      "cancel": "Mégse",
+      "delete": "Törlés",
+      "search": "Keresés",
+      "retry": "Próbálja újra"
+    },
+    "states": {
+      "loading": "Betöltés...",
+      "error": "Hiba történt"
+    },
+    "nav": {
+      "dashboard": "Irányítópult",
+      "screening": "Átvilágítás",
+      "watchlist": "Megfigyelőlista",
+      "epr": "EPR"
+    }
   }
 }

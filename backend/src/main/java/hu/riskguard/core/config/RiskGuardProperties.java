@@ -2,7 +2,6 @@ package hu.riskguard.core.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,8 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 
+/**
+ * Typed configuration properties for the risk-guard application.
+ *
+ * <p>Registered via {@code @EnableConfigurationProperties} on {@link hu.riskguard.RiskGuardApplication}
+ * to avoid the {@code @Component} + {@code @ConfigurationProperties} anti-pattern in Spring Boot 4,
+ * where {@code @PostConstruct} may fire before property binding is complete.
+ */
 @Data
-@Component
 @ConfigurationProperties(prefix = "risk-guard")
 public class RiskGuardProperties {
 
@@ -41,10 +46,17 @@ public class RiskGuardProperties {
         }
     }
 
+    /**
+     * Validates security configuration at startup.
+     * NOTE: JWT secret strength validation (min 32 bytes / 256 bits) is performed by
+     * {@link hu.riskguard.core.security.TokenProvider#validateSecret()} to avoid
+     * duplicate checks with inconsistent thresholds (char vs byte length).
+     * This method only warns about known default/development secret values.
+     */
     private void validateSecurityConfig() {
         String secret = security.getJwtSecret();
-        if (secret == null || secret.length() < 32) {
-            throw new IllegalStateException("JWT secret must be at least 32 characters. "
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT secret must not be null or blank. "
                     + "Set the JWT_SECRET environment variable.");
         }
         // Reject known default values in non-dev profiles

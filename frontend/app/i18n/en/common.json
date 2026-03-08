@@ -1,19 +1,21 @@
 {
-  "actions": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "search": "Search",
-    "retry": "Retry"
-  },
-  "states": {
-    "loading": "Loading...",
-    "error": "An error occurred"
-  },
-  "nav": {
-    "dashboard": "Dashboard",
-    "screening": "Screening",
-    "watchlist": "Watchlist",
-    "epr": "EPR"
+  "common": {
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "search": "Search",
+      "retry": "Retry"
+    },
+    "states": {
+      "loading": "Loading...",
+      "error": "An error occurred"
+    },
+    "nav": {
+      "dashboard": "Dashboard",
+      "screening": "Screening",
+      "watchlist": "Watchlist",
+      "epr": "EPR"
+    }
   }
 }

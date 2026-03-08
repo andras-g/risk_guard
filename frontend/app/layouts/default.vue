@@ -23,8 +23,8 @@
         
         <div class="flex items-center gap-3">
           <div class="text-right hidden sm:block">
-            <div class="text-sm font-medium">{{ authStore.name }}</div>
-            <div class="text-xs text-slate-500">{{ authStore.role }}</div>
+            <div class="text-sm font-medium">{{ userName }}</div>
+            <div class="text-xs text-slate-500">{{ userRole }}</div>
           </div>
           <Button icon="pi pi-user" severity="secondary" rounded variant="text" />
         </div>
@@ -33,7 +33,7 @@
 
     <!-- Page Content -->
     <main class="flex-1 p-6">
-      <div class="max-auto max-w-7xl">
+      <div class="mx-auto max-w-7xl">
         <slot />
       </div>
     </main>
@@ -44,7 +44,9 @@
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
+const { name: userName, role: userRole } = storeToRefs(authStore)
 </script>

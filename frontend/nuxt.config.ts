@@ -5,6 +5,13 @@ export default defineNuxtConfig({
   future: {
     compatibilityVersion: 4
   },
+
+  // Nuxt Hybrid Rendering — SEO stubs for /company/[taxNumber] use ISR (AC: 3)
+  // All other routes use SPA/client-side rendering.
+  routeRules: {
+    '/company/**': { isr: true },   // ISR: cached on CDN, revalidates in background
+  },
+
   modules: [
     '@primevue/nuxt-module',
     '@pinia/nuxt',
@@ -14,30 +21,35 @@ export default defineNuxtConfig({
     options: {
       ripple: true
     },
-    importTheme: { from: 'assets/themes/risk-guard.ts' }
+    importTheme: { from: '~/assets/themes/risk-guard.ts' }
   },
   i18n: {
     locales: [
       { 
         code: 'hu', 
         name: 'Magyar',
-        files: ['i18n/hu/common.json', 'i18n/hu/auth.json', 'i18n/hu/identity.json']
+        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json']
       },
       { 
         code: 'en', 
         name: 'English',
-        files: ['i18n/en/common.json', 'i18n/en/auth.json', 'i18n/en/identity.json']
+        files: ['en/common.json', 'en/auth.json', 'en/identity.json']
       }
     ],
-    lazy: true,
-    langDir: '',
+    lazy: false,
+    langDir: 'app/i18n',
+    restructureDir: '',
     defaultLocale: 'hu',
     strategy: 'no_prefix'
   },
-  css: ['assets/css/main.css'],
+  css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      apiBase: process.env.API_BASE || 'http://localhost:8080/api/v1'
+      // Default for local dev. Overridden at build time via NUXT_PUBLIC_API_BASE env var
+      // (e.g. NUXT_PUBLIC_API_BASE=https://api.riskguard.hu/api/v1 in CI/deploy.yml).
+      // Nuxt automatically maps NUXT_PUBLIC_<KEY> → runtimeConfig.public.<key>.
+      // Do NOT use process.env.API_BASE — that env var is never set and would bake in localhost.
+      apiBase: 'http://localhost:8080/api/v1'
     }
   }
 })

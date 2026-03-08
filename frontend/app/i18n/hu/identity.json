@@ -1,11 +1,13 @@
 {
-  "tenantSwitcher": {
-    "placeholder": "Válasszon ügyfelet...",
-    "label": "Jelenlegi ügyfél"
-  },
-  "contextGuard": {
-    "switching": "Váltás az ügyfél kontextusára...",
-    "errorTitle": "Hiba történt a váltás során",
-    "switchFailed": "A váltás sikertelen. Kérjük, próbálja újra vagy jelentkezzen be."
+  "identity": {
+    "tenantSwitcher": {
+      "placeholder": "Válasszon ügyfelet...",
+      "label": "Jelenlegi ügyfél"
+    },
+    "contextGuard": {
+      "switching": "Váltás az ügyfél kontextusára...",
+      "errorTitle": "Hiba történt a váltás során",
+      "switchFailed": "A váltás sikertelen. Kérjük, próbálja újra vagy jelentkezzen be."
+    }
   }
 }

@@ -1,7 +1,6 @@
 package hu.riskguard.identity.internal;
 
 import hu.riskguard.core.repository.BaseRepository;
-import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.domain.Tenant;
 import hu.riskguard.identity.domain.TenantMandate;
 import hu.riskguard.identity.domain.User;
@@ -12,6 +11,7 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,28 +41,35 @@ public class IdentityRepository extends BaseRepository {
     }
 
     /**
-     * Check if user has a mandate for a specific tenant — intentionally cross-tenant.
+     * Check if user has an active (non-expired) mandate for a specific tenant — intentionally cross-tenant.
      * This must query across all tenants to verify authorization.
+     * A mandate is considered active when valid_to is NULL (indefinite) or valid_to > now.
      */
     public boolean hasMandate(UUID userId, UUID tenantId) {
+        OffsetDateTime now = OffsetDateTime.now();
         return dsl.fetchExists(
                 dsl.selectOne()
                         .from(TENANT_MANDATES)
                         .where(TENANT_MANDATES.ACCOUNTANT_USER_ID.eq(userId))
                         .and(TENANT_MANDATES.TENANT_ID.eq(tenantId))
+                        .and(TENANT_MANDATES.VALID_TO.isNull().or(TENANT_MANDATES.VALID_TO.gt(now)))
         );
     }
 
     /**
-     * Find all tenants a user has mandates for — intentionally cross-tenant.
-     * Returns tenants across all mandates, not scoped to active tenant.
+     * Find all tenants a user has active (non-expired) mandates for — intentionally cross-tenant.
+     * Returns domain Tenant objects across all active mandates, not scoped to active tenant.
+     * Expired mandates (valid_to < now) are excluded.
+     * Note: Returns domain Tenant, not api.dto.TenantResponse — the service facade handles DTO conversion.
      */
-    public List<TenantResponse> findMandatedTenants(UUID userId) {
+    public List<Tenant> findMandatedTenants(UUID userId) {
+        OffsetDateTime now = OffsetDateTime.now();
         return dsl.select(TENANTS.ID, TENANTS.NAME, TENANTS.TIER)
                 .from(TENANTS)
                 .join(TENANT_MANDATES).on(TENANT_MANDATES.TENANT_ID.eq(TENANTS.ID))
                 .where(TENANT_MANDATES.ACCOUNTANT_USER_ID.eq(userId))
-                .fetchInto(TenantResponse.class);
+                .and(TENANT_MANDATES.VALID_TO.isNull().or(TENANT_MANDATES.VALID_TO.gt(now)))
+                .fetchInto(Tenant.class);
     }
 
     @Transactional

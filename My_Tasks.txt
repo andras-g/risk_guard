@@ -1,0 +1,10 @@
+OAuth: 
+1. Go to https://console.cloud.google.com/apis/credentials (https://console.cloud.google.com/apis/credentials)
+2. Create an OAuth 2.0 Client ID (Web application)
+3. Add http://localhost:8080/login/oauth2/code/google as an authorized redirect URI
+4. Set the credentials as environment variables before starting the backend:
+export GOOGLE_CLIENT_ID=your-real-client-id.apps.googleusercontent.com
+export GOOGLE_CLIENT_SECRET=your-real-client-secret
+
+
+

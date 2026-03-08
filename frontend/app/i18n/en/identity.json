@@ -1,11 +1,13 @@
 {
-  "tenantSwitcher": {
-    "placeholder": "Select client...",
-    "label": "Current client"
-  },
-  "contextGuard": {
-    "switching": "Switching to client context...",
-    "errorTitle": "Error switching context",
-    "switchFailed": "Switch failed. Please try again or log in."
+  "identity": {
+    "tenantSwitcher": {
+      "placeholder": "Select client...",
+      "label": "Current client"
+    },
+    "contextGuard": {
+      "switching": "Switching to client context...",
+      "errorTitle": "Error switching context",
+      "switchFailed": "Switch failed. Please try again or log in."
+    }
   }
 }

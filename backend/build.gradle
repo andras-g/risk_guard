@@ -62,6 +62,12 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	
 	runtimeOnly 'org.postgresql:postgresql'
+	// Cloud SQL Auth Proxy socket connector — required for Cloud Run → Cloud SQL (socket-based, no public IP)
+	// Provides com.google.cloud.sql.postgres.SocketFactory used in application-prod.yml JDBC URL
+	implementation 'com.google.cloud.sql:postgres-socket-factory:1.21.0'
+	// Structured JSON logging for GCP Cloud Logging (prod profile).
+	// Handles multi-line exceptions and stack traces correctly unlike PatternLayoutEncoder.
+	runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
 
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -128,11 +134,28 @@ jooq {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		if (System.getProperty('groups')) {
+			includeTags System.getProperty('groups')
+		}
+		if (System.getProperty('excludedGroups')) {
+			excludeTags System.getProperty('excludedGroups')
+		}
+	}
+}
+
+tasks.named('compileJava') {
+	dependsOn tasks.named('generateJooq')
 }
 
 
 processResources {
+    // risk-guard-tokens.json is the canonical monorepo config shared by backend and frontend.
+    // The file lives in both the monorepo root AND backend/src/main/resources/ for classpath
+    // availability (IDE + tests + runtime without requiring a Gradle build step).
+    // The root copy is authoritative — this task overwrites the src/main/resources copy during
+    // builds to keep them in sync. DuplicatesStrategy.INCLUDE ensures the root copy wins.
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
     from('../risk-guard-tokens.json') {
         into('.')
     }

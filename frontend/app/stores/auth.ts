@@ -10,12 +10,19 @@ interface AuthState {
   homeTenantId: string | null
   activeTenantId: string | null
   mandates: Array<{ id: string, name: string }>
+  /** True while a tenant switch HTTP call is in flight */
+  isSwitchingTenant: boolean
+  /** Non-null when the last tenant switch failed */
+  switchError: string | null
+  /** The target tenant ID of the last failed switch — used by ContextGuard retry */
+  switchTargetTenantId: string | null
 }
 
 interface DecodedToken {
   sub: string
   home_tenant_id: string
   active_tenant_id: string
+  role: string
   exp: number
 }
 
@@ -27,11 +34,14 @@ export const useAuthStore = defineStore('auth', {
     role: null,
     homeTenantId: null,
     activeTenantId: null,
-    mandates: []
+    mandates: [],
+    isSwitchingTenant: false,
+    switchError: null,
+    switchTargetTenantId: null
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.email || !!state.token,
+    isAuthenticated: (state) => !!state.email && !!state.token,
     hasActiveTenant: (state) => !!state.activeTenantId,
     isAccountant: (state) => state.role === 'ACCOUNTANT'
   },
@@ -42,9 +52,13 @@ export const useAuthStore = defineStore('auth', {
       try {
         const decoded = jwtDecode<DecodedToken>(token)
         this.email = decoded.sub
+        this.role = decoded.role
         this.homeTenantId = decoded.home_tenant_id
         this.activeTenantId = decoded.active_tenant_id
       } catch (e) {
+        // Clear stale token to prevent zombie auth state where token is set but
+        // claims are empty (isAuthenticated would return true due to non-null token)
+        this.clearAuth()
         console.error('Failed to decode token', e)
       }
     },
@@ -82,7 +96,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    clearAuth() {
+    async clearAuth() {
       this.token = null
       this.email = null
       this.name = null
@@ -90,9 +104,19 @@ export const useAuthStore = defineStore('auth', {
       this.homeTenantId = null
       this.activeTenantId = null
       this.mandates = []
-      
-      const cookie = useCookie(authConfig.cookieName)
-      cookie.value = null
+
+      // Call backend logout to clear the HttpOnly auth_token cookie.
+      // useCookie().value = null has no effect on HttpOnly cookies.
+      try {
+        const config = useRuntimeConfig()
+        await $fetch(authConfig.endpoints.logout, {
+          method: 'POST',
+          baseURL: config.public.apiBase as string
+        })
+      } catch {
+        // Best-effort — if logout call fails (e.g., network error, already expired),
+        // the local state is already cleared. The HttpOnly cookie will expire naturally.
+      }
     },
 
     async initializeAuth() {
@@ -107,6 +131,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async switchTenant(tenantId: string) {
+      this.isSwitchingTenant = true
+      this.switchError = null
+      this.switchTargetTenantId = tenantId
       try {
         const config = useRuntimeConfig()
         // Token is now set via HttpOnly cookie by the backend (no token in response body)
@@ -116,10 +143,13 @@ export const useAuthStore = defineStore('auth', {
           baseURL: config.public.apiBase as string
         })
 
-        // Trigger a full page reload to ensure all data is refreshed for the new tenant
-        // The new JWT is already set as an HttpOnly cookie by the backend
+        // Reset switching state before reload — if reload fails or is cancelled,
+        // the ContextGuard overlay will not permanently block the UI.
+        this.isSwitchingTenant = false
         window.location.reload()
       } catch (error) {
+        this.isSwitchingTenant = false
+        this.switchError = error instanceof Error ? error.message : String(error)
         console.error('Failed to switch tenant:', error)
         throw error
       }

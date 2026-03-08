@@ -19,8 +19,10 @@ public class OAuth2AuthenticationFailureHandler extends SimpleUrlAuthenticationF
 
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
+        // Send a plain i18n-compatible error key (not a URN) so the frontend can look it up
+        // directly as auth.login.error.${errorKey} without format conversion.
         String targetUrl = UriComponentsBuilder.fromUriString(properties.getSecurity().getFrontendBaseUrl() + "/auth/login")
-                .queryParam("error", "urn:riskguard:error:auth-failed")
+                .queryParam("error", "auth-failed")
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

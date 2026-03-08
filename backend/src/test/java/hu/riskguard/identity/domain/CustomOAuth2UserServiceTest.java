@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -143,5 +144,44 @@ class CustomOAuth2UserServiceTest {
         verify(identityRepository).saveTenant(any(Tenant.class));
         verify(identityRepository).saveUser(any(User.class));
         verify(identityRepository).saveTenantMandate(any(TenantMandate.class));
+    }
+
+    // --- sanitizeOAuth2Name tests ---
+
+    @Test
+    void sanitizeOAuth2Name_shouldReturnNullForNullInput() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name(null)).isNull();
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldReturnNullForBlankInput() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name("   ")).isNull();
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldStripControlCharacters() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name("John\u0000Doe\u0007")).isEqualTo("JohnDoe");
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldTrimWhitespace() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name("  Jane Doe  ")).isEqualTo("Jane Doe");
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldTruncateToMaxLength() {
+        String longName = "A".repeat(150);
+        String result = CustomOAuth2UserService.sanitizeOAuth2Name(longName);
+        assertThat(result).hasSize(100);
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldReturnNullForControlCharsOnly() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name("\u0000\u0001\u0002")).isNull();
+    }
+
+    @Test
+    void sanitizeOAuth2Name_shouldPreserveValidUnicodeCharacters() {
+        assertThat(CustomOAuth2UserService.sanitizeOAuth2Name("Kovács András")).isEqualTo("Kovács András");
     }
 }

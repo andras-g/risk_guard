@@ -2,53 +2,45 @@
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
 
-const { t } = useI18n()
 const authStore = useAuthStore()
-const { activeTenantId } = storeToRefs(authStore)
-
-const isTransitioning = ref(false)
-const error = ref<string | null>(null)
+const { isSwitchingTenant, switchError, switchTargetTenantId } = storeToRefs(authStore)
 
 async function retry() {
-  error.value = null
-  if (activeTenantId.value) {
+  if (switchTargetTenantId.value) {
     try {
-      isTransitioning.value = true
-      await authStore.switchTenant(activeTenantId.value)
-    } catch (e) {
-      error.value = t('identity.contextGuard.switchFailed')
-    } finally {
-      isTransitioning.value = false
+      await authStore.switchTenant(switchTargetTenantId.value)
+    } catch {
+      // switchError is set by the store action — ContextGuard stays visible
     }
   }
 }
 
-function logout() {
-  authStore.clearAuth()
+async function logout() {
+  await authStore.clearAuth()
   navigateTo('/auth/login')
 }
 </script>
 
 <template>
   <div
-    v-if="isTransitioning || error"
+    v-if="isSwitchingTenant || switchError"
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
   >
     <div class="max-w-md w-full p-8 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-center">
-      <div v-if="isTransitioning">
+      <div v-if="isSwitchingTenant && !switchError">
         <ProgressSpinner />
         <p class="mt-4 text-slate-200 font-medium">
           {{ $t('identity.contextGuard.switching') }}
         </p>
       </div>
       
-      <div v-else-if="error">
+      <div v-else-if="switchError">
         <i class="pi pi-exclamation-triangle text-red-500 text-4xl mb-4" />
         <h2 class="text-xl font-bold text-white mb-2">
           {{ $t('identity.contextGuard.errorTitle') }}
         </h2>
         <p class="text-slate-400 mb-6">
-          {{ error }}
+          {{ $t('identity.contextGuard.switchFailed') }}
         </p>
         
         <div class="flex flex-col gap-3">

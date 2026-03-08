@@ -11,6 +11,10 @@ jobs:
     name: Backend CI (Steps 1-5, 11-12)
     runs-on: ubuntu-latest
     services:
+      # CI postgres service — used exclusively by Steps 4 (flywayMigrate) and 5 (generateOpenApiDocs).
+      # Integration tests that use @Testcontainers (e.g. TenantIsolationIntegrationTest) spin up their
+      # own isolated PostgreSQL containers on random ports via @ServiceConnection — they do NOT connect
+      # to this service. No port conflict occurs because Testcontainers uses ephemeral ports.
       postgres:
         image: postgres:17
         env:
@@ -39,7 +43,8 @@ jobs:
         working-directory: backend
 
       - name: "Step 2: Run ArchUnit tests"
-        run: ./gradlew test --tests "hu.riskguard.architecture.NamingConventionTest"
+        # Run all architecture-layer tests (ArchUnit rules live in this package).
+        run: ./gradlew test --tests "hu.riskguard.architecture.*"
         working-directory: backend
 
       - name: "Step 3: Run Spring Modulith verify"
@@ -61,11 +66,11 @@ jobs:
           path: backend/build/generated/openapi.json
 
       - name: "Step 11a: Backend Unit Tests"
-        run: ./gradlew test --tests "!*IntegrationTest"
+        run: ./gradlew test -DexcludedGroups=integration
         working-directory: backend
 
       - name: "Step 12: Backend Integration Tests"
-        run: ./gradlew test --tests "*IntegrationTest"
+        run: ./gradlew test -Dgroups=integration
         working-directory: backend
 
   frontend:

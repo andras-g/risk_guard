@@ -1,0 +1,126 @@
+# Production profile — GCP Cloud Run + Cloud SQL
+# All sensitive values are injected as environment variables from GCP Secret Manager.
+# DO NOT add secret values directly to this file.
+
+spring:
+  application:
+    name: risk-guard
+
+  # ── Cloud SQL Auth Proxy (socket-based — no password in env for connection) ──
+  # INSTANCE_CONNECTION_NAME is injected from Cloud Run env var.
+  # Cloud Run connects via the Cloud SQL Auth Proxy using the socket path below.
+  datasource:
+    url: "jdbc:postgresql:///riskguard?cloudSqlInstance=${INSTANCE_CONNECTION_NAME}&socketFactory=com.google.cloud.sql.postgres.SocketFactory&user=${DB_USER:riskguard}&password=${DB_PASSWORD}"
+    username: ${DB_USER:riskguard}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+  # ── Disable developer tools in production ──
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
+
+  # ── Disable Docker Compose support in production ──
+  docker:
+    compose:
+      enabled: false
+
+  # ── OAuth2 / SSO — secrets injected from Secret Manager ──
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+          microsoft:
+            client-id: ${MICROSOFT_CLIENT_ID:}
+            client-secret: ${MICROSOFT_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - email
+              - User.Read
+            client-name: Microsoft
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+          microsoft:
+            authorization-uri: https://login.microsoftonline.com/common/oauth2/v2.0/authorize
+            token-uri: https://login.microsoftonline.com/common/oauth2/v2.0/token
+            user-info-uri: https://graph.microsoft.com/oidc/userinfo
+            jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
+            user-name-attribute: sub
+
+# ── Actuator — health groups for Cloud Run liveness/readiness probes (AC: 8) ──
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true            # Enables /actuator/health/liveness and /readiness
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,flyway
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+server:
+  port: 8080
+  shutdown: graceful  # Allow in-flight requests to complete on SIGTERM
+
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# ── Risk Guard app config ──
+risk-guard:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    jwt-expiration-ms: 3600000
+    frontend-base-url: ${FRONTEND_URL}
+    cookie-secure: true           # Always true in production (HTTPS only)
+  identity:
+    default-user-role: SME_ADMIN
+  freshness:
+    fresh-threshold-hours: 6
+    stale-threshold-hours: 24
+    unavailable-threshold-hours: 48
+  guest:
+    max-companies: 10
+    max-daily-checks: 3
+    captcha-after-checks: 3
+  tiers: ["ALAP", "PRO", "PRO_EPR"]
+  rate-limits:
+    searches-per-minute-per-tenant: 30
+    max-alerts-per-day-per-tenant: 10
+
+# ── Logging — structured JSON for GCP Cloud Logging ──
+# Uses Logback default structured output; configure logback-spring.xml for full JSON if needed.
+logging:
+  level:
+    root: INFO
+    hu.riskguard: INFO
+    org.springframework.security: WARN

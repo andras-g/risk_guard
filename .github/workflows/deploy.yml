@@ -1,0 +1,211 @@
+name: Deploy to GCP
+
+# Triggered on:
+#   - Push to main → deploy to staging
+#   - Tag push (v*.*.*) → deploy to production (manual approval gate)
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*.*.*'
+
+env:
+  REGION: europe-west3
+  ARTIFACT_REGISTRY: europe-west3-docker.pkg.dev
+  IMAGE_NAME: risk-guard/backend
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Build — shared by staging and production
+  # ───────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build & Push Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (Workload Identity Federation)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CLOUD_RUN_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Extract image metadata
+        id: meta
+        run: |
+          IMAGE_TAG="${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            --tag "${{ steps.meta.outputs.image_tag }}" \
+            --tag "${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest" \
+            --file backend/Dockerfile \
+            backend/
+
+      - name: Push image to Artifact Registry
+        run: |
+          docker push "${{ steps.meta.outputs.image_tag }}"
+          docker push "${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Deploy to Staging — every push to main
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CLOUD_RUN_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ── Backend: Deploy to Cloud Run (staging) ──────────────────────────
+      - name: Deploy backend to Cloud Run (staging)
+        run: |
+          # --allow-unauthenticated: Cloud Run is a public API (consumed by Nuxt frontend).
+          # Spring Security JWT/OAuth2 enforces auth at application layer — not Cloud Run layer.
+          # Terraform main.tf grants allUsers roles/run.invoker consistently.
+          gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_STAGING }} \
+            --image="${{ needs.build.outputs.image_tag }}" \
+            --region="${{ env.REGION }}" \
+            --platform=managed \
+            --min-instances=1 \
+            --max-instances=10 \
+            --add-cloudsql-instances="${{ vars.CLOUD_SQL_CONNECTION_NAME }}" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD_STAGING:latest,JWT_SECRET=JWT_SECRET_STAGING:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET_STAGING:latest,MICROSOFT_CLIENT_SECRET=MICROSOFT_CLIENT_SECRET_STAGING:latest,RESEND_API_KEY=RESEND_API_KEY_STAGING:latest" \
+            --set-env-vars="SPRING_PROFILES_ACTIVE=prod,INSTANCE_CONNECTION_NAME=${{ vars.CLOUD_SQL_CONNECTION_NAME }},DB_NAME=riskguard,DB_USER=riskguard,FRONTEND_URL=https://staging.riskguard.hu" \
+            --service-account="${{ secrets.CLOUD_RUN_SA_EMAIL }}" \
+            --allow-unauthenticated \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      # ── Frontend: Build & Deploy to Cloud Storage (staging) ─────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Build frontend (Nuxt hybrid rendering)
+        run: npm run build
+        working-directory: frontend
+        env:
+          NUXT_PUBLIC_API_BASE: ${{ vars.STAGING_CLOUD_RUN_URL }}
+
+      - name: Deploy frontend to Cloud Storage (staging)
+        run: |
+          gsutil -m rsync -r -d frontend/.output/public gs://${{ vars.FRONTEND_BUCKET_STAGING }}
+
+      - name: Invalidate Cloud CDN cache (staging)
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache risk-guard-frontend-staging \
+            --path="/*" \
+            --global \
+            --async \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Deploy to Production — tag push only (v*.*.*)
+  # Manual approval required via GitHub environment protection rules
+  # ───────────────────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production  # Requires manual approval in GitHub environment settings
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.CLOUD_RUN_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ── Backend: Deploy to Cloud Run (production) ────────────────────────
+      - name: Deploy backend to Cloud Run (production)
+        run: |
+          # --allow-unauthenticated: public API, Spring Security enforces auth at application layer.
+          gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_PRODUCTION }} \
+            --image="${{ needs.build.outputs.image_tag }}" \
+            --region="${{ env.REGION }}" \
+            --platform=managed \
+            --min-instances=1 \
+            --max-instances=10 \
+            --add-cloudsql-instances="${{ vars.CLOUD_SQL_CONNECTION_NAME_PROD }}" \
+            --set-secrets="DB_PASSWORD=DB_PASSWORD_PRODUCTION:latest,JWT_SECRET=JWT_SECRET_PRODUCTION:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET_PRODUCTION:latest,MICROSOFT_CLIENT_SECRET=MICROSOFT_CLIENT_SECRET_PRODUCTION:latest,RESEND_API_KEY=RESEND_API_KEY_PRODUCTION:latest" \
+            --set-env-vars="SPRING_PROFILES_ACTIVE=prod,INSTANCE_CONNECTION_NAME=${{ vars.CLOUD_SQL_CONNECTION_NAME_PROD }},DB_NAME=riskguard,DB_USER=riskguard,FRONTEND_URL=https://app.riskguard.hu" \
+            --service-account="${{ secrets.CLOUD_RUN_SA_EMAIL }}" \
+            --allow-unauthenticated \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      # ── Frontend: Build & Deploy to Cloud Storage (production) ──────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Build frontend (Nuxt hybrid rendering)
+        run: npm run build
+        working-directory: frontend
+        env:
+          NUXT_PUBLIC_API_BASE: ${{ vars.PRODUCTION_CLOUD_RUN_URL }}
+
+      - name: Deploy frontend to Cloud Storage (production)
+        run: |
+          gsutil -m rsync -r -d frontend/.output/public gs://${{ vars.FRONTEND_BUCKET_PRODUCTION }}
+
+      - name: Invalidate Cloud CDN cache (production)
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache risk-guard-frontend-production \
+            --path="/*" \
+            --global \
+            --async \
+            --project="${{ secrets.GCP_PROJECT_ID }}"

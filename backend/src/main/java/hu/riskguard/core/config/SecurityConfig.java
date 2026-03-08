@@ -4,12 +4,18 @@ import hu.riskguard.core.security.HttpCookieOAuth2AuthorizationRequestRepository
 import hu.riskguard.core.security.OAuth2AuthenticationFailureHandler;
 import hu.riskguard.core.security.OAuth2AuthenticationSuccessHandler;
 import hu.riskguard.core.security.TenantFilter;
+import hu.riskguard.core.security.TokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -17,43 +23,54 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final TenantFilter tenantFilter;
+    private final TokenProvider tokenProvider;
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oauth2SuccessHandler;
     private final OAuth2AuthenticationFailureHandler oauth2FailureHandler;
     private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
     private final RiskGuardProperties properties;
 
+    // Public paths that must never be challenged by the resource server entry point.
+    private static final String[] PUBLIC_PATH_PREFIXES = {
+        "/oauth2/", "/login/", "/api/public/", "/actuator/", "/v3/api-docs", "/swagger-ui", "/error"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                // NOTE: CSRF with stateless JWT is intentional — provides double-submit cookie
-                // pattern defense-in-depth. HttpOnly=false is required so JavaScript can read
-                // the CSRF token to include it in request headers.
                 .ignoringRequestMatchers("/api/public/**", "/actuator/**")
             )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Use STATELESS for the API but allow the OAuth2 login flow to use a session
+            // temporarily for the state/nonce parameters (Spring Security requires this).
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/public/**", "/actuator/**", "/v3/api-docs/**", "/swagger-ui/**", "/login/**", "/oauth2/**").permitAll()
+                .requestMatchers(
+                    "/api/public/**", "/actuator/**", "/v3/api-docs/**",
+                    "/swagger-ui/**", "/login/**", "/oauth2/**", "/error"
+                ).permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
                 .authorizationEndpoint(authorization -> authorization
-                    .baseUri("/oauth2/authorize")
+                    .baseUri("/oauth2/authorization")
                     .authorizationRequestRepository(cookieAuthorizationRequestRepository)
                 )
                 .redirectionEndpoint(redirection -> redirection
@@ -65,16 +82,60 @@ public class SecurityConfig {
             )
             .oauth2ResourceServer(oauth2 -> oauth2
                 .bearerTokenResolver(cookieBearerTokenResolver())
-                .jwt(jwt -> jwt.decoder(jwtDecoder())));
+                .jwt(jwt -> jwt.decoder(jwtDecoder()))
+                // Custom entry point: only challenge with 401 on protected paths.
+                // On public/OAuth2 paths, pass through with a plain 401 (no WWW-Authenticate
+                // Bearer header) so the browser continues the OAuth2 redirect flow.
+                .authenticationEntryPoint(selectiveAuthenticationEntryPoint())
+            );
 
         http.addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    /**
+     * Authentication entry point that only issues a Bearer challenge on API paths.
+     * For OAuth2 initiation and login callback paths it returns 401 without a
+     * WWW-Authenticate header, which tells the browser to follow redirects normally.
+     *
+     * In practice these paths are all covered by permitAll() so this entry point
+     * should never be invoked for them — but the guard is needed because Spring
+     * Security 7's resource server registers this entry point globally before
+     * the authorization rules are evaluated.
+     */
+    private AuthenticationEntryPoint selectiveAuthenticationEntryPoint() {
+        return (HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) -> {
+            String path = request.getRequestURI();
+            boolean isPublicPath = false;
+            for (String prefix : PUBLIC_PATH_PREFIXES) {
+                if (path.startsWith(prefix)) {
+                    isPublicPath = true;
+                    break;
+                }
+            }
+            if (isPublicPath) {
+                // Don't challenge — let the request pass through to permitAll handlers.
+                // Spring Security will continue filter chain processing.
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            } else {
+                // Standard Bearer challenge for protected API endpoints.
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                response.setHeader("WWW-Authenticate", "Bearer");
+            }
+        };
+    }
+
     private BearerTokenResolver cookieBearerTokenResolver() {
         DefaultBearerTokenResolver resolver = new DefaultBearerTokenResolver();
         return request -> {
+            // Never extract a token for OAuth2/login/public paths — prevents the
+            // BearerTokenAuthenticationFilter from attempting to authenticate these requests.
+            String path = request.getRequestURI();
+            for (String prefix : PUBLIC_PATH_PREFIXES) {
+                if (path.startsWith(prefix)) return null;
+            }
+
             String token = resolver.resolve(request);
             if (token != null) return token;
 
@@ -91,10 +152,7 @@ public class SecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKey = new SecretKeySpec(
-                properties.getSecurity().getJwtSecret().getBytes(StandardCharsets.UTF_8),
-                "HmacSHA256"
-        );
-        return NimbusJwtDecoder.withSecretKey(secretKey).build();
+        // Use TokenProvider's cached signing key — single source of truth for both signing and verification.
+        return NimbusJwtDecoder.withSecretKey(tokenProvider.getSigningKey()).build();
     }
 }

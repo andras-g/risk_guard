@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Default profile: standard pattern -->
+  <springProfile name="!prod">
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <!-- Production profile: structured JSON for GCP Cloud Logging -->
+  <!-- Uses logstash-logback-encoder for robust JSON output: handles multi-line exceptions,
+       stack traces, and MDC fields (traceId, spanId) without manual JSON escaping. -->
+  <springProfile name="prod">
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <!-- Map Logback level to GCP Cloud Logging severity field -->
+        <fieldNames>
+          <timestamp>timestamp</timestamp>
+          <message>message</message>
+          <logger>logger</logger>
+          <thread>thread</thread>
+          <levelValue>[ignore]</levelValue>
+        </fieldNames>
+        <!-- Include MDC for trace correlation (Spring Cloud Sleuth / Micrometer Tracing) -->
+        <includeMdc>true</includeMdc>
+        <!-- Stack traces serialized as JSON arrays — no escaping issues in Cloud Logging -->
+        <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+          <maxDepthPerCause>10</maxDepthPerCause>
+          <shortenedClassNameLength>20</shortenedClassNameLength>
+          <rootCauseFirst>true</rootCauseFirst>
+        </throwableConverter>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="JSON_CONSOLE"/>
+    </root>
+
+    <logger name="hu.riskguard" level="INFO"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.flywaydb" level="INFO"/>
+    <!-- Suppress noisy Hibernate SQL in production -->
+    <logger name="org.hibernate.SQL" level="WARN"/>
+  </springProfile>
+</configuration>

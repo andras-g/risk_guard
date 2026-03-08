@@ -7,16 +7,23 @@ const { activeTenantId, mandates, isAccountant } = storeToRefs(authStore)
 
 const selectedTenantId = ref(activeTenantId.value)
 
+// Guard against PrimeVue Select @change firing on initial mount when v-model
+// is set programmatically. Only process changes after the component is mounted.
+const isMounted = ref(false)
+onMounted(() => { isMounted.value = true })
+
 watch(activeTenantId, (newVal) => {
   selectedTenantId.value = newVal
 })
 
 async function onTenantChange() {
+  if (!isMounted.value) return
   if (selectedTenantId.value && selectedTenantId.value !== activeTenantId.value) {
     try {
       await authStore.switchTenant(selectedTenantId.value)
-    } catch (e) {
-      // Revert selectedTenantId on failure
+    } catch {
+      // ContextGuard handles the error display and retry/logout options.
+      // Revert selectedTenantId so the dropdown shows the still-active tenant.
       selectedTenantId.value = activeTenantId.value
     }
   }
