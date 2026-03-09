@@ -1,6 +1,6 @@
 # Story 2.0: Bootstrap GCP Staging & Deploy Epic 1 Baseline
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -220,7 +220,7 @@ The codebase is stable with all 42 unit + 5 integration + 12 frontend tests pass
 
 ### Story Completion Status
 
-Status: review
+Status: done
 Completion Note: All GCP staging infrastructure provisioned, backend deployed to Cloud Run (healthy), frontend deployed to Cloud Storage. Neon free-tier PostgreSQL replaces Cloud SQL for $0 staging costs. All smoke tests passing. All 10 code review findings resolved (1 CRITICAL, 2 HIGH, 4 MEDIUM, 3 LOW). Full test suite passes (47 backend + 12 frontend = 59 tests, 0 regressions).
 
 ### Project Structure Notes
