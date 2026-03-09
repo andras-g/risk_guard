@@ -57,3 +57,9 @@ variable "github_repository" {
   type        = string
   # No default — must be explicitly set in tfvars or CLI to avoid WIF misconfiguration
 }
+
+variable "use_cloud_sql" {
+  description = "Whether to provision Cloud SQL + VPC networking. Set false for staging (uses external Neon DB instead)."
+  type        = bool
+  default     = true
+}

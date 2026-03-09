@@ -5,7 +5,7 @@ output "cloud_run_url" {
 
 output "cloud_sql_connection_name" {
   description = "Cloud SQL instance connection name (for Cloud SQL Auth Proxy)"
-  value       = google_sql_database_instance.postgres.connection_name
+  value       = var.use_cloud_sql ? google_sql_database_instance.postgres[0].connection_name : "N/A (using Neon)"
 }
 
 output "frontend_bucket_name" {
@@ -26,4 +26,9 @@ output "cloud_run_service_account_email" {
 output "workload_identity_pool_provider" {
   description = "Workload Identity Federation provider resource name (for GitHub Actions auth)"
   value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "database_type" {
+  description = "Database backend type for this environment"
+  value       = var.use_cloud_sql ? "Cloud SQL (private IP)" : "Neon (external PostgreSQL)"
 }

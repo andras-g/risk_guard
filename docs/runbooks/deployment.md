@@ -5,9 +5,19 @@
 Risk Guard deploys to GCP using:
 - **Backend:** Cloud Run (`europe-west3`) — containerized Spring Boot
 - **Frontend:** Cloud Storage + Cloud CDN — Nuxt hybrid rendering
-- **Database:** Cloud SQL PostgreSQL 17 (private IP)
+- **Database (Production):** Cloud SQL PostgreSQL 17 (private IP via VPC connector)
+- **Database (Staging):** Neon free-tier PostgreSQL (external, SSL over public internet)
 - **Secrets:** GCP Secret Manager (no secrets in code or GitHub env vars)
 - **CI/CD:** GitHub Actions with Workload Identity Federation (no SA key files)
+
+### Staging URLs
+
+| Component | URL |
+|-----------|-----|
+| Backend | `https://risk-guard-backend-staging-1086492737742.europe-west3.run.app` |
+| Backend Health | `https://risk-guard-backend-staging-1086492737742.europe-west3.run.app/actuator/health` |
+| Frontend (GCS direct) | `https://storage.googleapis.com/risk-guard-frontend-staging/index.html` |
+| Frontend (CDN, pending DNS) | `https://staging.riskguard.hu` → IP `34.54.8.197` |
 
 ---
 
@@ -51,13 +61,15 @@ cd infra/
 
 terraform init
 
-# Staging
+# Staging — uses Neon free-tier PostgreSQL (use_cloud_sql=false)
 terraform workspace new staging || terraform workspace select staging
 terraform apply \
   -var="project_id=YOUR_GCP_PROJECT_ID" \
   -var="environment=staging" \
+  -var="use_cloud_sql=false" \
   -var="backend_image=europe-west3-docker.pkg.dev/YOUR_GCP_PROJECT_ID/risk-guard/backend:latest" \
-  -var="frontend_bucket_name=risk-guard-frontend-staging"
+  -var="frontend_bucket_name=risk-guard-frontend-staging" \
+  -var="github_repository=YOUR_ORG/risk_guard"
 
 # Note Terraform outputs — you'll need these for GitHub secrets
 terraform output
@@ -137,9 +149,11 @@ The `deploy-production` job requires **manual approval** via GitHub environment 
 
 All injected automatically from Secret Manager by the deploy workflow.
 
+**Production** (`SPRING_PROFILES_ACTIVE=prod`):
+
 | Variable | Source | Description |
 |----------|--------|-------------|
-| `SPRING_PROFILES_ACTIVE` | Deploy step | Must be `prod` |
+| `SPRING_PROFILES_ACTIVE` | Deploy step | `prod` |
 | `INSTANCE_CONNECTION_NAME` | Cloud Run var | Cloud SQL connection string |
 | `DB_NAME` | Deploy step | `riskguard` |
 | `DB_USER` | Deploy step | `riskguard` |
@@ -150,7 +164,23 @@ All injected automatically from Secret Manager by the deploy workflow.
 | `MICROSOFT_CLIENT_ID` | Deploy step | Microsoft Entra app client ID |
 | `MICROSOFT_CLIENT_SECRET` | Secret Manager | Microsoft Entra secret |
 | `RESEND_API_KEY` | Secret Manager | Resend transactional email API key |
-| `FRONTEND_URL` | Deploy step | Frontend HTTPS URL |
+| `FRONTEND_URL` | Deploy step | `https://app.riskguard.hu` |
+
+**Staging** (`SPRING_PROFILES_ACTIVE=staging`):
+
+| Variable | Source | Description |
+|----------|--------|-------------|
+| `SPRING_PROFILES_ACTIVE` | Deploy step | `staging` |
+| `NEON_DATABASE_URL` | Secret Manager | JDBC URL to Neon PostgreSQL (`jdbc:postgresql://host/db?user=...&password=...&sslmode=require`) |
+| `JWT_SECRET` | Secret Manager | JWT signing key (staging-specific) |
+| `GOOGLE_CLIENT_ID` | Secret Manager | Google OAuth client ID (placeholder OK) |
+| `GOOGLE_CLIENT_SECRET` | Secret Manager | Google OAuth secret (placeholder OK) |
+| `MICROSOFT_CLIENT_ID` | Secret Manager | Microsoft Entra client ID (placeholder OK) |
+| `MICROSOFT_CLIENT_SECRET` | Secret Manager | Microsoft Entra secret (placeholder OK) |
+| `RESEND_API_KEY` | Secret Manager | Resend API key (placeholder OK) |
+| `FRONTEND_URL` | Deploy step | `https://staging.riskguard.hu` |
+
+> **Note:** Staging uses Neon free-tier PostgreSQL instead of Cloud SQL. No `INSTANCE_CONNECTION_NAME`, `DB_NAME`, `DB_USER`, or `DB_PASSWORD` variables are needed. The `NEON_DATABASE_URL` secret must be a proper JDBC URL (not `postgresql://user:pass@host/db` Neon URI format).
 
 ### Frontend (Nuxt runtime config)
 
@@ -165,7 +195,7 @@ All injected automatically from Secret Manager by the deploy workflow.
 The backend exposes Spring Boot Actuator health endpoints:
 
 - **Liveness:** `GET /actuator/health/liveness` — returns `200` if the app is alive
-- **Readiness:** `GET /actuator/health/readiness` — returns `200` if the app is ready to serve (DB + Flyway healthy)
+- **Readiness:** `GET /actuator/health/readiness` — returns `200` if the app is ready to serve (DB connectivity verified)
 
 Cloud Run uses these for automatic traffic management and rollback.
 
@@ -205,5 +235,6 @@ gcloud run services update-traffic risk-guard-backend-production \
 - **EU Data Residency (NFR5):** All resources in `europe-west3` (Frankfurt)
 - **GraalVM:** Deferred (ADR-3) — JVM (`eclipse-temurin:25-jre-alpine`) used for MVP
 - **Cloud SQL Auth Proxy:** Socket-based connection, no DB password in env for connection auth
-- **Min instances:** 1 always-on (MVP, ~$15-20/month). Cloud Scheduler can be added later for 08:00-17:00 CET scaling
+- **Min instances (Production):** 1 always-on (MVP, ~$15-20/month). Cloud Scheduler can be added later for 08:00-17:00 CET scaling
+- **Min instances (Staging):** 0 (scale-to-zero, ~$0 when idle)
 - **Workload Identity Federation:** GitHub Actions authenticates without storing GCP service account key files

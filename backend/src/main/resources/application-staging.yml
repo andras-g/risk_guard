@@ -1,18 +1,18 @@
-# Production profile — GCP Cloud Run + Cloud SQL
-# All sensitive values are injected as environment variables from GCP Secret Manager.
-# DO NOT add secret values directly to this file.
+# Staging profile — GCP Cloud Run + Neon PostgreSQL (free tier)
+# Activates via SPRING_PROFILES_ACTIVE=staging on Cloud Run.
+# Overlays application.yml with staging-specific overrides.
+#
+# Key difference from prod: uses standard JDBC URL to external Neon PostgreSQL
+# over public internet with SSL. No Cloud SQL socket factory needed.
+#
+# NEON_DATABASE_URL is injected from GCP Secret Manager as a ready-to-use
+# JDBC URL: jdbc:postgresql://host/db?user=...&password=...&sslmode=require
+# (NOT the postgresql://user:pass@host/db Neon URI format, which the JDBC
+# driver cannot parse.)
 
 spring:
-  application:
-    name: risk-guard
-
-  # ── Cloud SQL Auth Proxy (socket-based — no password in env for connection) ──
-  # INSTANCE_CONNECTION_NAME is injected from Cloud Run env var.
-  # Cloud Run connects via the Cloud SQL Auth Proxy using the socket path below.
   datasource:
-    url: "jdbc:postgresql:///riskguard?cloudSqlInstance=${INSTANCE_CONNECTION_NAME}&socketFactory=com.google.cloud.sql.postgres.SocketFactory&user=${DB_USER:riskguard}&password=${DB_PASSWORD}"
-    username: ${DB_USER:riskguard}
-    password: ${DB_PASSWORD}
+    url: ${NEON_DATABASE_URL}
     driver-class-name: org.postgresql.Driver
   # JPA config: jOOQ is the primary data layer. ddl-auto=validate is kept to catch
   # schema drift if JPA entities exist (no DDL changes, validation only).
@@ -21,22 +21,8 @@ spring:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
-
   flyway:
     enabled: true
-
-  # ── Disable developer tools in production ──
-  devtools:
-    restart:
-      enabled: false
-    livereload:
-      enabled: false
-
-  # ── Disable Docker Compose support in production ──
-  docker:
-    compose:
-      enabled: false
-
   # ── OAuth2 / SSO — secrets injected from Secret Manager ──
   security:
     oauth2:
@@ -69,7 +55,15 @@ spring:
             jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
             user-name-attribute: sub
 
-# ── Actuator — health groups for Cloud Run liveness/readiness probes (AC: 8) ──
+  devtools:
+    restart:
+      enabled: false
+    livereload:
+      enabled: false
+  docker:
+    compose:
+      enabled: false
+
 management:
   endpoints:
     web:
@@ -78,7 +72,7 @@ management:
   endpoint:
     health:
       probes:
-        enabled: true            # Enables /actuator/health/liveness and /readiness
+        enabled: true
       group:
         liveness:
           include: livenessState
@@ -92,18 +86,16 @@ management:
 
 server:
   port: 8080
-  shutdown: graceful  # Allow in-flight requests to complete on SIGTERM
-
+  shutdown: graceful
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
-# ── Risk Guard app config ──
 risk-guard:
   security:
     jwt-secret: ${JWT_SECRET}
     jwt-expiration-ms: 3600000
     frontend-base-url: ${FRONTEND_URL}
-    cookie-secure: true           # Always true in production (HTTPS only)
+    cookie-secure: true
   identity:
     default-user-role: SME_ADMIN
   freshness:
@@ -119,8 +111,6 @@ risk-guard:
     searches-per-minute-per-tenant: 30
     max-alerts-per-day-per-tenant: 10
 
-# ── Logging — structured JSON for GCP Cloud Logging ──
-# Uses Logback default structured output; configure logback-spring.xml for full JSON if needed.
 logging:
   level:
     root: INFO

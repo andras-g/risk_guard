@@ -79,6 +79,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Health-Aware Integration:** CI tests check `scraper_health` and skip `DEGRADED` providers.
 - **Fast-Gate Hook:** Pre-commit hooks MUST run ArchUnit and ESLint raw-text checks.
 - **Migration Naming:** Use `V{YYYYMMDD}_{NNN}__description.sql`.
+- **Severity-Gated Reviews:** Only CRITICAL/HIGH findings trigger a mandatory re-review round. MEDIUM/LOW are advisory.
 
 ### Critical Don't-Miss Rules
 

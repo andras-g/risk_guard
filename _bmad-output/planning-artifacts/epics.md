@@ -170,6 +170,21 @@ So that I can deliver features continuously and reliably to a production-like en
 ## Epic 2: The Partner Risk Radar (Screening Engine)
 **Goal:** Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds.
 
+### Story 2.0: Bootstrap GCP Staging + Deploy Epic 1 Baseline
+As an Admin,
+I want a staging environment provisioned and the Epic 1 baseline deployed,
+So that Epic 2 development has a production-like target for smoke tests and integration checks.
+
+**Acceptance Criteria:**
+
+**Given** the Terraform infrastructure definitions
+**When** I run `terraform init/plan/apply` for the staging environment
+**Then** Cloud Run, Artifact Registry, Secret Manager, and required networking are provisioned
+**And** the backend is deployed to staging and responds on `/actuator/health`
+**And** the frontend is deployed and serves the staging landing page
+**And** required secrets (DB password, JWT key, SSO keys) are present in Secret Manager
+**And** a smoke test confirms the baseline is reachable and healthy
+
 ### Story 2.1: Tax Number Search & Skeleton UI
 As a User,
 I want to enter an 8 or 11-digit tax number and see a loading animation that tracks the search progress,
@@ -237,6 +252,20 @@ So that I have court-ready evidence of my due diligence.
 **Then** the backend generates a SHA-256 hash of the (Snapshot + Verdict + Disclaimer)
 **And** the record is stored in the `search_audit_log` table with the hash and a timestamp
 **And** the hash is displayed on the frontend result card.
+
+### Story 2.6: Email/Password Registration (Fallback Auth)
+As a User,
+I want to register and sign in with email and password,
+So that I can access the product without a third-party SSO provider.
+
+**Acceptance Criteria:**
+
+**Given** a new user with no SSO account
+**When** I create an account with email + password
+**Then** the system creates a User and Tenant record
+**And** a dual-claim JWT (`home_tenant_id`, `active_tenant_id`) is issued
+**And** password storage uses a strong one-way hash (BCrypt/Argon2)
+**And** invalid credentials return a localized error message
 
 ## Epic 3: Automated Monitoring & Alerts (Watchlist)
 **Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
@@ -471,8 +500,6 @@ So that I can provide proof of a specific risk check if requested by legal autho
 **When** I search the Audit Log
 **Then** the UI displays the timestamped entry, the SHA-256 hash, and the source URLs that were used.
 **And** I can see which User ID performed the search.
-
-
 
 
 

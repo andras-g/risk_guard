@@ -76,8 +76,11 @@ resource "google_artifact_registry_repository" "backend_repo" {
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Cloud SQL — PostgreSQL 17 (private IP, no public IP)
+# Only provisioned when use_cloud_sql = true (production).
+# Staging uses external Neon free-tier PostgreSQL to minimize cost.
 # ─────────────────────────────────────────────────────────────────────────────
 resource "google_sql_database_instance" "postgres" {
+  count            = var.use_cloud_sql ? 1 : 0
   name             = "${var.cloud_sql_instance_name}-${var.environment}"
   database_version = "POSTGRES_17"
   region           = var.region
@@ -90,7 +93,7 @@ resource "google_sql_database_instance" "postgres" {
 
     ip_configuration {
       ipv4_enabled    = false # No public IP — private only
-      private_network = google_compute_network.vpc.id
+      private_network = google_compute_network.vpc[0].id
     }
 
     backup_configuration {
@@ -108,59 +111,69 @@ resource "google_sql_database_instance" "postgres" {
 }
 
 resource "google_sql_database" "riskguard_db" {
+  count    = var.use_cloud_sql ? 1 : 0
   name     = var.db_name
-  instance = google_sql_database_instance.postgres.name
+  instance = google_sql_database_instance.postgres[0].name
 }
 
 # Generate a random initial DB password (avoids circular dependency with Secret Manager data source).
 # The generated password is stored as the first secret version. On subsequent applies, Terraform
 # does NOT re-generate the password (lifecycle.ignore_changes) so the DB password remains stable.
 resource "random_password" "db_password" {
+  count            = var.use_cloud_sql ? 1 : 0
   length           = 32
   special          = true
   override_special = "!#$%^&*()-_=+[]{}|;:,.<>?"
 }
 
 resource "google_sql_user" "riskguard_user" {
+  count    = var.use_cloud_sql ? 1 : 0
   name     = var.db_user
-  instance = google_sql_database_instance.postgres.name
-  password = random_password.db_password.result
+  instance = google_sql_database_instance.postgres[0].name
+  password = random_password.db_password[0].result
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
 # VPC — Private network for Cloud SQL + Cloud Run VPC connector
+# Only provisioned when use_cloud_sql = true (production).
+# Staging connects to external Neon DB over public internet (SSL enforced).
 # ─────────────────────────────────────────────────────────────────────────────
 resource "google_compute_network" "vpc" {
+  count                   = var.use_cloud_sql ? 1 : 0
   name                    = "risk-guard-vpc-${var.environment}"
   auto_create_subnetworks = false
 }
 
 resource "google_compute_subnetwork" "subnet" {
+  count         = var.use_cloud_sql ? 1 : 0
   name          = "risk-guard-subnet-${var.environment}"
   ip_cidr_range = "10.0.0.0/24"
   region        = var.region
-  network       = google_compute_network.vpc.id
+  network       = google_compute_network.vpc[0].id
 }
 
 resource "google_compute_global_address" "private_ip_range" {
+  count         = var.use_cloud_sql ? 1 : 0
   name          = "risk-guard-private-ip-range-${var.environment}"
   purpose       = "VPC_PEERING"
   address_type  = "INTERNAL"
   prefix_length = 16
-  network       = google_compute_network.vpc.id
+  network       = google_compute_network.vpc[0].id
 }
 
 resource "google_service_networking_connection" "private_vpc_connection" {
-  network                 = google_compute_network.vpc.id
+  count                   = var.use_cloud_sql ? 1 : 0
+  network                 = google_compute_network.vpc[0].id
   service                 = "servicenetworking.googleapis.com"
-  reserved_peering_ranges = [google_compute_global_address.private_ip_range.name]
+  reserved_peering_ranges = [google_compute_global_address.private_ip_range[0].name]
 }
 
 resource "google_vpc_access_connector" "connector" {
+  count         = var.use_cloud_sql ? 1 : 0
   name          = "risk-guard-connector-${var.environment}"
   region        = var.region
   subnet {
-    name = google_compute_subnetwork.subnet.name
+    name = google_compute_subnetwork.subnet[0].name
   }
 }
 
@@ -168,7 +181,18 @@ resource "google_vpc_access_connector" "connector" {
 # Secret Manager — Secrets (values populated manually or via bootstrap script)
 # ─────────────────────────────────────────────────────────────────────────────
 resource "google_secret_manager_secret" "db_password" {
+  count     = var.use_cloud_sql ? 1 : 0
   secret_id = "DB_PASSWORD_${upper(var.environment)}"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.required_apis]
+}
+
+# Neon database URL secret — used when use_cloud_sql = false (staging with external Neon DB)
+resource "google_secret_manager_secret" "neon_database_url" {
+  count     = var.use_cloud_sql ? 0 : 1
+  secret_id = "NEON_DATABASE_URL_${upper(var.environment)}"
   replication {
     auto {}
   }
@@ -180,6 +204,7 @@ resource "google_secret_manager_secret" "jwt_secret" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "google_client_secret" {
@@ -187,6 +212,7 @@ resource "google_secret_manager_secret" "google_client_secret" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "google_client_id" {
@@ -194,6 +220,7 @@ resource "google_secret_manager_secret" "google_client_id" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "microsoft_client_secret" {
@@ -201,6 +228,7 @@ resource "google_secret_manager_secret" "microsoft_client_secret" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "microsoft_client_id" {
@@ -208,6 +236,7 @@ resource "google_secret_manager_secret" "microsoft_client_id" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 resource "google_secret_manager_secret" "resend_api_key" {
@@ -215,14 +244,16 @@ resource "google_secret_manager_secret" "resend_api_key" {
   replication {
     auto {}
   }
+  depends_on = [google_project_service.required_apis]
 }
 
 # Store the generated DB password as the first secret version.
 # Subsequent rotations: manually add a new version via gcloud or Cloud Console,
 # then update Cloud Run service to use the new version.
 resource "google_secret_manager_secret_version" "db_password_initial" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = random_password.db_password.result
+  count       = var.use_cloud_sql ? 1 : 0
+  secret      = google_secret_manager_secret.db_password[0].id
+  secret_data = random_password.db_password[0].result
 
   lifecycle {
     # Prevent Terraform from overwriting a manually rotated password on subsequent applies
@@ -241,13 +272,16 @@ resource "google_cloud_run_v2_service" "backend" {
     service_account = google_service_account.cloud_run_sa.email
 
     scaling {
-      min_instance_count = 1   # Always-warm for MVP (Option A from Dev Notes)
+      min_instance_count = var.environment == "production" ? 1 : 0  # Scale-to-zero for staging ($0 when idle)
       max_instance_count = 10
     }
 
-    vpc_access {
-      connector = google_vpc_access_connector.connector.id
-      egress    = "PRIVATE_RANGES_ONLY"
+    dynamic "vpc_access" {
+      for_each = var.use_cloud_sql ? [1] : []
+      content {
+        connector = google_vpc_access_connector.connector[0].id
+        egress    = "PRIVATE_RANGES_ONLY"
+      }
     }
 
     containers {
@@ -286,33 +320,60 @@ resource "google_cloud_run_v2_service" "backend" {
         failure_threshold     = 5
       }
 
-      # Cloud SQL Auth Proxy connection (socket-based — no password in env)
+      # ── Spring profile: "staging" for Neon, "prod" for Cloud SQL ──
       env {
         name  = "SPRING_PROFILES_ACTIVE"
-        value = "prod"
+        value = var.use_cloud_sql ? "prod" : "staging"
       }
 
-      env {
-        name  = "INSTANCE_CONNECTION_NAME"
-        value = google_sql_database_instance.postgres.connection_name
+      # ── Cloud SQL env vars (production only) ──
+      dynamic "env" {
+        for_each = var.use_cloud_sql ? [1] : []
+        content {
+          name  = "INSTANCE_CONNECTION_NAME"
+          value = google_sql_database_instance.postgres[0].connection_name
+        }
       }
 
-      env {
-        name  = "DB_NAME"
-        value = var.db_name
+      dynamic "env" {
+        for_each = var.use_cloud_sql ? [1] : []
+        content {
+          name  = "DB_NAME"
+          value = var.db_name
+        }
       }
 
-      env {
-        name  = "DB_USER"
-        value = var.db_user
+      dynamic "env" {
+        for_each = var.use_cloud_sql ? [1] : []
+        content {
+          name  = "DB_USER"
+          value = var.db_user
+        }
       }
 
-      env {
-        name = "DB_PASSWORD"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.db_password.secret_id
-            version = "latest"
+      dynamic "env" {
+        for_each = var.use_cloud_sql ? [1] : []
+        content {
+          name = "DB_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.db_password[0].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      # ── Neon database URL (staging only — external PostgreSQL) ──
+      dynamic "env" {
+        for_each = var.use_cloud_sql ? [] : [1]
+        content {
+          name = "NEON_DATABASE_URL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.neon_database_url[0].secret_id
+              version = "latest"
+            }
           }
         }
       }
@@ -378,11 +439,14 @@ resource "google_cloud_run_v2_service" "backend" {
       }
     }
 
-    # Cloud SQL Auth Proxy — socket-based connection (no public IP required)
-    volumes {
-      name = "cloudsql"
-      cloud_sql_instance {
-        instances = [google_sql_database_instance.postgres.connection_name]
+    # Cloud SQL Auth Proxy — socket-based connection (production only)
+    dynamic "volumes" {
+      for_each = var.use_cloud_sql ? [1] : []
+      content {
+        name = "cloudsql"
+        cloud_sql_instance {
+          instances = [google_sql_database_instance.postgres[0].connection_name]
+        }
       }
     }
   }
