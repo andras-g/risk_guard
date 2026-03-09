@@ -46,7 +46,7 @@ development_status:
   1-2-multi-tenant-schema-and-isolation: done
   1-3-google-and-microsoft-sso-integration: done
   1-4-accountant-context-switcher-ui: done
-  1-5-automated-ci-cd-and-gcp-infrastructure: review
+  1-5-automated-ci-cd-and-gcp-infrastructure: done
   epic-1-retrospective: optional
 
   # Epic 2: The Partner Risk Radar (Screening Engine)

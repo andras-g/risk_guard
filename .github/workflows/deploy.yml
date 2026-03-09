@@ -1,11 +1,14 @@
 name: Deploy to GCP
 
-# Triggered on:
-#   - Push to main → deploy to staging
-#   - Tag push (v*.*.*) → deploy to production (manual approval gate)
+# Triggered on tag push only until GCP infrastructure is provisioned.
+# Once Workload Identity Federation is set up and secrets (WIF_PROVIDER, CLOUD_RUN_SA_EMAIL,
+# GCP_PROJECT_ID) are configured in GitHub, re-enable push-to-main for staging deploys:
+#   push:
+#     branches: [ main ]
+#     tags:
+#       - 'v*.*.*'
 on:
   push:
-    branches: [ main ]
     tags:
       - 'v*.*.*'
 

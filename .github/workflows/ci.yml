@@ -56,7 +56,10 @@ jobs:
         working-directory: backend
 
       - name: "Step 5: Generate OpenAPI spec"
-        run: ./gradlew generateOpenApiDocs
+        run: ./gradlew generateOpenApiDocs -Dspring.main.lazy-initialization=true
+        env:
+          SPRING_DOCKER_COMPOSE_ENABLED: "false"
+          SPRING_DEVTOOLS_RESTART_ENABLED: "false"
         working-directory: backend
 
       - name: Upload OpenAPI Spec

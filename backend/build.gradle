@@ -79,6 +79,10 @@ dependencies {
 	// Structured JSON logging for GCP Cloud Logging (prod profile).
 	// Handles multi-line exceptions and stack traces correctly unlike PatternLayoutEncoder.
 	runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
+	// SpringDoc OpenAPI — exposes /v3/api-docs endpoint for OpenAPI spec generation.
+	// Required by the springdoc-openapi-gradle-plugin which boots the app and scrapes this endpoint.
+	// Version 3.x is required for Spring Boot 4.x / Spring Framework 7.x compatibility.
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:3.0.2'
 
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -107,6 +111,18 @@ dependencyManagement {
 	imports {
 		mavenBom "org.springframework.modulith:spring-modulith-bom:${springModulithVersion}"
 	}
+}
+
+openApi {
+	apiDocsUrl.set("http://127.0.0.1:8080/v3/api-docs")
+	outputDir.set(file("$buildDir/generated"))
+	outputFileName.set("openapi.json")
+	waitTimeInSeconds.set(60)
+}
+
+tasks.named('generateOpenApiDocs') {
+	dependsOn tasks.named('forkedSpringBootRun')
+	finalizedBy tasks.named('forkedSpringBootStop')
 }
 
 jooq {
@@ -172,6 +188,26 @@ tasks.named('compileJava') {
 
 tasks.named('generateJooq') {
 	dependsOn tasks.named('flywayMigrate')
+}
+
+// forkedSpringBootRun is used by springdoc-openapi-gradle-plugin to boot the app
+// and scrape /v3/api-docs. AOT processing is NOT needed for dev-time OpenAPI generation.
+// Gradle 9.x strict validation rejects the implicit classpath→AOT output relationship
+// that the plugin's JavaExecFork sets up, so we replace the entire classpath with the
+// standard runtime classpath (main source set only — no AOT directories).
+tasks.named('forkedSpringBootRun') {
+	// Replace classpath with main runtimeClasspath to exclude AOT output directories.
+	// The springdoc plugin's JavaExecFork would otherwise inherit bootRun's classpath which
+	// includes AOT outputs (:compileAotJava, :processAotResources, :processAot). Those tasks'
+	// outputs aren't wired via @InputFiles on JavaExecFork, causing Gradle 9.x implicit-dependency
+	// validation errors. Using sourceSets.main.runtimeClasspath avoids this entirely.
+	classpath = sourceSets.main.runtimeClasspath
+	systemProperty 'spring.aot.enabled', 'false'
+	systemProperty 'spring.docker.compose.enabled', 'false'
+	systemProperty 'spring.devtools.restart.enabled', 'false'
+	systemProperty 'spring.main.lazy-initialization', 'true'
+	systemProperty 'spring.main.web-application-type', 'servlet'
+	environment 'SPRING_DOCKER_COMPOSE_ENABLED', 'false'
 }
 
 

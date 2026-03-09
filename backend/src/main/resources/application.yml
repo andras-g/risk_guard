@@ -12,7 +12,16 @@ spring:
     show-sql: false
     open-in-view: false
   flyway:
-    enabled: true
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+  devtools:
+    restart:
+      enabled: ${SPRING_DEVTOOLS_RESTART_ENABLED:false}
+    add-properties: false
+  docker:
+    compose:
+      enabled: ${SPRING_DOCKER_COMPOSE_ENABLED:false}
+  main:
+    lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
   security:
     oauth2:
       client:
@@ -43,6 +52,9 @@ spring:
             user-info-uri: https://graph.microsoft.com/oidc/userinfo
             jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
             user-name-attribute: sub
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
 
 
 risk-guard:
