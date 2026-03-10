@@ -1,0 +1,24 @@
+{
+  "screening": {
+    "search": {
+      "invalidTaxNumber": "Érvénytelen magyar adószám. Adja meg a 8 vagy 11 jegyű adószámot.",
+      "placeholder": "Adószám (8 vagy 11 jegyű)",
+      "searching": "Keresés folyamatban...",
+      "submit": "Átvilágítás indítása"
+    },
+    "sources": {
+      "companyRegistry": "Cégnyilvántartás",
+      "legalStatus": "Jogi állapot",
+      "navDebt": "NAV tartozás"
+    },
+    "verdict": {
+      "atRisk": "Kockázatos",
+      "confidence": "Megbízhatóság",
+      "incomplete": "Hiányos",
+      "reliable": "Megbízható",
+      "status": "Állapot",
+      "taxSuspended": "Adószám felfüggesztve",
+      "unavailable": "Nem elérhető"
+    }
+  }
+}

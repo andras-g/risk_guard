@@ -28,12 +28,12 @@ export default defineNuxtConfig({
       { 
         code: 'hu', 
         name: 'Magyar',
-        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json']
+        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/screening.json']
       },
       { 
         code: 'en', 
         name: 'English',
-        files: ['en/common.json', 'en/auth.json', 'en/identity.json']
+        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/screening.json']
       }
     ],
     lazy: false,

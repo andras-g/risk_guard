@@ -1,0 +1,24 @@
+{
+  "screening": {
+    "search": {
+      "invalidTaxNumber": "Invalid Hungarian tax number. Enter an 8 or 11 digit tax number.",
+      "placeholder": "Tax number (8 or 11 digits)",
+      "searching": "Searching...",
+      "submit": "Start screening"
+    },
+    "sources": {
+      "companyRegistry": "Company Registry",
+      "legalStatus": "Legal Status",
+      "navDebt": "NAV Debt"
+    },
+    "verdict": {
+      "atRisk": "At Risk",
+      "confidence": "Confidence",
+      "incomplete": "Incomplete",
+      "reliable": "Reliable",
+      "status": "Status",
+      "taxSuspended": "Tax Suspended",
+      "unavailable": "Unavailable"
+    }
+  }
+}
