@@ -41,7 +41,9 @@ export const useAuthStore = defineStore('auth', {
   }),
 
   getters: {
-    isAuthenticated: (state) => !!state.email && !!state.token,
+    // With HttpOnly cookies, the token is never stored in JS state.
+    // Authentication is determined by whether /me succeeded (email is set).
+    isAuthenticated: (state) => !!state.email,
     hasActiveTenant: (state) => !!state.activeTenantId,
     isAccountant: (state) => state.role === 'ACCOUNTANT'
   },
@@ -66,9 +68,12 @@ export const useAuthStore = defineStore('auth', {
     async fetchMe() {
       try {
         const config = useRuntimeConfig()
-        const data = await $fetch<any>(authConfig.endpoints.me, {
-          baseURL: config.public.apiBase as string
+        const raw = await $fetch<any>(authConfig.endpoints.me, {
+          baseURL: config.public.apiBase as string,
+          credentials: 'include'
         })
+        // Defensive: handle both object and single-element array responses
+        const data = Array.isArray(raw) ? raw[0] : raw
         this.email = data.email
         this.name = data.name
         this.role = data.role
@@ -88,7 +93,8 @@ export const useAuthStore = defineStore('auth', {
       try {
         const config = useRuntimeConfig()
         const data = await $fetch<any[]>(authConfig.endpoints.mandates, {
-          baseURL: config.public.apiBase as string
+          baseURL: config.public.apiBase as string,
+          credentials: 'include'
         })
         this.mandates = data.map(m => ({ id: m.id, name: m.name }))
       } catch (e) {
@@ -111,7 +117,8 @@ export const useAuthStore = defineStore('auth', {
         const config = useRuntimeConfig()
         await $fetch(authConfig.endpoints.logout, {
           method: 'POST',
-          baseURL: config.public.apiBase as string
+          baseURL: config.public.apiBase as string,
+          credentials: 'include'
         })
       } catch {
         // Best-effort — if logout call fails (e.g., network error, already expired),
@@ -140,7 +147,8 @@ export const useAuthStore = defineStore('auth', {
         await $fetch(authConfig.endpoints.switchTenant, {
           method: 'POST',
           body: { tenantId },
-          baseURL: config.public.apiBase as string
+          baseURL: config.public.apiBase as string,
+          credentials: 'include'
         })
 
         // Reset switching state before reload — if reload fails or is cancelled,

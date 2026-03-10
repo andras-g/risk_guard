@@ -6,11 +6,11 @@ const config = useRuntimeConfig()
 // In Spring Boot OAuth2 Login, the actual redirect to provider is handled by the backend at /oauth2/authorization/{registrationId}
 // We need to point to the backend's absolute URL for this
 const loginWithGoogle = () => {
-  window.location.href = `${config.public.apiBase.replace('/api/v1', '')}${authConfig.oauth2.google}`
+  window.location.href = `${config.public.apiBase}${authConfig.oauth2.google}`
 }
 
 const loginWithMicrosoft = () => {
-  window.location.href = `${config.public.apiBase.replace('/api/v1', '')}${authConfig.oauth2.microsoft}`
+  window.location.href = `${config.public.apiBase}${authConfig.oauth2.microsoft}`
 }
 
 const route = useRoute()

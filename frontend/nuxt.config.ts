@@ -46,10 +46,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // Default for local dev. Overridden at build time via NUXT_PUBLIC_API_BASE env var
-      // (e.g. NUXT_PUBLIC_API_BASE=https://api.riskguard.hu/api/v1 in CI/deploy.yml).
+      // (e.g. NUXT_PUBLIC_API_BASE=https://risk-guard-backend-staging-xxx.run.app in CI/deploy.yml).
       // Nuxt automatically maps NUXT_PUBLIC_<KEY> → runtimeConfig.public.<key>.
       // Do NOT use process.env.API_BASE — that env var is never set and would bake in localhost.
-      apiBase: 'http://localhost:8080/api/v1'
+      apiBase: 'http://localhost:8080'
     }
   }
 })

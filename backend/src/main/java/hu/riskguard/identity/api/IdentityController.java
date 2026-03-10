@@ -105,7 +105,7 @@ public class IdentityController {
         );
 
         // Issue token — set as HttpOnly cookie ONLY (not in response body to prevent token leaking)
-        String newToken = tokenProvider.createToken(email, user.getTenantId(), request.tenantId(), user.getRole());
+        String newToken = tokenProvider.createToken(email, user.getId(), user.getTenantId(), request.tenantId(), user.getRole());
 
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), newToken)
                 .path("/")

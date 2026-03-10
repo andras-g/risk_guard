@@ -51,6 +51,7 @@ development_status:
   epic-2: in-progress
   2-0-bootstrap-gcp-staging-and-deploy-epic-1-baseline: done
   2-1-tax-number-search-and-skeleton-ui: review
+  2-1.5-playwright-e2e-infrastructure-and-auth-bypass: ready-for-dev
   2-2-parallel-scraper-engine-and-outage-resilience: backlog
   2-3-deterministic-verdict-state-machine: backlog
   2-4-verdict-result-card-and-provenance-sidebar: backlog

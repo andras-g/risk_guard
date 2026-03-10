@@ -98,7 +98,7 @@ class IdentityControllerTest {
 
         when(identityService.findUserByEmail(email)).thenReturn(Optional.of(user));
         when(identityService.hasMandate(userId, newTenantId)).thenReturn(true);
-        when(tokenProvider.createToken(eq(email), eq(homeTenantId), eq(newTenantId), eq(role)))
+        when(tokenProvider.createToken(eq(email), eq(userId), eq(homeTenantId), eq(newTenantId), eq(role)))
                 .thenReturn("new-jwt-token");
 
         TenantSwitchRequest request = new TenantSwitchRequest(newTenantId);
@@ -144,7 +144,7 @@ class IdentityControllerTest {
                 .build();
 
         when(identityService.findUserByEmail(email)).thenReturn(Optional.of(user));
-        when(tokenProvider.createToken(eq(email), eq(homeTenantId), eq(homeTenantId), eq(role)))
+        when(tokenProvider.createToken(eq(email), eq(userId), eq(homeTenantId), eq(homeTenantId), eq(role)))
                 .thenReturn("new-jwt-token");
 
         TenantSwitchRequest request = new TenantSwitchRequest(homeTenantId);
@@ -194,7 +194,7 @@ class IdentityControllerTest {
                 .hasMessageContaining("Event listener failed");
 
         // Token should NOT have been created since event failed first
-        verify(tokenProvider, never()).createToken(any(), any(), any(), any());
+        verify(tokenProvider, never()).createToken(any(), any(), any(), any(), any());
         // No cookie should be set on the response
         verify(servletResponse, never()).addHeader(any(), any());
     }
@@ -233,7 +233,7 @@ class IdentityControllerTest {
 
         // No event published, no token created
         verify(eventPublisher, never()).publishEvent(any());
-        verify(tokenProvider, never()).createToken(any(), any(), any(), any());
+        verify(tokenProvider, never()).createToken(any(), any(), any(), any(), any());
     }
 
     @Test

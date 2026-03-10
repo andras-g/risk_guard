@@ -19,16 +19,21 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.io.IOException;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -52,10 +57,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                .ignoringRequestMatchers("/api/public/**", "/actuator/**")
-            )
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // CSRF is disabled for the API because authentication uses HttpOnly SameSite=Lax
+            // cookies — browsers won't send these cookies on cross-site requests, making CSRF
+            // attacks impossible. Re-enable if cookie SameSite policy changes.
+            .csrf(csrf -> csrf.disable())
             // Use STATELESS for the API but allow the OAuth2 login flow to use a session
             // temporarily for the state/nonce parameters (Spring Security requires this).
             .sessionManagement(session -> session
@@ -89,7 +95,11 @@ public class SecurityConfig {
                 .authenticationEntryPoint(selectiveAuthenticationEntryPoint())
             );
 
-        http.addFilterAfter(tenantFilter, UsernamePasswordAuthenticationFilter.class);
+        // TenantFilter MUST run after BearerTokenAuthenticationFilter, not after
+        // UsernamePasswordAuthenticationFilter. BearerTokenAuthenticationFilter is the
+        // filter that decodes the JWT cookie and populates SecurityContextHolder. If
+        // TenantFilter runs before it, authentication is null and TenantContext is never set.
+        http.addFilterAfter(tenantFilter, BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }
@@ -153,6 +163,28 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         // Use TokenProvider's cached signing key — single source of truth for both signing and verification.
-        return NimbusJwtDecoder.withSecretKey(tokenProvider.getSigningKey()).build();
+        // Must specify HS512 to match the algorithm selected by jjwt's Keys.hmacShaKeyFor() in TokenProvider.
+        // NimbusJwtDecoder defaults to HS256 which causes silent 401s on token verification.
+        return NimbusJwtDecoder.withSecretKey(tokenProvider.getSigningKey())
+                .macAlgorithm(MacAlgorithm.HS512)
+                .build();
+    }
+
+    /**
+     * CORS configuration — allows the frontend origin to call the backend API.
+     * Uses {@code frontendBaseUrl} from risk-guard properties so staging/production
+     * automatically pick up the correct origin via env vars.
+     */
+    private CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of(properties.getSecurity().getFrontendBaseUrl()));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true); // Required for HttpOnly cookie auth
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 }

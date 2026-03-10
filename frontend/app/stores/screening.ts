@@ -36,7 +36,8 @@ export const useScreeningStore = defineStore('screening', {
         const data = await $fetch<VerdictResponse>('/api/v1/screenings/search', {
           method: 'POST',
           body: { taxNumber },
-          baseURL: config.public.apiBase as string
+          baseURL: config.public.apiBase as string,
+          credentials: 'include'
         })
         this.currentVerdict = data
       } catch (error: unknown) {

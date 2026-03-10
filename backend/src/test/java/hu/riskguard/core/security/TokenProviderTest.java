@@ -39,13 +39,15 @@ class TokenProviderTest {
         String role = "SME_ADMIN";
 
         // When
-        String token = tokenProvider.createToken(email, homeTenantId, activeTenantId, role);
+        UUID userId = UUID.randomUUID();
+        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role);
 
         // Then — verify using the same cached key exposed by getSigningKey()
         Claims claims = Jwts.parser().verifyWith(tokenProvider.getSigningKey()).build()
                 .parseSignedClaims(token).getPayload();
 
         assertThat(claims.getSubject()).isEqualTo(email);
+        assertThat(claims.get("user_id", String.class)).isEqualTo(userId.toString());
         assertThat(claims.get("home_tenant_id", String.class)).isEqualTo(homeTenantId.toString());
         assertThat(claims.get("active_tenant_id", String.class)).isEqualTo(activeTenantId.toString());
         assertThat(claims.get("role", String.class)).isEqualTo(role);
@@ -62,7 +64,8 @@ class TokenProviderTest {
         String role = "ACCOUNTANT";
 
         // When
-        String token = tokenProvider.createToken(email, homeTenantId, activeTenantId, role);
+        UUID userId = UUID.randomUUID();
+        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role);
 
         // Then
         Claims claims = Jwts.parser().verifyWith(tokenProvider.getSigningKey()).build()

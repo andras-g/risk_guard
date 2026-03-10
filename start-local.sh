@@ -4,12 +4,16 @@
 #
 # Starts: PostgreSQL (Docker) → Backend (Spring Boot) → Frontend (Nuxt dev)
 # Stop:   Ctrl+C (kills backend & frontend, keeps PostgreSQL running)
+#
+# Secrets are pulled from GCP Secret Manager (no credentials in the repo).
+# Requires: gcloud auth login + project set to gen-lang-client-0264363511
 
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_PID=""
 FRONTEND_PID=""
+GCP_PROJECT="gen-lang-client-0264363511"
 
 cleanup() {
   echo ""
@@ -20,6 +24,42 @@ cleanup() {
   exit 0
 }
 trap cleanup SIGINT SIGTERM
+
+# ── 0. Fetch secrets from GCP Secret Manager ────────────────────────────────
+echo "==> Fetching secrets from GCP Secret Manager..."
+
+fetch_secret() {
+  local name="$1"
+  local val
+  val=$(gcloud secrets versions access latest --secret="$name" --project="$GCP_PROJECT" 2>/dev/null) || true
+  if [[ -z "$val" || "$val" == placeholder* ]]; then
+    echo "    ⚠  $name is empty/placeholder — OAuth login will not work"
+    echo ""
+    return
+  fi
+  export "$name"="$val"
+  echo "    ✓ $name loaded"
+}
+
+# Map GCP secret names → env vars the backend expects
+load_secret() {
+  local gcp_name="$1"
+  local env_name="$2"
+  local val
+  val=$(gcloud secrets versions access latest --secret="$gcp_name" --project="$GCP_PROJECT" 2>/dev/null) || true
+  if [[ -z "$val" || "$val" == placeholder* ]]; then
+    echo "    ⚠  $gcp_name is empty/placeholder — skipped"
+    return
+  fi
+  export "$env_name"="$val"
+  echo "    ✓ $env_name (from $gcp_name)"
+}
+
+load_secret "GOOGLE_CLIENT_ID_STAGING"     "GOOGLE_CLIENT_ID"
+load_secret "GOOGLE_CLIENT_SECRET_STAGING"  "GOOGLE_CLIENT_SECRET"
+load_secret "MICROSOFT_CLIENT_ID_STAGING"   "MICROSOFT_CLIENT_ID"
+load_secret "MICROSOFT_CLIENT_SECRET_STAGING" "MICROSOFT_CLIENT_SECRET"
+load_secret "JWT_SECRET_STAGING"            "JWT_SECRET"
 
 # ── 1. PostgreSQL ─────────────────────────────────────────────────────────────
 echo "==> Starting PostgreSQL..."

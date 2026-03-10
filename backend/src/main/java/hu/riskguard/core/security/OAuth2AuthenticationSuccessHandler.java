@@ -28,7 +28,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // Returning users who had previously switched tenants start fresh in their home
         // context. They can explicitly switch again via the Context Switcher UI.
         // This prevents stale tenant contexts from persisting across sessions.
-        String token = tokenProvider.createToken(email, oAuth2User.getTenantId(), oAuth2User.getTenantId(), oAuth2User.getRole());
+        String token = tokenProvider.createToken(email, oAuth2User.getUserId(), oAuth2User.getTenantId(), oAuth2User.getTenantId(), oAuth2User.getRole());
 
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), token)
                 .path("/")

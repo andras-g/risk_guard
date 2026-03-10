@@ -81,20 +81,20 @@ Users can search any tax number and receive a deterministic binary "Reliable/At-
 **FRs covered:** FR1, FR2, FR3, FR4, NFR1, NFR4, UX-2.
 
 ### Epic 3: Automated Monitoring & Alerts (Watchlist)
-Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse.
-**FRs covered:** FR5, FR6, FR7, UX-3, UX-FlightControl.
+Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse. Includes foundational application shell, design system, and landing page (Story 3.0) per UX Design Specification.
+**FRs covered:** FR5, FR6, FR7, UX-1, UX-3, UX-FlightControl, UX-DesignSystem.
 
 ### Epic 4: EPR Material Library & Questionnaire
-Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
-**FRs covered:** FR8, FR9, FR13.
+Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes. UI implements `MaterialInventoryBlock` component and form validation patterns per UX Spec.
+**FRs covered:** FR8, FR9, FR13, UX-MaterialInventoryBlock, UX-FormValidation.
 
 ### Epic 5: Compliance Reporting & Exports
-Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist.
-**FRs covered:** FR10, FR14, UX-6.
+Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist. Implements `AuditDispatcher` mobile share and "MOHU Gate" validation patterns per UX Spec.
+**FRs covered:** FR10, FR14, UX-6, UX-AuditDispatcher, UX-MOHUGate.
 
 ### Epic 6: System Administration & Integrity
-Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes.
-**FRs covered:** FR11, FR12, UX-5.
+Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes. Admin pages follow "Mission Control" page spec with accessibility-first health gauges per UX Spec.
+**FRs covered:** FR11, FR12, UX-5, UX-MissionControl.
 
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
@@ -270,6 +270,28 @@ So that I can access the product without a third-party SSO provider.
 ## Epic 3: Automated Monitoring & Alerts (Watchlist)
 **Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
 
+### Story 3.0: Application Shell, Design System & Landing Page
+As a User,
+I want the application to have a polished, professional visual identity with consistent navigation and a public landing page,
+So that the product feels trustworthy and I can orient myself across all features.
+
+**Acceptance Criteria:**
+
+**Given** the UX Design Specification ("The Safe Harbor" design direction)
+**When** I visit the application
+**Then** the Tailwind color tokens are implemented (Deep Navy #0F172A, Forest Emerald #15803D, Crimson Alert #B91C1C, Amber #B45309)
+**And** typography uses Inter (primary) and JetBrains Mono (data: Tax IDs, hashes)
+**And** the app shell includes a persistent sidebar (desktop), responsive nav, and Slate 900 top bar with Context Switcher placement
+**And** the responsive breakpoints follow the Dual-Context strategy: Mobile (<768px), Tablet (768-1024px), Desktop (>1024px)
+**And** the button hierarchy is implemented: Primary (Deep Navy), Secondary (Slate Grey border), Tertiary (Borderless Slate)
+**And** feedback patterns are consistent: Emerald for success, Amber for warnings, Crimson for errors
+**And** the public Landing Page provides zero-friction Tax ID search with the "airy, horizontal, marketing-focused" aesthetic
+**And** the private workspace transitions to the "high-density, sidebar-driven, sober/legal" aesthetic
+**And** WCAG 2.1 AA baseline is met: 4.5:1 contrast for metadata, 7:1 for verdicts, skip-links, ARIA-live regions
+**And** loading states use PrimeVue Skeleton components per the "Skeletal Trust" pattern
+
+**Source:** UX Design Specification sections 3 (Visual Design), 4 (Vault Pivot), 6 (Page & Component Strategy), 7 (Consistency Patterns), 8 (Responsive & Accessibility).
+
 ### Story 3.1: Watchlist Management (CRUD)
 As a User,
 I want to add searched partners to a private Watchlist,
@@ -322,6 +344,8 @@ So that I can proactively advise my clients.
 **When** I log in to the dashboard
 **Then** I see a "Portfolio Alerts" sidebar listing recent status changes for ALL client tenants I have mandates for
 **And** clicking an alert instantly switches my context to that client's dashboard.
+**And** the dashboard implements the "Morning Risk Pulse" UX flow: status changes are promoted to the top with one-tap access to Audit Proof PDF (UX Spec §5.1).
+**And** the alert feed uses the established feedback patterns: Emerald for resolved, Amber for degraded, Crimson for new At-Risk (UX Spec §7.2).
 
 ### Story 3.5: Accountant "Flight Control" Dashboard
 As an Accountant,
@@ -336,6 +360,8 @@ So that I can see at a glance which clients have the most "At-Risk" or "Stale" p
 **And** each row displays a summary count of "Reliable", "At-Risk", and "Stale" partners
 **And** I can filter by client name or risk level.
 **And** clicking a client name navigates to their specific dashboard using the context switch.
+**And** the page follows the "Flight Control" page spec: desktop-optimized, multi-column "Quiet Grid" tables with persistent sidebar (UX Spec §6.2, §8.2).
+**And** the layout uses dense data grids optimized for mouse/keyboard efficiency per the "Operation Context" responsive strategy (UX Spec §8.1).
 
 ## Epic 4: EPR Material Library & Questionnaire
 **Goal:** Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
@@ -354,6 +380,8 @@ So that my quarterly filing process is as efficient as possible.
 **And** I can mark templates as "Seasonal" (e.g., "Christmas Packaging") to toggle their visibility.
 **And** I can click "Copy from Previous" to duplicate an entire library structure from the prior quarter.
 **And** I can edit or delete these templates later.
+**And** the material library uses the `MaterialInventoryBlock` component: a high-speed weight entry grid following the "Inventory & Monitor" mental model (UX Spec §6.1, §2.2).
+**And** on desktop, the EPR section uses an expanded side-panel summary layout (UX Spec §8.2).
 
 ### Story 4.2: Smart Material Wizard (DAG Questionnaire)
 As a User,
@@ -367,6 +395,7 @@ So that I am legally compliant without needing to memorize environmental law.
 **Then** the DagEngine.java validates the path through the JSON configuration.
 **And** the system returns the specific KF-code (e.g., `99 01 01`) and its associated fee rate.
 **And** the UI shows a breadcrumb of the logic path used (e.g., `Packaging -> Paper -> Corrugated`).
+**And** form inputs follow the UX validation patterns: real-time feedback with Crimson for errors, Emerald for valid steps (UX Spec §7.2, §7.3).
 
 ### Story 4.3: Manual Override & Confidence Score
 As an Accountant,
@@ -409,6 +438,7 @@ So that I can provide court-ready evidence of my due diligence to banks or audit
 **And** each entry includes its unique SHA-256 verification hash.
 **And** the PDF includes the "Informational Purpose Only" liability disclaimer.
 **And** on mobile devices, the `AuditDispatcher` uses `navigator.share` to allow instant dispatching to email, Slack, or WhatsApp.
+**And** the `AuditDispatcher` component follows the mobile-first "Decision Context" pattern: optimized for one-handed thumb interaction with the share action as the primary CTA (UX Spec §6.1, §8.1).
 
 ### Story 5.2: Quarterly EPR Filing Workflow
 As a User,
@@ -421,6 +451,7 @@ So that I can calculate my total EPR liability for the quarter.
 **When** I start a "New Filing" and enter the Quantity (pcs) for each item
 **Then** the FeeCalculator computes the total weight and total fee based on the current JSON fee tables.
 **And** I see a summary of the calculation before generating the final file.
+**And** quantity inputs use the "MOHU Gate" real-time validation pattern: enforcing decimal precision with immediate Crimson/Emerald feedback (UX Spec §7.3).
 
 ### Story 5.3: MOHU-Ready CSV Export
 As a User,
@@ -462,6 +493,8 @@ So that I can detect government portal changes before users complain.
 **Then** the UI displays a grid of cards showing MTBF, Success Rate %, and current Circuit Breaker State for each adapter.
 **And** the data is pulled directly from the Resilience4j Actuator endpoints.
 **And** the UI shows the "Last Successful Scrape" timestamp per source.
+**And** the page follows the "Mission Control" page spec: impact-driven health gauges with MTBF scoring (UX Spec §6.2, §9.3).
+**And** ARIA-live regions announce scraper status changes for screen reader accessibility (UX Spec §8.3).
 
 ### Story 6.2: Manual Adapter Kill-Switch (Quarantine)
 As an Admin,

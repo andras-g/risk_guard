@@ -1,10 +1,12 @@
 package hu.riskguard.screening.api;
 
+import hu.riskguard.core.security.TenantContext;
 import hu.riskguard.screening.api.dto.PartnerSearchRequest;
 import hu.riskguard.screening.api.dto.VerdictResponse;
 import hu.riskguard.screening.domain.ScreeningService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -16,7 +18,11 @@ import java.util.UUID;
 /**
  * REST controller for partner screening operations.
  * Delegates all business logic to {@link ScreeningService} facade.
+ *
+ * <p>User and tenant identity are extracted from JWT claims ({@code user_id},
+ * {@code active_tenant_id}) — no cross-module dependency on the identity module.
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/screenings")
 @RequiredArgsConstructor

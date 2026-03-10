@@ -41,12 +41,13 @@ public class TokenProvider {
         return signingKey;
     }
 
-    public String createToken(String email, UUID homeTenantId, UUID activeTenantId, String role) {
+    public String createToken(String email, UUID userId, UUID homeTenantId, UUID activeTenantId, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + properties.getSecurity().getJwtExpirationMs());
 
         return Jwts.builder()
                 .subject(email)
+                .claim("user_id", userId.toString())
                 .claim("home_tenant_id", homeTenantId.toString())
                 .claim("active_tenant_id", activeTenantId.toString())
                 .claim("role", role)

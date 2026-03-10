@@ -65,18 +65,20 @@ class OAuth2AuthenticationSuccessHandlerTest {
         CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, homeTenantId, role);
 
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
-        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), anyString()))
+        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString()))
                 .thenReturn("jwt-token");
 
         // When
         handler.onAuthenticationSuccess(request, response, authentication);
 
-        // Then — active_tenant_id (3rd arg) MUST equal home_tenant_id (2nd arg)
+        // Then — active_tenant_id (4th arg) MUST equal home_tenant_id (3rd arg)
+        ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<UUID> homeTenantCaptor = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<UUID> activeTenantCaptor = ArgumentCaptor.forClass(UUID.class);
 
         verify(tokenProvider).createToken(
                 eq(email),
+                userIdCaptor.capture(),
                 homeTenantCaptor.capture(),
                 activeTenantCaptor.capture(),
                 eq(role)
@@ -103,7 +105,7 @@ class OAuth2AuthenticationSuccessHandlerTest {
         CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, tenantId, "SME_ADMIN");
 
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
-        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), anyString()))
+        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString()))
                 .thenReturn("jwt-token");
 
         // When
