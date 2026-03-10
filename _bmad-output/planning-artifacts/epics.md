@@ -30,6 +30,8 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 - **FR12:** Administrators can update EPR logic via JSON configuration without code redeploys.
 - **FR13:** Users can save and manage material templates in a personal "EPR Library."
 - **FR14:** Users can generate a bulk PDF export of their Watchlist status including SHA-256 verification hashes.
+- **FR15:** Guest users can try the product with limited access (10 companies, 3 checks/day) before signing up.
+- **FR16:** Feature access is controlled by subscription tier via feature flags, with clear upgrade prompts.
 
 ### NonFunctional Requirements
 
@@ -54,47 +56,70 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 
 ### FR Coverage Map
 
-- **FR1:** Epic 2 - Tax Number Search
-- **FR2:** Epic 2 - Gov Data Retrieval
-- **FR2:** Epic 2 - Gov Data Retrieval
-- **FR3:** Epic 2 - State-Machine Verdict
-- **FR4:** Epic 2 - Suspended Tax Flag
-- **FR5:** Epic 3 - Watchlist CRUD
-- **FR6:** Epic 3 - 24h Monitoring
-- **FR7:** Epic 3 - Email Alerts
-- **FR8:** Epic 4 - Material Questionnaire
-- **FR9:** Epic 4 - DAG Validation
-- **FR10:** Epic 5 - MOHU CSV Export
-- **FR11:** Epic 6 - Scraper Health Dashboard
-- **FR12:** Epic 6 - JSON Logic Hot-swap
-- **FR13:** Epic 4 - Material Library
-- **FR14:** Epic 5 - Watchlist PDF Export
+- **FR1:** Epic 2 - Tax Number Search (Story 2.1)
+- **FR2:** Epic 2 - Gov Data Retrieval (Story 2.2)
+- **FR3:** Epic 2 - State-Machine Verdict (Story 2.3)
+- **FR4:** Epic 2 - Suspended Tax Flag (Story 2.3/2.4)
+- **FR5:** Epic 3 - Watchlist CRUD (Story 3.6)
+- **FR6:** Epic 3 - 24h Monitoring (Story 3.7)
+- **FR7:** Epic 3 - Email Alerts (Story 3.8)
+- **FR8:** Epic 4 - Material Questionnaire (Story 4.2)
+- **FR9:** Epic 4 - DAG Validation (Story 4.2)
+- **FR10:** Epic 5 - MOHU CSV Export (Story 5.3)
+- **FR11:** Epic 6 - Scraper Health Dashboard (Story 6.1)
+- **FR12:** Epic 6 - JSON Logic Hot-swap (Story 6.3)
+- **FR13:** Epic 4 - Material Library (Story 4.1)
+- **FR14:** Epic 5 - Watchlist PDF Export (Story 5.1)
+- **FR15 (new):** Demo Mode - Guest Rate Limiting (Story 2.7)
+- **FR16 (new):** Feature Flags - Tier Gating (Story 3.3)
+
+### NFR Coverage Map
+
+- **NFR1:** Epic 2 - Search < 30 seconds (Story 2.2)
+- **NFR3:** Epic 3 - Min-Instances during business hours (Story 3.4)
+- **NFR4:** Epic 2 - SHA-256 Audit Logging (Story 2.5)
+- **NFR5:** Epic 3 - Encryption at rest and in transit (Story 3.4)
+- **NFR6:** Epic 2 - SEO Gateway Stubs (Story 2.6)
+
+### Additional Requirement Coverage Map
+
+- **i18n:** Epic 3 - Internationalization Infrastructure (Story 3.1)
+- **Async Ingestor:** Epic 3 - Background Data Freshness (Story 3.5)
+- **Liability Disclaimer:** Epic 2 - Verdict Display (Story 2.4 AC)
+- **WCAG 2.1 AA:** Epic 3 - Accessibility Foundation (Story 3.0c)
 
 ## Epic List
 
-### Epic 1: Identity, Multi-Tenancy & Foundation
+### Epic 1: Identity, Multi-Tenancy & Foundation ✅ IMPLEMENTED
 Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
 **FRs covered:** TECH-1, TECH-2, UX-3.
+**Stories:** 1.1 (Project Init), 1.2 (Multi-Tenant Schema), 1.3 (SSO), 1.4 (Context Switcher), 1.5 (CI/CD & GCP).
 
 ### Epic 2: The Partner Risk Radar (Screening Engine)
-Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds.
-**FRs covered:** FR1, FR2, FR3, FR4, NFR1, NFR4, UX-2.
+Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds. Includes SEO gateway stubs and demo mode for guest users.
+**FRs covered:** FR1, FR2, FR3, FR4, FR15, NFR1, NFR4, NFR6, UX-2.
+**Stories:** 2.0 (Staging Bootstrap), 2.1 (Tax Search UI), 2.2 (Scraper Engine), 2.3 (State-Machine), 2.4 (Verdict Card), 2.5 (Audit Logging), 2.6 (SEO Stubs), 2.7 (Demo Mode).
 
 ### Epic 3: Automated Monitoring & Alerts (Watchlist)
-Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse. Includes foundational application shell, design system, and landing page (Story 3.0) per UX Design Specification.
-**FRs covered:** FR5, FR6, FR7, UX-1, UX-3, UX-FlightControl, UX-DesignSystem.
+Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse. Includes foundational application shell, design system, landing page, WCAG accessibility foundation, and cross-cutting infrastructure (i18n, fallback auth, feature flags, encryption hardening) that were identified as gaps during implementation readiness review.
+**FRs covered:** FR5, FR6, FR7, FR16, i18n, NFR3, NFR5, UX-1, UX-3, UX-FlightControl, UX-DesignSystem, WCAG.
+**Stories:** 3.0a (Design System), 3.0b (Landing Page), 3.0c (WCAG), 3.1 (i18n), 3.2 (Email/Password Auth), 3.3 (Feature Flags), 3.4 (Encryption Hardening), 3.5 (Async Ingestor), 3.6 (Watchlist CRUD), 3.7 (24h Monitoring), 3.8 (Email Alerts), 3.9 (Portfolio Pulse), 3.10 (Flight Control).
+**Note:** Stories 3.0a-c are foundational UX stories and 3.1-3.4 are cross-cutting infrastructure stories — all should be implemented early in Epic 3 as they establish the framework for all subsequent UI and business logic stories.
 
 ### Epic 4: EPR Material Library & Questionnaire
 Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes. UI implements `MaterialInventoryBlock` component and form validation patterns per UX Spec.
 **FRs covered:** FR8, FR9, FR13, UX-MaterialInventoryBlock, UX-FormValidation.
+**Stories:** 4.1 (Material Library), 4.2 (DAG Wizard), 4.3 (Manual Override), 4.4 (Template KF-Code Mapping).
 
 ### Epic 5: Compliance Reporting & Exports
 Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist. Implements `AuditDispatcher` mobile share and "MOHU Gate" validation patterns per UX Spec.
-**FRs covered:** FR10, FR14, UX-6, UX-AuditDispatcher, UX-MOHUGate.
+**FRs covered:** FR10, FR14, UX-AuditDispatcher, UX-MOHUGate.
+**Stories:** 5.1 (PDF Export & Dispatcher), 5.2 (Quarterly Filing), 5.3 (MOHU CSV), 5.4 (Locale Enforcement).
 
 ### Epic 6: System Administration & Integrity
 Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes. Admin pages follow "Mission Control" page spec with accessibility-first health gauges per UX Spec.
-**FRs covered:** FR11, FR12, UX-5, UX-MissionControl.
+**FRs covered:** FR11, FR12, UX-MissionControl.
+**Stories:** 6.1 (Scraper Dashboard), 6.2 (Kill-Switch), 6.3 (EPR JSON Manager), 6.4 (Audit Viewer).
 
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
@@ -239,6 +264,7 @@ So that I can trust the freshness of the data.
 **And** a Provenance Sidebar lists the source URLs and "Last Scraped" times (e.g., `2 minutes ago`)
 **And** "Amber" warnings are shown for suspended tax numbers.
 **And** if the data age exceeds the "Freshness Guard" (48h), the Grey Shield is automatically displayed with a "Stale" warning.
+**And** every verdict display includes an "Informational Purpose Only" liability disclaimer clarifying that data originates from third-party government sources.
 
 ### Story 2.5: SHA-256 Audit Logging (Legal Proof)
 As a User,
@@ -252,8 +278,117 @@ So that I have court-ready evidence of my due diligence.
 **Then** the backend generates a SHA-256 hash of the (Snapshot + Verdict + Disclaimer)
 **And** the record is stored in the `search_audit_log` table with the hash and a timestamp
 **And** the hash is displayed on the frontend result card.
+**And** if hash generation fails (e.g., null snapshot data), the search result is still displayed but the hash field shows "Audit hash unavailable" and the failure is logged for admin review.
 
-### Story 2.6: Email/Password Registration (Fallback Auth)
+### Story 2.6: SEO Gateway Stubs (Public Company Pages)
+As a Product Owner,
+I want public, indexable company pages with structured data for every Hungarian company searched,
+So that organic search traffic drives new users to the platform.
+
+**Acceptance Criteria:**
+
+**Given** a previously searched Hungarian company
+**When** a search engine or unauthenticated user visits `/company/{taxNumber}`
+**Then** Nuxt renders the page via SSR/ISR with the company name, tax number, and a generic status indicator
+**And** the page includes JSON-LD structured data (Organization schema) with the company's publicly available information
+**And** the page includes a clear CTA to "Check this company's live risk status" requiring login
+**And** the page does NOT expose any tenant-specific verdict data or audit information
+**And** Nuxt `routeRules` are configured so public company pages use SSR/ISR while authenticated routes use SPA mode
+**And** if the company has never been searched, the page returns a 404 with a "Company not found — search now" prompt.
+
+### Story 2.7: Demo Mode & Guest Rate Limiting
+As a Guest (unauthenticated visitor),
+I want to try the product with limited access before signing up,
+So that I can evaluate its value with real data before committing to a paid plan.
+
+**Acceptance Criteria:**
+
+**Given** an unauthenticated visitor on the Landing Page
+**When** I perform a partner search without logging in
+**Then** the system creates a transient `guest_sessions` record with a session fingerprint
+**And** I can search up to 10 unique companies and perform 3 instant checks per day
+**And** the UI displays a progress indicator showing remaining searches (e.g., "7 of 10 companies used")
+**And** when the daily check limit is reached, the UI shows a clear, localized message: "Daily limit reached — sign up for unlimited checks" with a prominent registration CTA
+**And** when the company limit is reached, the UI shows: "Demo limit reached — sign up to monitor unlimited partners"
+**And** expired guest sessions are purged daily by the scheduled cleanup job
+**And** guest data is stored with a synthetic `tenant_id` and is never accessible to authenticated users.
+
+## Epic 3: Automated Monitoring & Alerts (Watchlist)
+**Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
+
+### Story 3.0a: Design System Tokens & Application Shell
+As a User,
+I want the application to have a consistent, professional visual identity with reliable navigation,
+So that the product feels trustworthy and I can orient myself across all features.
+
+**Acceptance Criteria:**
+
+**Given** the UX Design Specification ("The Safe Harbor" design direction)
+**When** I visit any authenticated page in the application
+**Then** the Tailwind color tokens are implemented (Deep Navy #0F172A, Forest Emerald #15803D, Crimson Alert #B91C1C, Amber #B45309)
+**And** typography uses Inter (primary) and JetBrains Mono (data: Tax IDs, hashes)
+**And** the app shell includes a persistent sidebar (desktop), responsive nav, and Slate 900 top bar with Context Switcher placement
+**And** the responsive breakpoints follow the Dual-Context strategy: Mobile (<768px), Tablet (768-1024px), Desktop (>1024px)
+**And** the button hierarchy is implemented: Primary (Deep Navy), Secondary (Slate Grey border), Tertiary (Borderless Slate)
+**And** feedback patterns are consistent: Emerald for success, Amber for warnings, Crimson for errors
+**And** the private workspace uses the "high-density, sidebar-driven, sober/legal" aesthetic
+**And** loading states use PrimeVue Skeleton components per the "Skeletal Trust" pattern
+**And** if the Tailwind config fails to load or tokens are missing, the application falls back to browser-default styles without crashing.
+
+**Source:** UX Design Specification sections 3 (Visual Design), 4 (Vault Pivot), 7 (Consistency Patterns).
+
+### Story 3.0b: Public Landing Page
+As a Visitor,
+I want a public landing page that lets me instantly search a tax number without signing up,
+So that I can experience the product's value before committing to registration.
+
+**Acceptance Criteria:**
+
+**Given** a public (unauthenticated) visitor
+**When** I navigate to the root URL
+**Then** the Landing Page provides zero-friction Tax ID search with the "airy, horizontal, marketing-focused" aesthetic
+**And** the page clearly communicates the product value proposition and trust signals
+**And** the search input uses intelligent masking for 8/11-digit Hungarian Tax Numbers (UX Spec §7.3)
+**And** the page is server-side rendered by Nuxt for SEO performance
+**And** if the search service is unavailable, the page displays a clear "Service Temporarily Unavailable" message instead of a broken UI.
+
+**Source:** UX Design Specification sections 4 (Vault Pivot), 6 (Page & Component Strategy).
+
+### Story 3.0c: WCAG 2.1 AA Accessibility Foundation
+As a User with accessibility needs,
+I want the application to meet WCAG 2.1 AA standards,
+So that I can use all features regardless of my abilities.
+
+**Acceptance Criteria:**
+
+**Given** any page in the application (public or authenticated)
+**When** I navigate using a screen reader or keyboard
+**Then** WCAG 2.1 AA baseline is met: 4.5:1 contrast ratio for all metadata text, 7:1 for primary verdicts
+**And** all status colors are paired with unique icons (Shield-Check, Shield-X, Shield-Clock) for color-blind users
+**And** skip-links are provided for accountants to bypass sidebars
+**And** logical tab order is maintained through all form inputs including the "MOHU Gate" weight inputs
+**And** ARIA-live regions announce asynchronous scraper status updates
+**And** a Pa11y or Axe-core CI scan passes for all core user journeys without critical violations.
+
+**Source:** UX Design Specification section 8 (Responsive & Accessibility).
+
+### Story 3.1: Internationalization (i18n) Infrastructure
+As a User,
+I want the application to be available in Hungarian (primary) and English (fallback),
+So that I can use the product comfortably in my preferred language.
+
+**Acceptance Criteria:**
+
+**Given** a Nuxt 3 frontend with `@nuxtjs/i18n` configured
+**When** the application loads
+**Then** Hungarian (hu) is the default locale and English (en) is the fallback
+**And** all user-facing text is sourced from JSON message files (`frontend/i18n/hu/*.json`, `frontend/i18n/en/*.json`)
+**And** the user's `preferred_language` from the `users` table is respected on login
+**And** a language switcher allows toggling between HU and EN
+**And** the backend uses `messages_hu.properties` and `messages_en.properties` for server-generated content (emails, exports)
+**And** if a translation key is missing in Hungarian, the English fallback is displayed without crashing.
+
+### Story 3.2: Email/Password Registration (Fallback Auth)
 As a User,
 I want to register and sign in with email and password,
 So that I can access the product without a third-party SSO provider.
@@ -266,33 +401,53 @@ So that I can access the product without a third-party SSO provider.
 **And** a dual-claim JWT (`home_tenant_id`, `active_tenant_id`) is issued
 **And** password storage uses a strong one-way hash (BCrypt/Argon2)
 **And** invalid credentials return a localized error message
+**And** if the email is already registered, the system returns a clear "Email already in use" message without revealing account details.
 
-## Epic 3: Automated Monitoring & Alerts (Watchlist)
-**Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
-
-### Story 3.0: Application Shell, Design System & Landing Page
-As a User,
-I want the application to have a polished, professional visual identity with consistent navigation and a public landing page,
-So that the product feels trustworthy and I can orient myself across all features.
+### Story 3.3: Feature Flags & Subscription Tier Gating
+As a Product Owner,
+I want feature access to be controlled by subscription tier via feature flags,
+So that free-tier users are guided toward upgrading and paid features are properly protected.
 
 **Acceptance Criteria:**
 
-**Given** the UX Design Specification ("The Safe Harbor" design direction)
-**When** I visit the application
-**Then** the Tailwind color tokens are implemented (Deep Navy #0F172A, Forest Emerald #15803D, Crimson Alert #B91C1C, Amber #B45309)
-**And** typography uses Inter (primary) and JetBrains Mono (data: Tax IDs, hashes)
-**And** the app shell includes a persistent sidebar (desktop), responsive nav, and Slate 900 top bar with Context Switcher placement
-**And** the responsive breakpoints follow the Dual-Context strategy: Mobile (<768px), Tablet (768-1024px), Desktop (>1024px)
-**And** the button hierarchy is implemented: Primary (Deep Navy), Secondary (Slate Grey border), Tertiary (Borderless Slate)
-**And** feedback patterns are consistent: Emerald for success, Amber for warnings, Crimson for errors
-**And** the public Landing Page provides zero-friction Tax ID search with the "airy, horizontal, marketing-focused" aesthetic
-**And** the private workspace transitions to the "high-density, sidebar-driven, sober/legal" aesthetic
-**And** WCAG 2.1 AA baseline is met: 4.5:1 contrast for metadata, 7:1 for verdicts, skip-links, ARIA-live regions
-**And** loading states use PrimeVue Skeleton components per the "Skeletal Trust" pattern
+**Given** a user with a specific subscription tier (ALAP/PRO/PRO_EPR)
+**When** they attempt to access a tier-gated feature (e.g., EPR Wizard on ALAP tier)
+**Then** the backend `TierGate` interceptor checks the tenant's `tier` field against the feature's required tier
+**And** if the user's tier is insufficient, the API returns a `403 TIER_UPGRADE_REQUIRED` response
+**And** the frontend `useTierGate` composable renders a localized upgrade prompt instead of the locked feature
+**And** the upgrade prompt clearly communicates what tier is required and what benefits it unlocks
+**And** if the tier check fails due to a backend error, the feature defaults to locked with a "temporarily unavailable" message (fail-closed).
 
-**Source:** UX Design Specification sections 3 (Visual Design), 4 (Vault Pivot), 6 (Page & Component Strategy), 7 (Consistency Patterns), 8 (Responsive & Accessibility).
+### Story 3.4: Encryption & Infrastructure Hardening
+As an Admin,
+I want the production infrastructure to enforce encryption at rest and in transit, and maintain availability during business hours,
+So that user data is protected and the service is reliable when it matters most.
 
-### Story 3.1: Watchlist Management (CRUD)
+**Acceptance Criteria:**
+
+**Given** the GCP Cloud Run + Cloud SQL production environment
+**When** the infrastructure is configured
+**Then** encryption at rest is enabled on the PostgreSQL database (AES-256 via GCP Cloud SQL or disk-level encryption)
+**And** all database connections use TLS 1.3 for encryption in transit
+**And** the Cloud Run service is configured with Min-Instances: 1 during Hungarian business hours (8:00-17:00 CET) to ensure zero cold-starts (NFR3)
+**And** a health check confirms encryption settings are active and min-instances scheduling is functional.
+
+### Story 3.5: Async NAV Debt Ingestor (Background Data Freshness)
+As a User,
+I want the system to proactively refresh NAV debt data in the background on a daily schedule,
+So that my partner verdicts are always based on recent data without waiting for manual searches.
+
+**Acceptance Criteria:**
+
+**Given** a scheduled daily job (outside of user search latency path)
+**When** the `AsyncIngestor` triggers during off-peak hours
+**Then** it retrieves updated NAV debt status for all actively monitored partners (watchlist entries across all tenants)
+**And** updated snapshots are stored in the `company_snapshots` table with a fresh `checked_at` timestamp
+**And** the ingestor runs in isolation from user-facing search requests (separate thread pool / worker process)
+**And** if a source is unavailable during ingestion, the existing snapshot is retained and the failure is logged without marking the data as stale
+**And** the ingestor respects rate limits to avoid overwhelming government portals (configurable delay between requests).
+
+### Story 3.6: Watchlist Management (CRUD)
 As a User,
 I want to add searched partners to a private Watchlist,
 So that I don't have to re-enter their tax number every time I want to check them.
@@ -305,7 +460,7 @@ So that I don't have to re-enter their tax number every time I want to check the
 **And** I can view a PrimeVue `DataTable` of all my watched partners with their current status.
 **And** I can remove partners from the list.
 
-### Story 3.2: 24h Background Monitoring Cycle
+### Story 3.7: 24h Background Monitoring Cycle
 As a User,
 I want the system to automatically monitor my watchlist for status changes every 24 hours,
 So that I am proactively informed of any risks without manual effort.
@@ -319,7 +474,7 @@ So that I am proactively informed of any risks without manual effort.
 **And** it logs any deviations (e.g., `RELIABLE` -> `AT_RISK`).
 **And** it handles transient failures with retries without skipping monitoring for the entire list.
 
-### Story 3.3: Resend Email Alerts & Outbox Pattern
+### Story 3.8: Resend Email Alerts & Outbox Pattern
 As a User,
 I want to receive an email notification the moment a partner's status changes,
 So that I can take immediate business action.
@@ -333,7 +488,7 @@ So that I can take immediate business action.
 **And** failed emails are retried with exponential backoff.
 **And** the email includes the "Audit Proof" SHA-256 hash for verification.
 
-### Story 3.4: The Accountant "Portfolio Pulse" Feed
+### Story 3.9: The Accountant "Portfolio Pulse" Feed
 As an Accountant,
 I want a global alert feed on my main dashboard showing status changes across all my clients' partners,
 So that I can proactively advise my clients.
@@ -347,7 +502,7 @@ So that I can proactively advise my clients.
 **And** the dashboard implements the "Morning Risk Pulse" UX flow: status changes are promoted to the top with one-tap access to Audit Proof PDF (UX Spec §5.1).
 **And** the alert feed uses the established feedback patterns: Emerald for resolved, Amber for degraded, Crimson for new At-Risk (UX Spec §7.2).
 
-### Story 3.5: Accountant "Flight Control" Dashboard
+### Story 3.10: Accountant "Flight Control" Dashboard
 As an Accountant,
 I want a dedicated, high-density dashboard that aggregates my entire client portfolio,
 So that I can see at a glance which clients have the most "At-Risk" or "Stale" partners.
@@ -421,6 +576,7 @@ So that the template is "Filing-Ready."
 **When** I complete the Wizard for that material
 **Then** the KF-code is permanently saved to that template.
 **And** the template is marked as "Verified" in the inventory list.
+**And** if the KF-code save fails (e.g., network error), the template retains its "Unverified" status and the user sees a clear retry prompt.
 
 ## Epic 5: Compliance Reporting & Exports
 **Goal:** Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF reports for the Watchlist.
@@ -465,6 +621,7 @@ So that I can complete my quarterly filing with zero manual edits.
 **Then** the backend generates a CSV file using semicolon delimiters and Hungarian UTF-8 BOM.
 **And** the file columns and KF-code formats match the latest MOHU schema version.
 **And** the export is logged in the `epr_exports` table with a config version reference.
+**And** if the export generation fails (e.g., missing template data or backend error), the user sees a localized error message identifying the issue and no corrupt file is downloaded.
 
 ### Story 5.4: Export Locale Enforcement & UX Notice
 As a User,
@@ -533,6 +690,7 @@ So that I can provide proof of a specific risk check if requested by legal autho
 **When** I search the Audit Log
 **Then** the UI displays the timestamped entry, the SHA-256 hash, and the source URLs that were used.
 **And** I can see which User ID performed the search.
+**And** if no matching audit records are found, the UI displays a clear "No records found for this search" message instead of an empty table.
 
 
 
