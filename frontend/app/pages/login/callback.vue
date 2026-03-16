@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'public' })
+
 const router = useRouter()
 const authStore = useAuthStore()
 const { t } = useI18n()

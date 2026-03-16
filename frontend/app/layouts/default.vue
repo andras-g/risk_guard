@@ -1,42 +1,28 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-slate-950 text-slate-50">
-    <!-- Top Bar -->
-    <header class="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-50">
-      <div class="flex items-center gap-8">
-        <div class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-indigo-600 bg-clip-text text-transparent">
-          RiskGuard
-        </div>
-        
-        <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-          <NuxtLink to="/dashboard" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.dashboard') }}</NuxtLink>
-          <NuxtLink to="/screening" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.screening') }}</NuxtLink>
-          <NuxtLink to="/watchlist" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.watchlist') }}</NuxtLink>
-          <NuxtLink to="/epr" class="hover:text-white transition-colors" active-class="text-white">{{ $t('common.nav.epr') }}</NuxtLink>
-        </nav>
-      </div>
+  <div class="min-h-screen bg-slate-50 text-slate-900">
+    <!-- Sidebar (desktop/tablet) -->
+    <CommonAppSidebar />
 
-      <div class="flex items-center gap-4">
-        <!-- Tenant Switcher Integrated Here -->
-        <IdentityTenantSwitcher />
-        
-        <div class="h-8 w-px bg-slate-800 mx-2" />
-        
-        <div class="flex items-center gap-3">
-          <div class="text-right hidden sm:block">
-            <div class="text-sm font-medium">{{ userName }}</div>
-            <div class="text-xs text-slate-500">{{ userRole }}</div>
-          </div>
-          <Button icon="pi pi-user" severity="secondary" rounded variant="text" />
-        </div>
-      </div>
-    </header>
+    <!-- Main content area — offset by sidebar width -->
+    <div
+      :class="[
+        'flex flex-col min-h-screen transition-all',
+        sidebarExpanded ? 'md:ml-60' : 'md:ml-16'
+      ]"
+    >
+      <!-- Top Bar -->
+      <CommonAppTopBar />
 
-    <!-- Page Content -->
-    <main class="flex-1 p-6">
-      <div class="mx-auto max-w-7xl">
-        <slot />
-      </div>
-    </main>
+      <!-- Page Content -->
+      <main class="flex-1 p-3 sm:p-4 lg:p-6">
+        <div class="mx-auto max-w-7xl">
+          <slot />
+        </div>
+      </main>
+    </div>
+
+    <!-- Mobile Drawer -->
+    <CommonAppMobileDrawer />
 
     <!-- Context Guard (Safety Interstitial) -->
     <IdentityContextGuard />
@@ -45,8 +31,12 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useAuthStore } from '~/stores/auth'
+import { useLayoutStore } from '~/stores/layout'
 
-const authStore = useAuthStore()
-const { name: userName, role: userRole } = storeToRefs(authStore)
+const layoutStore = useLayoutStore()
+const { sidebarExpanded } = storeToRefs(layoutStore)
+
+onMounted(() => {
+  layoutStore.initFromStorage()
+})
 </script>

@@ -1,21 +1,44 @@
 {
   "common": {
     "actions": {
-      "save": "Mentés",
       "cancel": "Mégse",
       "delete": "Törlés",
-      "search": "Keresés",
-      "retry": "Próbálja újra"
+      "login": "Bejelentkezés",
+      "logout": "Kijelentkezés",
+      "register": "Regisztráció",
+      "retry": "Próbálja újra",
+      "save": "Mentés",
+      "search": "Keresés"
     },
-    "states": {
-      "loading": "Betöltés...",
-      "error": "Hiba történt"
+    "app": {
+      "name": "RiskGuard",
+      "shortName": "RG",
+      "copyright": "© 2026 RiskGuard"
+    },
+    "breadcrumb": {
+      "admin": "Admin",
+      "dashboard": "Irányítópult",
+      "epr": "EPR",
+      "screening": "Átvilágítás",
+      "watchlist": "Megfigyelőlista"
+    },
+    "layout": {
+      "guestBanner": "Vendég módban használja a RiskGuard-ot"
     },
     "nav": {
+      "admin": "Admin",
       "dashboard": "Irányítópult",
+      "epr": "EPR",
       "screening": "Átvilágítás",
-      "watchlist": "Megfigyelőlista",
-      "epr": "EPR"
+      "watchlist": "Megfigyelőlista"
+    },
+    "sidebar": {
+      "collapse": "Összecsukás",
+      "expand": "Kinyitás"
+    },
+    "states": {
+      "error": "Hiba történt",
+      "loading": "Betöltés..."
     }
   }
 }

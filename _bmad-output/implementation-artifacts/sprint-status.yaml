@@ -1,4 +1,5 @@
-# generated: Mon Mar 09 2026
+# generated: Mon Mar 10 2026
+# updated: Mon Mar 16 2026 — Epic 2 CLOSED. Stories 2.6/2.7 moved to Epic 3 as 3.11/3.12 (owner decision: growth features belong in later epic).
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -21,6 +22,8 @@
 #   - in-progress: Developer actively working on implementation
 #   - review: Ready for code review (via Dev's code-review workflow)
 #   - done: Story completed
+#   - deferred: Story postponed pending external dependency (e.g., API access)
+#   - cancelled: Story removed from scope
 #
 # Retrospective Status:
 #   - optional: Can be completed but not required
@@ -32,8 +35,20 @@
 # - Stories can be worked in parallel if team capacity allows
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# COURSE CORRECTION (2026-03-12):
+# ================================
+# Trigger: Session ses_3226 (2026-03-11) + live verification (2026-03-12)
+# Key findings:
+#   - Cégközlöny API is Cloudflare Turnstile-protected (was never open)
+#   - Owner decision: no CAPTCHA/bot-protection bypass on government portals
+#   - NAV M2M API discovered (nav-gov-hu/M2M on GitHub) — legitimate REST API, representation-bound
+#   - NAV Online Számla API (nav-gov-hu/Online-Invoice) — serves both screening (QueryTaxpayer) and EPR (QueryInvoice*)
+# Strategy: Demo-first MVP with mock data. NAV Online Számla integration built real but running in mock mode.
+#   Real data via accountant's NAV M2M credentials in 1-2 months.
+# See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
-generated: Mon Mar 09 2026
+generated: Mon Mar 16 2026
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -48,22 +63,35 @@ development_status:
   1-5-automated-ci-cd-and-gcp-infrastructure: done
   epic-1-retrospective: done
 
-  epic-2: in-progress
+  epic-2: done  # CLOSED (2026-03-16) — All core screening stories complete. Stories 2.6/2.7 moved to Epic 3 as 3.11/3.12.
   2-0-bootstrap-gcp-staging-and-deploy-epic-1-baseline: done
-  2-1-tax-number-search-and-skeleton-ui: review
-  2-1.5-playwright-e2e-infrastructure-and-auth-bypass: ready-for-dev
-  2-2-parallel-scraper-engine-and-outage-resilience: backlog
-  2-3-deterministic-verdict-state-machine: backlog
-  2-4-verdict-result-card-and-provenance-sidebar: backlog
-  2-5-sha-256-audit-logging-legal-proof: backlog
-  epic-2-retrospective: optional
+  2-1-tax-number-search-and-skeleton-ui: done
+  2-1.5-playwright-e2e-infrastructure-and-auth-bypass: done  # Ad-hoc story added during Epic 2; story file exists
+  2-2-demo-mode-data-layer-and-parallel-adapter-orchestration: done  # Previously keyed as 2-2-parallel-scraper-engine-and-outage-resilience; story file exists; rebranded per CP-2
+  2-2.1-real-data-source-adapter-replacement: deferred  # DEFERRED (2026-03-12) — original scope invalid. Will be redesigned as "NAV M2M Adapter" story when API access secured (~1-2 months). See ADR-7.
+  2-2.2-profile-based-adapter-switching-and-enriched-demo-fixtures: done  # Keyed as nav-online-szamla-client in story file; DONE (2026-03-13)
+  2-3-deterministic-verdict-state-machine: done
+  2-3.5-verdict-status-change-events-and-dto-enrichment: done  # Ad-hoc story added during Epic 2; story file exists
+  2-4-verdict-result-card-and-provenance-sidebar: done  # DONE (2026-03-13) — Second adversarial review: 9 findings resolved. 103 frontend tests pass.
+  2-5-sha-256-audit-logging-legal-proof: done  # DONE (2026-03-14) — Code review: 6 issues fixed. Status → done.
+  epic-2-retrospective: done  # DONE (2026-03-15) — Retrospective completed. Saved to epic-2-retro-2026-03-15.md
 
-  epic-3: backlog
-  3-1-watchlist-management-crud: backlog
-  3-2-24h-background-monitoring-cycle: backlog
-  3-3-resend-email-alerts-and-outbox-pattern: backlog
-  3-4-the-accountant-portfolio-pulse-feed: backlog
-  3-5-accountant-flight-control-dashboard: backlog
+  epic-3: in-progress
+  3-0a-design-system-tokens-and-application-shell: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-16; done 2026-03-16
+  3-0b-public-landing-page: backlog
+  3-0c-wcag-2-1-aa-accessibility-foundation: backlog
+  3-1-internationalization-i18n-infrastructure: backlog
+  3-2-email-password-registration-fallback-auth: backlog
+  3-3-feature-flags-and-subscription-tier-gating: backlog
+  3-4-encryption-and-infrastructure-hardening: backlog
+  3-5-async-nav-debt-ingestor-background-data-freshness: backlog
+  3-6-watchlist-management-crud: backlog
+  3-7-24h-background-monitoring-cycle: backlog
+  3-8-resend-email-alerts-and-outbox-pattern: backlog
+  3-9-the-accountant-portfolio-pulse-feed: backlog
+  3-10-accountant-flight-control-dashboard: backlog
+  3-11-seo-gateway-stubs-public-company-pages: ready-for-dev  # Moved from Epic 2 (was 2.6) on 2026-03-16
+  3-12-demo-mode-and-guest-rate-limiting: ready-for-dev  # Moved from Epic 2 (was 2.7) on 2026-03-16
   epic-3-retrospective: optional
 
   epic-4: backlog
@@ -81,8 +109,15 @@ development_status:
   epic-5-retrospective: optional
 
   epic-6: backlog
-  6-1-scraper-health-dashboard-the-heartbeat: backlog
-  6-2-manual-adapter-kill-switch-quarantine: backlog
+  6-1-data-source-health-dashboard-the-heartbeat: backlog
+  6-2-manual-adapter-quarantine: backlog
   6-3-hot-swappable-epr-json-manager: backlog
   6-4-gdpr-search-audit-viewer: backlog
   epic-6-retrospective: optional
+
+# CANCELLED STORIES (2026-03-12):
+# ================================
+# - reCAPTCHA spike (was in 2.2.1 scope) — cancelled, owner decision: no CAPTCHA bypass
+# - Playwright scraper worker (was in architecture) — cancelled, no scraping of government portals
+# - CegkozlonyApiAdapter (was in 2.2.1 scope) — cancelled, Turnstile-protected
+# - NavMultiQueryAdapter (was in 2.2.1 scope) — cancelled, reCAPTCHA-protected

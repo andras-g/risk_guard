@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { z } from 'zod'
 import { useScreeningStore } from '~/stores/screening'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
@@ -9,8 +10,15 @@ const screeningStore = useScreeningStore()
 const taxNumberInput = ref('')
 const validationError = ref('')
 
-// Hungarian tax number regex: 8-digit or 11-digit (after stripping hyphens/spaces)
-const TAX_NUMBER_REGEX = /^\d{8}(\d{3})?$/
+/**
+ * Zod schema for Hungarian tax number validation (AC1).
+ * Accepts 8-digit (adószám) or 11-digit (adóazonosító jel) formats.
+ * Validation runs on cleaned (digits-only) input.
+ */
+const hungarianTaxNumberSchema = z.string().regex(
+  /^\d{8}(\d{3})?$/,
+  'screening.search.invalidTaxNumber'
+)
 
 /**
  * Auto-format the tax number with visual masking:
@@ -34,7 +42,8 @@ function onInput(event: Event) {
 
 function validate(): boolean {
   const cleaned = taxNumberInput.value.replace(/[^\d]/g, '')
-  if (!TAX_NUMBER_REGEX.test(cleaned)) {
+  const result = hungarianTaxNumberSchema.safeParse(cleaned)
+  if (!result.success) {
     validationError.value = t('screening.search.invalidTaxNumber')
     return false
   }
@@ -66,7 +75,7 @@ async function onSubmit() {
         />
         <small
           v-if="validationError"
-          class="text-red-500 mt-1 block"
+          class="text-at-risk mt-1 block"
         >
           {{ validationError }}
         </small>

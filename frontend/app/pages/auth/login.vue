@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: 'public' })
+
 import authConfig from '../../risk-guard-tokens.json'
 const { t, te } = useI18n()
 const config = useRuntimeConfig()

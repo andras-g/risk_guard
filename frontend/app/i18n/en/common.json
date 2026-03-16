@@ -1,21 +1,44 @@
 {
   "common": {
     "actions": {
-      "save": "Save",
       "cancel": "Cancel",
       "delete": "Delete",
-      "search": "Search",
-      "retry": "Retry"
+      "login": "Log in",
+      "logout": "Log out",
+      "register": "Register",
+      "retry": "Retry",
+      "save": "Save",
+      "search": "Search"
     },
-    "states": {
-      "loading": "Loading...",
-      "error": "An error occurred"
+    "app": {
+      "name": "RiskGuard",
+      "shortName": "RG",
+      "copyright": "© 2026 RiskGuard"
+    },
+    "breadcrumb": {
+      "admin": "Admin",
+      "dashboard": "Dashboard",
+      "epr": "EPR",
+      "screening": "Screening",
+      "watchlist": "Watchlist"
+    },
+    "layout": {
+      "guestBanner": "You are using RiskGuard in guest mode"
     },
     "nav": {
+      "admin": "Admin",
       "dashboard": "Dashboard",
+      "epr": "EPR",
       "screening": "Screening",
-      "watchlist": "Watchlist",
-      "epr": "EPR"
+      "watchlist": "Watchlist"
+    },
+    "sidebar": {
+      "collapse": "Collapse",
+      "expand": "Expand"
+    },
+    "states": {
+      "error": "An error occurred",
+      "loading": "Loading..."
     }
   }
 }

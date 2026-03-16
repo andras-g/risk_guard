@@ -1,9 +1,14 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   future: {
     compatibilityVersion: 4
+  },
+  vite: {
+    plugins: [tailwindcss()]
   },
 
   // Nuxt Hybrid Rendering — SEO stubs for /company/[taxNumber] use ISR (AC: 3)
@@ -42,7 +47,7 @@ export default defineNuxtConfig({
     defaultLocale: 'hu',
     strategy: 'no_prefix'
   },
-  css: ['~/assets/css/main.css'],
+  css: ['primeicons/primeicons.css', '~/assets/css/main.css'],
   runtimeConfig: {
     public: {
       // Default for local dev. Overridden at build time via NUXT_PUBLIC_API_BASE env var
