@@ -24,11 +24,44 @@ jobs:
       contents: read
       id-token: write  # Required for Workload Identity Federation
 
+    # PostgreSQL service required for Flyway migrations + jOOQ codegen that run
+    # before the Docker build. The Dockerfile skips these tasks (-x flywayMigrate
+    # -x generateJooq) so generated sources must exist in build/ before docker build.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: riskguard
+          POSTGRES_USER: riskguard
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     outputs:
       image_tag: ${{ steps.meta.outputs.image_tag }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run Flyway migrations and generate jOOQ sources
+        # The Dockerfile runs `./gradlew clean build -x flywayMigrate -x generateJooq`
+        # which requires pre-generated jOOQ sources in build/generated-sources/jooq/.
+        # We generate them here against the CI postgres service (localhost:5432, default creds),
+        # then docker build picks them up from build/generated-sources/jooq/.
+        run: ./gradlew flywayMigrate generateJooq --no-daemon
+        working-directory: backend
 
       - name: Authenticate to GCP (Workload Identity Federation)
         id: auth

@@ -23,12 +23,12 @@ COPY --from=deps /root/.gradle /root/.gradle
 # Copy full source
 COPY . .
 
-# Build — skip tests (tests run in CI before Docker build).
-# Skip flywayMigrate and generateJooq: these tasks require a live PostgreSQL which is not
-# available during Docker build. The JAR must be pre-built locally (or in CI where PostgreSQL
-# is available) before packaging into this image, OR the Gradle build must run with the full
-# source including previously-generated jOOQ classes in build/generated-sources/jooq/.
-RUN ./gradlew clean build -x test -x flywayMigrate -x generateJooq --no-daemon --parallel
+# Build — skip tests (run in CI before docker build) and skip flywayMigrate/generateJooq
+# (those require a live PostgreSQL — they run in the CI job BEFORE docker build, producing
+# build/generated-sources/jooq/ which is COPY'd above and must NOT be cleaned away).
+# We omit 'clean' intentionally: Docker always starts from a fresh layer, so clean is redundant
+# and would delete the pre-generated jOOQ sources we depend on.
+RUN ./gradlew build -x test -x flywayMigrate -x generateJooq --no-daemon --parallel
 
 # Stage 3: Minimal runtime image
 FROM eclipse-temurin:25-jre-alpine AS runtime
