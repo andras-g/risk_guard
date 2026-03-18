@@ -47,5 +47,7 @@ USER riskguard
 
 EXPOSE 8080
 
-# Graceful shutdown support — use exec form to receive SIGTERM
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Graceful shutdown support — use exec form to receive SIGTERM.
+# --enable-preview is required because the app uses Java 25 preview APIs (StructuredTaskScope).
+# The JAR was compiled with --enable-preview (see build.gradle tasks.withType(JavaCompile)).
+ENTRYPOINT ["java", "--enable-preview", "-jar", "app.jar"]
