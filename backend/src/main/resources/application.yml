@@ -11,6 +11,8 @@ spring:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
+  messages:
+    basename: messages
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
   devtools:
@@ -52,10 +54,36 @@ spring:
             user-info-uri: https://graph.microsoft.com/oidc/userinfo
             jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
             user-name-attribute: sub
+management:
+  endpoint:
+    health:
+      show-details: always   # Full health component details visible in local dev
+  health:
+    # Disable TLS health indicator in local dev: local PostgreSQL (Docker Compose) does not use TLS,
+    # so ssl_is_used() returns false → databaseTls would always report DOWN locally.
+    # The indicator is enabled in staging and production profiles where TLS is enforced.
+    databaseTls:
+      enabled: false
+
 springdoc:
   api-docs:
     enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
 
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        registerHealthIndicator: true
+  retry:
+    configs:
+      default:
+        maxAttempts: 2
+        waitDuration: 1s
 
 risk-guard:
    security:
@@ -77,3 +105,11 @@ risk-guard:
    rate-limits:
      searches-per-minute-per-tenant: 30
      max-alerts-per-day-per-tenant: 10
+   screening:
+     idempotency-guard-minutes: 15
+     disclaimer-text: "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
+   data-source:
+      mode: ${DATA_SOURCE_MODE:demo}
+      connect-timeout-ms: 8000
+      read-timeout-ms: 8000
+      global-deadline-seconds: 20

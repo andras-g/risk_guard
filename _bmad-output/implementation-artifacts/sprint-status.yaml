@@ -78,12 +78,12 @@ development_status:
 
   epic-3: in-progress
   3-0a-design-system-tokens-and-application-shell: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-16; done 2026-03-16
-  3-0b-public-landing-page: backlog
-  3-0c-wcag-2-1-aa-accessibility-foundation: backlog
-  3-1-internationalization-i18n-infrastructure: backlog
-  3-2-email-password-registration-fallback-auth: backlog
-  3-3-feature-flags-and-subscription-tier-gating: backlog
-  3-4-encryption-and-infrastructure-hardening: backlog
+  3-0b-public-landing-page: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-16; done 2026-03-16
+  3-0c-wcag-2-1-aa-accessibility-foundation: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-17; done 2026-03-17
+  3-1-internationalization-i18n-infrastructure: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; done 2026-03-17
+  3-2-email-password-registration-fallback-auth: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review 2026-03-17 — Round 1: 11 findings (3H/4M/4L) resolved; Round 2: 6 findings (2H/2M/2L) found and resolved; status → done 2026-03-17
+  3-3-feature-flags-and-subscription-tier-gating: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review R1: 10 findings (3H/4M/3L) resolved; code-review R2: 4 findings (1H/2M/1L) — critical: tier gating was dead code (useIdentityStore never populated); all fixed; status → done 2026-03-17
+  3-4-encryption-and-infrastructure-hardening: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18 — code tasks complete, INFRA tasks deferred (no prod Cloud SQL/Cloud Run yet); code-review R1 2026-03-18 — 2H/3M/2L findings; 7 action items resolved; code-review R2 2026-03-18 — 2H/2M findings (databaseTls false-DOWN in test/local, cron doc inconsistency, test assertion); 4 items resolved; status → done 2026-03-18
   3-5-async-nav-debt-ingestor-background-data-freshness: backlog
   3-6-watchlist-management-crud: backlog
   3-7-24h-background-monitoring-cycle: backlog

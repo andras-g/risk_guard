@@ -71,13 +71,14 @@ management:
         include: health,info
   endpoint:
     health:
+      show-details: always   # Full component tree visible without auth in staging
       probes:
         enabled: true
       group:
         liveness:
           include: livenessState
         readiness:
-          include: readinessState,db
+          include: readinessState,db,databaseTls,circuitBreakers
   health:
     livenessstate:
       enabled: true

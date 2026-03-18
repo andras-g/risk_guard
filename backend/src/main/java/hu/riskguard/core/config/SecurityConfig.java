@@ -50,8 +50,14 @@ public class SecurityConfig {
     private final RiskGuardProperties properties;
 
     // Public paths that must never be challenged by the resource server entry point.
+    // NOTE: /actuator/ is intentionally EXCLUDED so that the bearer-token resolver can
+    // extract JWT cookies on actuator paths. This allows `show-details: when-authorized`
+    // in production to work correctly — authenticated operators see health component details
+    // while unauthenticated probes (Cloud Run liveness/readiness) get the basic status.
+    // The /actuator/** paths remain permitAll() in authorizeHttpRequests so unauthenticated
+    // requests are never blocked.
     private static final String[] PUBLIC_PATH_PREFIXES = {
-        "/oauth2/", "/login/", "/api/public/", "/actuator/", "/v3/api-docs", "/swagger-ui", "/error"
+        "/oauth2/", "/login/", "/api/public/", "/v3/api-docs", "/swagger-ui", "/error"
     };
 
     @Bean
@@ -178,7 +184,7 @@ public class SecurityConfig {
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(properties.getSecurity().getFrontendBaseUrl()));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true); // Required for HttpOnly cookie auth
         config.setMaxAge(3600L);

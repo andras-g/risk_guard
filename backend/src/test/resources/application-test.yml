@@ -13,7 +13,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    locations: classpath:db/migration,classpath:db/test-seed
   security:
     oauth2:
       client:
@@ -46,6 +46,31 @@ spring:
             jwk-set-uri: https://login.microsoftonline.com/common/discovery/v2.0/keys
             user-name-attribute: sub
 
+management:
+  endpoint:
+    health:
+      show-details: always   # Full health component details visible in integration tests
+  health:
+    # Disable TLS health indicator in test profile: Testcontainers PostgreSQL does not use TLS,
+    # so ssl_is_used() returns false → databaseTls would always report DOWN, polluting overall health.
+    databaseTls:
+      enabled: false
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+        registerHealthIndicator: true
+  retry:
+    configs:
+      default:
+        maxAttempts: 2
+        waitDuration: 500ms
+
 risk-guard:
   security:
     jwt-secret: dummy_secret_for_testing_32_chars_long_long
@@ -55,3 +80,15 @@ risk-guard:
     default-tier: ALAP
     default-language: hu
     default-user-role: SME_ADMIN
+  freshness:
+    fresh-threshold-hours: 6
+    stale-threshold-hours: 24
+    unavailable-threshold-hours: 48
+  screening:
+    idempotency-guard-minutes: 15
+    disclaimer-text: "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
+  data-source:
+    mode: demo
+    connect-timeout-ms: 1000
+    read-timeout-ms: 2000
+    global-deadline-seconds: 5

@@ -77,13 +77,14 @@ management:
         include: health,info
   endpoint:
     health:
+      show-details: when-authorized  # Only authenticated callers see component detail in prod
       probes:
         enabled: true            # Enables /actuator/health/liveness and /readiness
       group:
         liveness:
           include: livenessState
         readiness:
-          include: readinessState,db
+          include: readinessState,db,databaseTls,circuitBreakers
   health:
     livenessstate:
       enabled: true
