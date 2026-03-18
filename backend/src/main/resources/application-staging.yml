@@ -78,7 +78,11 @@ management:
         liveness:
           include: livenessState
         readiness:
-          include: readinessState,db,databaseTls,circuitBreakers
+          # readinessState: Cloud Run's own readiness state
+          # db: HikariCP/jOOQ database connectivity check
+          # databaseTls and circuitBreakers excluded: TLS is Neon-managed (not ssl_is_used()),
+          # and Resilience4j registers per-CB indicators (not a composite 'circuitBreakers').
+          include: readinessState,db
   health:
     livenessstate:
       enabled: true
