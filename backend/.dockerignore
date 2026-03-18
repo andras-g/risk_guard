@@ -4,6 +4,9 @@
 src/test/
 .gradle/
 build/
+# Exception: jOOQ generated sources must be present for compileJava.
+# In CI, flywayMigrate + generateJooq run before 'docker build' to populate this.
+!build/generated-sources/
 compose.yaml
 HELP.md
 *.md
