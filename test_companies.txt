@@ -1,0 +1,9 @@
+Tax number	Company	Verdict
+12345678	Példa Kereskedelmi Kft.		✅ RELIABLE
+99887766	Megbízható Építő Zrt.		✅ RELIABLE
+11223344	Adós Szolgáltató Bt.		⚠️ AT_RISK (debt HUF 2.45M)
+55667788	Csődben Lévő Kft.		⚠️ AT_RISK (insolvency)
+44556677	Hátralékos és Csődös Kft.	⚠️ AT_RISK (debt + insolvency)
+33445566	Felfüggesztett Adószámú Kft.	🔶 TAX_SUSPENDED
+77889900	Hiányos Bevallású Kft.		⚠️ AT_RISK (debt HUF 890k)
+22334455	Friss Startup Kft.		✅ RELIABLE	

@@ -1,14 +1,29 @@
 package hu.riskguard.screening.domain;
 
-import hu.riskguard.screening.api.dto.VerdictResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.jooq.enums.VerdictConfidence;
+import hu.riskguard.jooq.enums.VerdictStatus;
+import hu.riskguard.datasource.api.dto.CompanyData;
+import hu.riskguard.datasource.domain.DataSourceService;
+import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.domain.events.PartnerSearchCompleted;
+import hu.riskguard.screening.domain.events.PartnerStatusChanged;
 import hu.riskguard.screening.internal.ScreeningRepository;
 import hu.riskguard.screening.internal.ScreeningRepository.FreshSnapshot;
-import lombok.RequiredArgsConstructor;
+import hu.riskguard.screening.internal.ScreeningRepository.SnapshotRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,18 +35,54 @@ import java.util.UUID;
  * External modules must use this facade (or application events) — never the repository directly.
  */
 @Service
-@RequiredArgsConstructor
 public class ScreeningService {
 
+    private static final Logger log = LoggerFactory.getLogger(ScreeningService.class);
+
     private final ScreeningRepository screeningRepository;
+    private final DataSourceService dataSourceService;
     private final ApplicationEventPublisher eventPublisher;
+    private final TransactionTemplate transactionTemplate;
+    private final FreshnessConfig freshnessConfig;
 
-    // TODO: Move to risk-guard-tokens.json when the token registry is expanded for screening constants
-    private static final int FRESHNESS_THRESHOLD_MINUTES = 15;
+    /**
+     * Idempotency guard threshold — return cached verdict if a fresh snapshot
+     * exists within this many minutes. Canonical value in risk-guard-tokens.json.
+     */
+    private final int freshnessThresholdMinutes;
 
-    private static final String DISCLAIMER_TEXT =
-            "This search result is provided for informational purposes only. " +
-            "Data is sourced from Hungarian government registries and may not reflect real-time status.";
+    /**
+     * Legal disclaimer included in the audit log and SHA-256 hash.
+     * Canonical value in risk-guard-tokens.json.
+     */
+    private final String disclaimerText;
+
+    /**
+     * Active data source mode (demo/test/live) — recorded per snapshot for audit trail.
+     * Sourced from {@code riskguard.data-source.mode} property.
+     */
+    private final String dataSourceMode;
+
+    public ScreeningService(
+            ScreeningRepository screeningRepository,
+            DataSourceService dataSourceService,
+            ApplicationEventPublisher eventPublisher,
+            TransactionTemplate transactionTemplate,
+            RiskGuardProperties properties,
+            @Value("${risk-guard.screening.idempotency-guard-minutes:15}") int freshnessThresholdMinutes,
+            @Value("${risk-guard.screening.disclaimer-text:This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status.}") String disclaimerText) {
+        this.screeningRepository = screeningRepository;
+        this.dataSourceService = dataSourceService;
+        this.eventPublisher = eventPublisher;
+        this.transactionTemplate = transactionTemplate;
+        this.freshnessConfig = new FreshnessConfig(
+                properties.getFreshness().getFreshThresholdHours(),
+                properties.getFreshness().getStaleThresholdHours(),
+                properties.getFreshness().getUnavailableThresholdHours());
+        this.freshnessThresholdMinutes = freshnessThresholdMinutes;
+        this.disclaimerText = disclaimerText;
+        this.dataSourceMode = properties.getDataSource().getMode();
+    }
 
     /**
      * Execute a partner search for the given tax number.
@@ -39,55 +90,233 @@ public class ScreeningService {
      * <p>Flow:
      * <ol>
      *   <li>Normalize the tax number (strip hyphens/whitespace)</li>
-     *   <li>Check idempotency guard — return cached verdict if fresh snapshot exists (< 15 min)</li>
-     *   <li>Create stub CompanySnapshot with empty snapshot_data JSONB</li>
-     *   <li>Create Verdict with status INCOMPLETE (no scrapers yet)</li>
-     *   <li>Write audit log entry with SHA-256 hash</li>
+     *   <li>TX1: Check idempotency guard — return cached verdict if fresh snapshot exists (&lt; 15 min)</li>
+     *   <li>TX1: Create stub CompanySnapshot with empty snapshot_data JSONB</li>
+     *   <li>Scrape government portals in parallel (outside any DB transaction)</li>
+     *   <li>TX2: Persist scraped data, compute verdict via VerdictEngine
+     *        (RELIABLE / AT_RISK / INCOMPLETE / TAX_SUSPENDED), write audit log</li>
+     *   <li>Detect status change vs previous verdict, publish PartnerStatusChanged if changed</li>
      *   <li>Publish PartnerSearchCompleted event</li>
-     *   <li>Return VerdictResponse</li>
+     *   <li>Return SearchResult domain object with real verdict status/confidence/riskSignals</li>
      * </ol>
      *
      * @param taxNumber the Hungarian tax number (8 or 11 digits, may contain hyphens)
      * @param userId    the user performing the search (from JWT)
-     * @return VerdictResponse with the search result
+     * @param tenantId  the tenant initiating the search (from JWT). Used exclusively for
+     *                  application event publishing. Repository operations use {@code TenantContext}
+     *                  (set by {@code TenantFilter}) for tenant-scoped queries. This separation is
+     *                  intentional: events carry explicit tenant IDs for downstream consumers that
+     *                  may not share the same thread-local context.
+     * @return SearchResult with the search result (mapped to VerdictResponse by controller)
      */
-    @Transactional
-    public VerdictResponse search(String taxNumber, UUID userId, UUID tenantId) {
+    public SearchResult search(String taxNumber, UUID userId, UUID tenantId) {
         String normalizedTaxNumber = taxNumber.replaceAll("[\\s-]", "");
+        OffsetDateTime now = OffsetDateTime.now();
 
-        // Idempotency guard: return cached result if fresh snapshot exists
-        Optional<FreshSnapshot> fresh = screeningRepository.findFreshSnapshot(
-                normalizedTaxNumber, FRESHNESS_THRESHOLD_MINUTES);
+        // TX1: Idempotency guard + create stub snapshot
+        // Keeps DB connection open only for the short read + insert — NOT during data source I/O.
+        record Tx1Result(UUID snapshotId, SearchResult cachedResult) {}
+        Tx1Result tx1 = transactionTemplate.execute(status -> {
+            Optional<FreshSnapshot> fresh = screeningRepository.findFreshSnapshot(
+                    normalizedTaxNumber, freshnessThresholdMinutes);
 
-        if (fresh.isPresent()) {
-            FreshSnapshot cached = fresh.get();
-            return VerdictResponse.from(
-                    cached.verdictId(),
-                    cached.snapshotId(),
-                    normalizedTaxNumber,
-                    cached.status().getLiteral(),
-                    cached.confidence().getLiteral(),
-                    cached.createdAt()
-            );
+            if (fresh.isPresent()) {
+                FreshSnapshot cached = fresh.get();
+                return new Tx1Result(null, new SearchResult(
+                        cached.verdictId(),
+                        cached.snapshotId(),
+                        normalizedTaxNumber,
+                        cached.status(),
+                        cached.confidence(),
+                        cached.createdAt(),
+                        List.of(),  // Cached results return empty riskSignals — see `cached` flag below.
+                        true,       // Mark as cached so frontend can distinguish from fresh results.
+                        null,       // companyName not available for cached results (snapshot not re-parsed).
+                        null        // sha256Hash not returned for cached results (original audit entry).
+                ));
+            }
+
+            UUID snapshotId = screeningRepository.createSnapshot(normalizedTaxNumber, now);
+            return new Tx1Result(snapshotId, null);
+        });
+
+        // Return cached result if idempotency guard hit
+        if (tx1.cachedResult() != null) {
+            return tx1.cachedResult();
         }
 
-        // Create new snapshot and verdict
-        UUID snapshotId = screeningRepository.createSnapshot(normalizedTaxNumber);
-        UUID verdictId = screeningRepository.createVerdict(snapshotId);
+        UUID snapshotId = tx1.snapshotId();
 
-        // Write audit log
-        screeningRepository.writeAuditLog(normalizedTaxNumber, userId, DISCLAIMER_TEXT);
+        // Fetch data from adapters in parallel — OUTSIDE any DB transaction (pure I/O).
+        // Resilience4j circuit breakers and retries handle fault tolerance.
+        CompanyData companyData = dataSourceService.fetchCompanyData(normalizedTaxNumber);
 
-        // Publish event for downstream consumers
+        // TX2: Persist scraped data + compute verdict + audit log.
+        // Keeps DB connection open only for the short writes — NOT during data source I/O.
+        OffsetDateTime checkedAt = OffsetDateTime.now();
+
+        // Serialize snapshot data to JSON string for the audit hash (done outside TX2 to avoid
+        // serialization errors inside the transaction boundary).
+        // Guard: null snapshotData map must be treated as missing — Jackson serializes null to the
+        // string "null" (not an exception), which would produce a valid-looking hash for missing data.
+        // A hash over the literal string "null" is legally meaningless and misleading.
+        String snapshotDataJson;
+        if (companyData.snapshotData() == null) {
+            log.warn("Null snapshot data map — will use HASH_UNAVAILABLE sentinel for audit hash");
+            snapshotDataJson = null;
+        } else {
+            try {
+                snapshotDataJson = JSONB_MAPPER.writeValueAsString(companyData.snapshotData());
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                // If serialization fails, pass null — writeAuditLog() will catch the IAE from HashUtil
+                // and write HASH_UNAVAILABLE sentinel. This path should never occur for well-formed data.
+                log.warn("Failed to serialize snapshot data for audit hash — will use HASH_UNAVAILABLE sentinel");
+                snapshotDataJson = null;
+            }
+        }
+        final String snapshotJson = snapshotDataJson;
+
+        record Tx2Result(UUID verdictId, VerdictStatus status, VerdictConfidence confidence,
+                         List<String> riskSignals, String companyName, String sha256Hash) {}
+        Tx2Result tx2 = transactionTemplate.execute(status -> {
+            screeningRepository.updateSnapshotData(
+                    snapshotId, companyData.snapshotData(), companyData.sourceUrls(),
+                    companyData.domFingerprintHash(), checkedAt, dataSourceMode);
+
+            // Parse raw JSONB into typed domain model and evaluate verdict
+            SnapshotData parsedData = SnapshotDataParser.parse(companyData.snapshotData());
+            // Use checkedAt consistently as the evaluation time — avoids a third OffsetDateTime.now()
+            // call that would create inconsistent timestamps across the audit trail (review finding #3).
+            VerdictResult verdictResult = VerdictEngine.evaluate(parsedData, checkedAt, freshnessConfig, checkedAt);
+
+            UUID vId = screeningRepository.createVerdict(snapshotId, verdictResult.status(),
+                    verdictResult.confidence(), checkedAt);
+            String auditHash = screeningRepository.writeAuditLog(
+                    normalizedTaxNumber, userId, disclaimerText,
+                    snapshotJson,
+                    verdictResult.status().getLiteral(),
+                    verdictResult.confidence().getLiteral(),
+                    vId,
+                    now);
+
+            return new Tx2Result(vId, verdictResult.status(), verdictResult.confidence(),
+                    verdictResult.riskSignals(), parsedData.companyName(), auditHash);
+        });
+
+        UUID verdictId = tx2.verdictId();
+
+        // Status-change detection — OUTSIDE TX2 boundary (after commit succeeded).
+        // Compare the new verdict status with the most recent previous verdict for the same partner+tenant.
+        // Only publish PartnerStatusChanged if a previous verdict exists AND the status actually changed.
+        // First-ever search establishes the baseline — no "change" event for that.
+        // Wrapped in a short TX for explicit isolation guarantees (not relying on auto-commit).
+        Optional<VerdictStatus> previousStatus = transactionTemplate.execute(status ->
+                screeningRepository.findPreviousVerdict(normalizedTaxNumber, verdictId));
+        if (previousStatus != null && previousStatus.isPresent() && previousStatus.get() != tx2.status()) {
+            eventPublisher.publishEvent(PartnerStatusChanged.of(
+                    verdictId, tenantId,
+                    previousStatus.get().getLiteral(),
+                    tx2.status().getLiteral()));
+        }
+
+        // Publish event OUTSIDE the transaction to avoid dispatching events before commit succeeds.
+        // Spring's default ApplicationEventPublisher is synchronous — publishing inside TX2 means
+        // listeners could run before the DB commit, causing inconsistency if the commit later fails.
         eventPublisher.publishEvent(PartnerSearchCompleted.of(snapshotId, verdictId, tenantId));
 
-        return VerdictResponse.from(
+        return new SearchResult(
                 verdictId,
                 snapshotId,
                 normalizedTaxNumber,
-                "INCOMPLETE",
-                "UNAVAILABLE",
-                java.time.OffsetDateTime.now()
+                tx2.status(),
+                tx2.confidence(),
+                checkedAt,
+                tx2.riskSignals(),
+                false,              // Freshly computed — not from cache
+                tx2.companyName(),
+                tx2.sha256Hash()
         );
     }
+
+    /**
+     * Canonical public URLs for known government data source adapters.
+     * Used to populate the "View source" link in the Provenance Sidebar.
+     * Adapter names match the keys used in the snapshot JSONB (e.g. "nav-debt", "e-cegjegyzek").
+     */
+    private static final Map<String, String> KNOWN_SOURCE_URLS = Map.of(
+            "nav-debt",          "https://nav.gov.hu/ellenorzesi-adatbazisok/nav-online-adatbazis",
+            "e-cegjegyzek",      "https://e-cegjegyzek.hu",
+            "cegkozlony",        "https://cegkozlony.hu",
+            "nav-online-szamla", "https://onlineszamla.nav.gov.hu"
+    );
+
+    /**
+     * Retrieve provenance data for a snapshot — the per-source availability details
+     * used by the Provenance Sidebar in the Verdict Detail page (Story 2.4).
+     *
+     * <p>Tenant isolation is enforced by {@code ScreeningRepository.findSnapshotById},
+     * which scopes the query via {@code TenantContext} (set by {@code TenantFilter}).
+     * No explicit tenantId parameter is needed here.
+     *
+     * @param snapshotId the snapshot UUID to retrieve provenance for
+     * @return populated ProvenanceResponse, or empty if snapshot not found / not owned by tenant
+     */
+    public Optional<ProvenanceResponse> getSnapshotProvenance(UUID snapshotId) {
+        return screeningRepository.findSnapshotById(snapshotId)
+                .map(snapshot -> {
+                    // Parse raw JSONB into typed SnapshotData to extract source availability
+                    Map<String, Object> jsonbMap = parseJsonbToMap(snapshot.snapshotData());
+                    SnapshotData parsed = SnapshotDataParser.parse(jsonbMap);
+
+                    // Map adapter names to canonical source URLs for the "View source" links.
+                    // Demo adapters ("demo", "demo-*") are internal and have no public URL.
+                    return ProvenanceResponse.from(snapshot.id(), snapshot.taxNumber(),
+                            snapshot.checkedAt(), parsed, KNOWN_SOURCE_URLS);
+                });
+    }
+
+    /**
+     * Parse a JSONB value into a Map for use with {@link SnapshotDataParser}.
+     * Returns an empty map if the JSONB is null or empty.
+     */
+    private static final ObjectMapper JSONB_MAPPER = new ObjectMapper();
+
+    private Map<String, Object> parseJsonbToMap(org.jooq.JSONB jsonb) {
+        if (jsonb == null || jsonb.data() == null || jsonb.data().isBlank() || "{}".equals(jsonb.data())) {
+            return Map.of();
+        }
+        try {
+            return JSONB_MAPPER.readValue(jsonb.data(), new TypeReference<Map<String, Object>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse snapshot JSONB for provenance: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /**
+     * Domain result of a partner search.
+     * Mapped to VerdictResponse by the controller layer.
+     * Uses real enum types from the VerdictEngine state machine (Story 2.3).
+     *
+     * @param riskSignals list of reason codes explaining the verdict (e.g., "PUBLIC_DEBT_DETECTED").
+     *                    May be empty for cached results even on non-RELIABLE verdicts.
+     * @param cached      true if this result was served from the idempotency cache (riskSignals
+     *                    may be empty). false if freshly computed by VerdictEngine.
+     * @param companyName company display name extracted from snapshot JSONB (first available adapter);
+     *                    null for cached results or if no adapter returned a company name.
+     * @param sha256Hash  SHA-256 audit hash from search_audit_log for legal proof display;
+     *                    null for cached results (audit log was written on the original search).
+     */
+    public record SearchResult(
+            UUID verdictId,
+            UUID snapshotId,
+            String taxNumber,
+            VerdictStatus status,
+            VerdictConfidence confidence,
+            OffsetDateTime createdAt,
+            List<String> riskSignals,
+            boolean cached,
+            String companyName,
+            String sha256Hash
+    ) {}
 }

@@ -1,10 +1,21 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
+status: 'corrected'
+correctedAt: '2026-03-13'
+correctionApplied: 'sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
+correctionRef: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md'
 inputDocuments: 
   - "_bmad-output/planning-artifacts/prd.md"
   - "_bmad-output/planning-artifacts/architecture.md"
+  - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md"
   - "Party Mode Synthesis (March 2026)"
 ---
+
+> **CORRECTION APPLIED (2026-03-13)**
+>
+> This document was updated on 2026-03-13 to integrate the course correction approved on 2026-03-12. Key changes: scraping stories removed/deferred, NAV Online Számla integration story added, Story 2.2 rebranded as Demo Mode, Epic 6 reframed from scraper monitoring to data source health.
+>
+> **Reference:** `_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md`
 
 # risk_guard - Epic Breakdown
 
@@ -17,7 +28,7 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 ### Functional Requirements
 
 - **FR1:** Users can search partners via 8-digit or 11-digit Hungarian Tax Numbers.
-- **FR2:** System retrieves factual status from NAV Open Data and registration data from e-Cégjegyzék.
+- **FR2:** System retrieves factual partner data from NAV Online Számla (QueryTaxpayer) and demo fixtures; future: NAV M2M Adózó API for tax compliance signals.
 - **FR3:** System executes deterministic state-machine check for "Reliable/At-Risk" binary verdicts.
 - **FR4:** System flags "Suspended Tax Numbers" for manual review.
 - **FR5:** Authenticated Users can manage a private Watchlist of partners.
@@ -26,7 +37,7 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 - **FR8:** Users can navigate a multi-step questionnaire for material classification (EPR Wizard).
 - **FR9:** System validates inputs via backend JSON-driven Directed Graph (DAG).
 - **FR10:** System generates schema-perfect CSV/XLSX exports for MOHU reporting.
-- **FR11:** Administrators can monitor scraper success rates via a health dashboard.
+- **FR11:** Administrators can monitor data source health (API connectivity, circuit breaker state, credential status) via a health dashboard.
 - **FR12:** Administrators can update EPR logic via JSON configuration without code redeploys.
 - **FR13:** Users can save and manage material templates in a personal "EPR Library."
 - **FR14:** Users can generate a bulk PDF export of their Watchlist status including SHA-256 verification hashes.
@@ -47,17 +58,17 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 
 - **TECH-1:** Initialize project using Java 25, Spring Boot 4.0.3, Spring Modulith, and jOOQ.
 - **TECH-2:** Enforce Multi-tenancy via `TenantFilter` and database-level `tenant_id NOT NULL`.
-- **TECH-3:** Use standalone `resilience4j-spring-boot3` for scraper circuit breakers.
+- **TECH-3:** Use standalone `resilience4j-spring-boot3` for data source adapter circuit breakers.
 - **UX-1:** Visual Color Palette: Slate 900 (Nav), Indigo 600 (Primary), Emerald 500 (Reliable), Rose 600 (At-Risk).
 - **UX-2:** Implement Skeleton Screen animations showing source resolution (e.g., "[✔] NAV checked").
 - **UX-3:** Searchable Context Switcher in top-bar for accountants to jump between client tenants.
-- **UX-4:** Provenance Sidebar on verdict pages showing specific scrape timestamps.
+- **UX-4:** Provenance Sidebar on verdict pages showing specific data source check timestamps.
 - **i18n:** Primary language is Hungarian (hu); secondary fallback is English (en).
 
 ### FR Coverage Map
 
 - **FR1:** Epic 2 - Tax Number Search (Story 2.1)
-- **FR2:** Epic 2 - Gov Data Retrieval (Story 2.2)
+- **FR2:** Epic 2 - Data Source Retrieval (Story 2.2 Demo Mode, Story 2.2.2 Demo Fixtures)
 - **FR3:** Epic 2 - State-Machine Verdict (Story 2.3)
 - **FR4:** Epic 2 - Suspended Tax Flag (Story 2.3/2.4)
 - **FR5:** Epic 3 - Watchlist CRUD (Story 3.6)
@@ -66,11 +77,11 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 - **FR8:** Epic 4 - Material Questionnaire (Story 4.2)
 - **FR9:** Epic 4 - DAG Validation (Story 4.2)
 - **FR10:** Epic 5 - MOHU CSV Export (Story 5.3)
-- **FR11:** Epic 6 - Scraper Health Dashboard (Story 6.1)
+- **FR11:** Epic 6 - Data Source Health Dashboard (Story 6.1)
 - **FR12:** Epic 6 - JSON Logic Hot-swap (Story 6.3)
 - **FR13:** Epic 4 - Material Library (Story 4.1)
 - **FR14:** Epic 5 - Watchlist PDF Export (Story 5.1)
-- **FR15 (new):** Demo Mode - Guest Rate Limiting (Story 2.7)
+- **FR15 (new):** Demo Mode - Guest Rate Limiting (Story 3.12)
 - **FR16 (new):** Feature Flags - Tier Gating (Story 3.3)
 
 ### NFR Coverage Map
@@ -79,7 +90,7 @@ This document provides the complete epic and story breakdown for risk_guard, dec
 - **NFR3:** Epic 3 - Min-Instances during business hours (Story 3.4)
 - **NFR4:** Epic 2 - SHA-256 Audit Logging (Story 2.5)
 - **NFR5:** Epic 3 - Encryption at rest and in transit (Story 3.4)
-- **NFR6:** Epic 2 - SEO Gateway Stubs (Story 2.6)
+- **NFR6:** Epic 3 - SEO Gateway Stubs (Story 3.11)
 
 ### Additional Requirement Coverage Map
 
@@ -95,15 +106,16 @@ Users can securely log in via SSO (Google/Microsoft) and operate within a strict
 **FRs covered:** TECH-1, TECH-2, UX-3.
 **Stories:** 1.1 (Project Init), 1.2 (Multi-Tenant Schema), 1.3 (SSO), 1.4 (Context Switcher), 1.5 (CI/CD & GCP).
 
-### Epic 2: The Partner Risk Radar (Screening Engine)
-Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds. Includes SEO gateway stubs and demo mode for guest users.
-**FRs covered:** FR1, FR2, FR3, FR4, FR15, NFR1, NFR4, NFR6, UX-2.
-**Stories:** 2.0 (Staging Bootstrap), 2.1 (Tax Search UI), 2.2 (Scraper Engine), 2.3 (State-Machine), 2.4 (Verdict Card), 2.5 (Audit Logging), 2.6 (SEO Stubs), 2.7 (Demo Mode).
+### Epic 2: The Partner Risk Radar (Screening Engine) ✅ IMPLEMENTED
+Users can search any tax number and receive a deterministic binary "Reliable/At-Risk" verdict in < 30 seconds.
+**FRs covered:** FR1, FR2, FR3, FR4, NFR1, NFR4, UX-2.
+**Stories:** 2.0 (Staging Bootstrap), 2.1 (Tax Search UI), 2.2 (Demo Mode Data Layer), 2.2.1 (DEFERRED — NAV M2M Adapter), 2.2.2 (Adapter Switching & Demo Fixtures), 2.3 (State-Machine), 2.4 (Verdict Card), 2.5 (Audit Logging).
+**Moved to Epic 3:** 2.6 (SEO Stubs) → 3.11, 2.7 (Guest Rate Limiting) → 3.12.
 
 ### Epic 3: Automated Monitoring & Alerts (Watchlist)
-Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse. Includes foundational application shell, design system, landing page, WCAG accessibility foundation, and cross-cutting infrastructure (i18n, fallback auth, feature flags, encryption hardening) that were identified as gaps during implementation readiness review.
-**FRs covered:** FR5, FR6, FR7, FR16, i18n, NFR3, NFR5, UX-1, UX-3, UX-FlightControl, UX-DesignSystem, WCAG.
-**Stories:** 3.0a (Design System), 3.0b (Landing Page), 3.0c (WCAG), 3.1 (i18n), 3.2 (Email/Password Auth), 3.3 (Feature Flags), 3.4 (Encryption Hardening), 3.5 (Async Ingestor), 3.6 (Watchlist CRUD), 3.7 (24h Monitoring), 3.8 (Email Alerts), 3.9 (Portfolio Pulse), 3.10 (Flight Control).
+Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide "Flight Control" pulse. Includes foundational application shell, design system, landing page, WCAG accessibility foundation, cross-cutting infrastructure (i18n, fallback auth, feature flags, encryption hardening), and growth features (SEO gateway stubs, guest rate limiting) relocated from Epic 2.
+**FRs covered:** FR5, FR6, FR7, FR15, FR16, NFR6, i18n, NFR3, NFR5, UX-1, UX-3, UX-FlightControl, UX-DesignSystem, WCAG.
+**Stories:** 3.0a (Design System), 3.0b (Landing Page), 3.0c (WCAG), 3.1 (i18n), 3.2 (Email/Password Auth), 3.3 (Feature Flags), 3.4 (Encryption Hardening), 3.5 (Async Ingestor), 3.6 (Watchlist CRUD), 3.7 (24h Monitoring), 3.8 (Email Alerts), 3.9 (Portfolio Pulse), 3.10 (Flight Control), 3.11 (SEO Gateway Stubs — moved from 2.6), 3.12 (Guest Rate Limiting — moved from 2.7).
 **Note:** Stories 3.0a-c are foundational UX stories and 3.1-3.4 are cross-cutting infrastructure stories — all should be implemented early in Epic 3 as they establish the framework for all subsequent UI and business logic stories.
 
 ### Epic 4: EPR Material Library & Questionnaire
@@ -117,9 +129,9 @@ Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF re
 **Stories:** 5.1 (PDF Export & Dispatcher), 5.2 (Quarterly Filing), 5.3 (MOHU CSV), 5.4 (Locale Enforcement).
 
 ### Epic 6: System Administration & Integrity
-Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes. Admin pages follow "Mission Control" page spec with accessibility-first health gauges per UX Spec.
+Administrators can monitor data source health (NAV API connectivity, circuit breaker state, credential status), quarantine failing adapters, and hot-swap EPR logic without code changes. Admin pages follow "Mission Control" page spec with accessibility-first health gauges per UX Spec.
 **FRs covered:** FR11, FR12, UX-MissionControl.
-**Stories:** 6.1 (Scraper Dashboard), 6.2 (Kill-Switch), 6.3 (EPR JSON Manager), 6.4 (Audit Viewer).
+**Stories:** 6.1 (Data Source Health Dashboard), 6.2 (Adapter Quarantine), 6.3 (EPR JSON Manager), 6.4 (Audit Viewer).
 
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
@@ -223,19 +235,41 @@ So that I know the system is actively retrieving government data.
 **And** the UI displays Skeleton Screen animations listing the sources: `[ ] NAV Debt`, `[ ] Legal Status`, etc.
 **And** invalid tax number formats are rejected by frontend Zod validation.
 
-### Story 2.2: Parallel Scraper Engine & Outage Resilience
+### Story 2.2: Demo Mode Data Layer & Parallel Adapter Orchestration
 As a User,
-I want the system to retrieve government data in parallel using modern virtual threads,
-So that I receive my partner risk verdict in under 30 seconds even if some sources are slow.
+I want the system to retrieve partner data from demo fixtures (or live APIs when available) in parallel using virtual threads,
+So that I receive my partner risk verdict in under 30 seconds with a fully functional demo experience.
 
 **Acceptance Criteria:**
 
-**Given** a valid tax number
+**Given** a valid tax number and `riskguard.data-source.mode=demo|test|live`
 **When** the `CompanyDataAggregator` is triggered
-**Then** it spawns `StructuredTaskScope` virtual threads for the JSoup adapters (NAV and e-Cégjegyzék)
+**Then** it spawns `StructuredTaskScope` virtual threads for the active adapters (DemoCompanyDataAdapter in demo mode, NavOnlineSzamlaAdapter + future NavM2mAdapter in live mode)
 **And** it handles timeouts/outages via Resilience4j circuit breakers
-**And** it returns a consolidated `CompanySnapshot` JSON object.
-**And** if a source is timed out, the result is marked as `SourceUnavailable` to trigger the "Grey Shield" UI.
+**And** it returns a consolidated `CompanySnapshot` JSON object
+**And** if a source is timed out, the result is marked as `SourceUnavailable` to trigger the "Grey Shield" UI
+**And** in demo mode, the `DemoCompanyDataAdapter` returns realistic Hungarian company data (debt-free, arrears, missing filings, insolvency scenarios) from in-memory fixtures — no network calls.
+
+### Story 2.2.1: Real Data Source Adapter Replacement — DEFERRED
+> **DEFERRED (2026-03-12).** Original scope assumed scraping Cégközlöny and NAV multi-query. Both portals are bot-protected. Will be redesigned as "NAV M2M Adapter" when accountant API access is secured (~1-2 months). See ADR-7.
+
+### Story 2.2.2: Profile-Based Adapter Switching & Enriched Demo Fixtures
+As a Developer,
+I want the data source adapter selection driven by the `riskguard.data-source.mode` property with enriched, realistic demo data,
+So that the demo mode delivers a compelling, scenario-rich experience and the codebase has a clear extension point for real NAV adapters when credentials become available.
+
+**Acceptance Criteria:**
+
+**Given** the `riskguard.data-source.mode` property set to `demo`, `test`, or `live`
+**When** the Spring context starts
+**Then** a `@Configuration` class conditionally creates the appropriate `CompanyDataPort` bean(s): `demo` → `DemoCompanyDataAdapter`; `test`/`live` → reserved for future NAV adapters (not yet implemented)
+**And** the `DemoCompanyDataAdapter` is moved to `datasource.internal.adapters.demo` package
+**And** a stub package `datasource.internal.adapters.nav` exists with a `package-info.java` referencing ADR-6 as the future extension point
+**And** the demo fixtures include 5-10 realistic Hungarian companies covering key verdict scenarios: debt-free, has arrears, missing filings, insolvency proceedings, and suspended tax number
+**And** the demo fixtures include 20-50 invoices per quarter with realistic line items (product descriptions, VTSZ codes, quantities, unit prices) for both OUTBOUND and INBOUND directions — seeding future EPR module needs
+**And** if `test` or `live` mode is configured but no NAV adapter bean exists, the application fails fast at startup with a clear error message rather than silently falling back to demo data.
+
+**Effort estimate:** ~2 days. **Source:** Sprint Change Proposal CP-2, Architecture ADR-4. NAV Online Számla XML/JAXB integration (ADR-6) deferred until company registration provides test credentials.
 
 ### Story 2.3: Deterministic Verdict State-Machine
 As a User,
@@ -261,7 +295,7 @@ So that I can trust the freshness of the data.
 **Given** a completed search
 **When** the verdict is returned to the UI
 **Then** the UI shows an Emerald Shield (Reliable), Rose Shield (At-Risk), or Grey Shield (Stale/Unavailable)
-**And** a Provenance Sidebar lists the source URLs and "Last Scraped" times (e.g., `2 minutes ago`)
+**And** a Provenance Sidebar lists the data source names and "Last Checked" times (e.g., `2 minutes ago`)
 **And** "Amber" warnings are shown for suspended tax numbers.
 **And** if the data age exceeds the "Freshness Guard" (48h), the Grey Shield is automatically displayed with a "Stale" warning.
 **And** every verdict display includes an "Informational Purpose Only" liability disclaimer clarifying that data originates from third-party government sources.
@@ -280,38 +314,9 @@ So that I have court-ready evidence of my due diligence.
 **And** the hash is displayed on the frontend result card.
 **And** if hash generation fails (e.g., null snapshot data), the search result is still displayed but the hash field shows "Audit hash unavailable" and the failure is logged for admin review.
 
-### Story 2.6: SEO Gateway Stubs (Public Company Pages)
-As a Product Owner,
-I want public, indexable company pages with structured data for every Hungarian company searched,
-So that organic search traffic drives new users to the platform.
-
-**Acceptance Criteria:**
-
-**Given** a previously searched Hungarian company
-**When** a search engine or unauthenticated user visits `/company/{taxNumber}`
-**Then** Nuxt renders the page via SSR/ISR with the company name, tax number, and a generic status indicator
-**And** the page includes JSON-LD structured data (Organization schema) with the company's publicly available information
-**And** the page includes a clear CTA to "Check this company's live risk status" requiring login
-**And** the page does NOT expose any tenant-specific verdict data or audit information
-**And** Nuxt `routeRules` are configured so public company pages use SSR/ISR while authenticated routes use SPA mode
-**And** if the company has never been searched, the page returns a 404 with a "Company not found — search now" prompt.
-
-### Story 2.7: Demo Mode & Guest Rate Limiting
-As a Guest (unauthenticated visitor),
-I want to try the product with limited access before signing up,
-So that I can evaluate its value with real data before committing to a paid plan.
-
-**Acceptance Criteria:**
-
-**Given** an unauthenticated visitor on the Landing Page
-**When** I perform a partner search without logging in
-**Then** the system creates a transient `guest_sessions` record with a session fingerprint
-**And** I can search up to 10 unique companies and perform 3 instant checks per day
-**And** the UI displays a progress indicator showing remaining searches (e.g., "7 of 10 companies used")
-**And** when the daily check limit is reached, the UI shows a clear, localized message: "Daily limit reached — sign up for unlimited checks" with a prominent registration CTA
-**And** when the company limit is reached, the UI shows: "Demo limit reached — sign up to monitor unlimited partners"
-**And** expired guest sessions are purged daily by the scheduled cleanup job
-**And** guest data is stored with a synthetic `tenant_id` and is never accessible to authenticated users.
+### ~~Story 2.6~~ → Moved to Story 3.11
+### ~~Story 2.7~~ → Moved to Story 3.12
+> Stories 2.6 (SEO Gateway Stubs) and 2.7 (Guest Rate Limiting) were moved to Epic 3 on 2026-03-16. They are growth/conversion features that fit better alongside the landing page (3.0b) and feature flags (3.3). Epic 2 is now closed with all core screening stories (2.0–2.5) complete.
 
 ## Epic 3: Automated Monitoring & Alerts (Watchlist)
 **Goal:** Users can save partners to a watchlist and receive automated email alerts if their status changes. Accountants get a portfolio-wide pulse.
@@ -367,7 +372,7 @@ So that I can use all features regardless of my abilities.
 **And** all status colors are paired with unique icons (Shield-Check, Shield-X, Shield-Clock) for color-blind users
 **And** skip-links are provided for accountants to bypass sidebars
 **And** logical tab order is maintained through all form inputs including the "MOHU Gate" weight inputs
-**And** ARIA-live regions announce asynchronous scraper status updates
+**And** ARIA-live regions announce asynchronous data source status updates
 **And** a Pa11y or Axe-core CI scan passes for all core user journeys without critical violations.
 
 **Source:** UX Design Specification section 8 (Responsive & Accessibility).
@@ -445,7 +450,9 @@ So that my partner verdicts are always based on recent data without waiting for 
 **And** updated snapshots are stored in the `company_snapshots` table with a fresh `checked_at` timestamp
 **And** the ingestor runs in isolation from user-facing search requests (separate thread pool / worker process)
 **And** if a source is unavailable during ingestion, the existing snapshot is retained and the failure is logged without marking the data as stale
-**And** the ingestor respects rate limits to avoid overwhelming government portals (configurable delay between requests).
+**And** the ingestor respects rate limits to avoid overwhelming data source APIs (configurable delay between requests).
+
+> **Dependency Note (2026-03-13):** This story's production data path depends on NAV M2M Adózó API access (ADR-7, deferred). In demo mode, the AsyncIngestor refreshes demo fixture data (which is static — effectively a no-op but validates the scheduling/retry infrastructure). When NAV M2M credentials are available, this story activates with real debt data.
 
 ### Story 3.6: Watchlist Management (CRUD)
 As a User,
@@ -469,7 +476,7 @@ So that I am proactively informed of any risks without manual effort.
 
 **Given** a list of `watchlist_entries`
 **When** the @Scheduled `WatchlistMonitor` triggers
-**Then** it initiates a background scrape for each partner
+**Then** it initiates a background data source check for each partner
 **And** it compares the new verdict against the `last_verdict_status`
 **And** it logs any deviations (e.g., `RELIABLE` -> `AT_RISK`).
 **And** it handles transient failures with retries without skipping monitoring for the entire list.
@@ -517,6 +524,43 @@ So that I can see at a glance which clients have the most "At-Risk" or "Stale" p
 **And** clicking a client name navigates to their specific dashboard using the context switch.
 **And** the page follows the "Flight Control" page spec: desktop-optimized, multi-column "Quiet Grid" tables with persistent sidebar (UX Spec §6.2, §8.2).
 **And** the layout uses dense data grids optimized for mouse/keyboard efficiency per the "Operation Context" responsive strategy (UX Spec §8.1).
+
+### Story 3.11: SEO Gateway Stubs (Public Company Pages)
+> Moved from Story 2.6 on 2026-03-16. Growth/conversion feature — fits alongside Landing Page (3.0b).
+
+As a Product Owner,
+I want public, indexable company pages with structured data for every Hungarian company searched,
+So that organic search traffic drives new users to the platform.
+
+**Acceptance Criteria:**
+
+**Given** a previously searched Hungarian company
+**When** a search engine or unauthenticated user visits `/company/{taxNumber}`
+**Then** Nuxt renders the page via SSR/ISR with the company name, tax number, and a generic status indicator
+**And** the page includes JSON-LD structured data (Organization schema) with the company's publicly available information
+**And** the page includes a clear CTA to "Check this company's live risk status" requiring login
+**And** the page does NOT expose any tenant-specific verdict data or audit information
+**And** Nuxt `routeRules` are configured so public company pages use SSR/ISR while authenticated routes use SPA mode
+**And** if the company has never been searched, the page returns a 404 with a "Company not found — search now" prompt.
+
+### Story 3.12: Demo Mode & Guest Rate Limiting
+> Moved from Story 2.7 on 2026-03-16. Growth/conversion feature — fits alongside Feature Flags (3.3) and Landing Page (3.0b).
+
+As a Guest (unauthenticated visitor),
+I want to try the product with limited access before signing up,
+So that I can evaluate its value with real data before committing to a paid plan.
+
+**Acceptance Criteria:**
+
+**Given** an unauthenticated visitor on the Landing Page
+**When** I perform a partner search without logging in
+**Then** the system creates a transient `guest_sessions` record with a session fingerprint
+**And** I can search up to 10 unique companies and perform 3 instant checks per day
+**And** the UI displays a progress indicator showing remaining searches (e.g., "7 of 10 companies used")
+**And** when the daily check limit is reached, the UI shows a clear, localized message: "Daily limit reached — sign up for unlimited checks" with a prominent registration CTA
+**And** when the company limit is reached, the UI shows: "Demo limit reached — sign up to monitor unlimited partners"
+**And** expired guest sessions are purged daily by the scheduled cleanup job
+**And** guest data is stored with a synthetic `tenant_id` and is never accessible to authenticated users.
 
 ## Epic 4: EPR Material Library & Questionnaire
 **Goal:** Users can save their own company's material templates (e.g., "Plastic Bottle A") and use a smart wizard to find the correct KF-codes.
@@ -636,35 +680,37 @@ So that I am not confused by the language change in the final file.
 **And** the generated CSV content uses Hungarian material category names from messages_hu.properties.
 
 ## Epic 6: System Administration & Integrity
-**Goal:** Administrators can monitor scraper health, quarantine broken adapters, and hot-swap EPR logic without code changes.
+**Goal:** Administrators can monitor data source health, quarantine failing adapters, and hot-swap EPR logic without code changes.
 
-### Story 6.1: Scraper Health Dashboard (The Heartbeat)
+### Story 6.1: Data Source Health Dashboard (The Heartbeat)
 As an Admin,
-I want to see a live dashboard of all scraper adapters and their current health,
-So that I can detect government portal changes before users complain.
+I want to see a live dashboard of all data source adapters (NAV Online Számla, demo fixtures, future NAV M2M) and their current health,
+So that I can detect API issues, credential expiry, or rate limiting before users are affected.
 
 **Acceptance Criteria:**
 
 **Given** the Admin Dashboard
-**When** I load the "Scrapers" tab
-**Then** the UI displays a grid of cards showing MTBF, Success Rate %, and current Circuit Breaker State for each adapter.
-**And** the data is pulled directly from the Resilience4j Actuator endpoints.
-**And** the UI shows the "Last Successful Scrape" timestamp per source.
-**And** the page follows the "Mission Control" page spec: impact-driven health gauges with MTBF scoring (UX Spec §6.2, §9.3).
-**And** ARIA-live regions announce scraper status changes for screen reader accessibility (UX Spec §8.3).
+**When** I load the "Data Sources" tab
+**Then** the UI displays a grid of cards showing MTBF, Success Rate %, Circuit Breaker State, and current data source mode (demo/test/live) for each adapter
+**And** the data is pulled directly from the Resilience4j Actuator endpoints
+**And** the UI shows the "Last Successful Check" timestamp per source and NAV credential status (valid/expired/missing)
+**And** in demo mode, all adapters show HEALTHY status with a clear "Demo Mode" indicator
+**And** the page follows the "Mission Control" page spec: impact-driven health gauges with MTBF scoring (UX Spec §6.2, §9.3)
+**And** ARIA-live regions announce data source status changes for screen reader accessibility (UX Spec §8.3).
 
-### Story 6.2: Manual Adapter Kill-Switch (Quarantine)
+### Story 6.2: Manual Adapter Quarantine
 As an Admin,
-I want a "Force Quarantine" toggle for each scraper adapter,
-So that I can manually disable a broken source if the canary hasn't caught it yet.
+I want a "Force Quarantine" toggle for each data source adapter,
+So that I can manually disable a failing API integration if the canary hasn't caught it yet.
 
 **Acceptance Criteria:**
 
-**Given** a healthy or failing adapter in the dashboard
+**Given** a healthy or failing adapter in the Data Sources dashboard
 **When** I toggle the "Quarantine" switch
-**Then** the backend instantly opens the Resilience4j circuit breaker for that adapter.
-**And** the global frontend health banner updates to show that specific source is "Under Maintenance."
-**And** all subsequent verdicts for that source are marked as "Unavailable."
+**Then** the backend instantly opens the Resilience4j circuit breaker for that adapter
+**And** the global frontend health banner updates to show that specific source is "Under Maintenance"
+**And** all subsequent verdicts for that source are marked as "Unavailable"
+**And** the quarantine action is logged in the admin audit trail.
 
 ### Story 6.3: Hot-Swappable EPR JSON Manager
 As an Admin,

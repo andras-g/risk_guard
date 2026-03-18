@@ -225,3 +225,46 @@ describe('AppSidebar — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="admin-nav-section"]').exists()).toBe(false)
   })
 })
+
+describe('AppSidebar — accessibility (Story 3.0c)', () => {
+  function mountSidebar() {
+    return mount(AppSidebar, {
+      global: {
+        stubs: { NuxtLink: NuxtLinkStub, Divider: DividerStub },
+        directives: { tooltip: () => {} },
+        mocks: { $t: (key: string) => key }
+      }
+    })
+  }
+
+  it('nav element has aria-label', () => {
+    const wrapper = mountSidebar()
+    const nav = wrapper.find('[data-testid="sidebar-nav"]')
+    expect(nav.attributes('aria-label')).toBe('common.a11y.sidebarNav')
+  })
+
+  it('active nav link has aria-current="page"', () => {
+    // useRoute mock returns path '/dashboard' — so dashboard link should be active
+    const wrapper = mountSidebar()
+    const dashboardLink = wrapper.find('[data-testid="nav-item-dashboard"]')
+    expect(dashboardLink.attributes('aria-current')).toBe('page')
+  })
+
+  it('inactive nav link does NOT have aria-current', () => {
+    const wrapper = mountSidebar()
+    const screeningLink = wrapper.find('[data-testid="nav-item-screening"]')
+    expect(screeningLink.attributes('aria-current')).toBeUndefined()
+  })
+
+  it('sidebar toggle has aria-expanded', () => {
+    const wrapper = mountSidebar()
+    const toggle = wrapper.find('[data-testid="sidebar-toggle"]')
+    expect(toggle.attributes('aria-expanded')).toBeDefined()
+  })
+
+  it('sidebar toggle has aria-label', () => {
+    const wrapper = mountSidebar()
+    const toggle = wrapper.find('[data-testid="sidebar-toggle"]')
+    expect(toggle.attributes('aria-label')).toBeDefined()
+  })
+})

@@ -1,0 +1,43 @@
+{
+  "landing": {
+    "hero": {
+      "headline": "Partnerkockázat átvilágítás másodpercek alatt",
+      "tagline": "Ellenőrizze üzleti partnerei hitelességét valós idejű magyar hatósági adatok alapján — regisztráció nélkül.",
+      "searchPlaceholder": "Adószám (pl. 1234-5678)",
+      "searchAriaLabel": "Partnerkockázat keresés adószám alapján",
+      "cta": "Átvilágítás indítása"
+    },
+    "search": {
+      "invalidTaxNumber": "Érvénytelen magyar adószám. Adja meg a 8 vagy 11 jegyű adószámot.",
+      "serviceUnavailable": "A szolgáltatás átmenetileg nem elérhető. Kérjük, próbálja később."
+    },
+    "features": {
+      "verdicts": {
+        "title": "Determinisztikus verdiktek",
+        "description": "Egyértelmű kockázati besorolás minden partner számára — nincs szubjektív értékelés, csak tények."
+      },
+      "speed": {
+        "title": "Eredmény 30 másodperc alatt",
+        "description": "A hatósági adatok lekérdezése és elemzése másodpercek alatt megtörténik."
+      },
+      "evidence": {
+        "title": "Bírósági bizonyíték",
+        "description": "SHA-256 hitelesített audit napló minden kereséshez — jogilag felhasználható dokumentáció."
+      }
+    },
+    "socialProof": {
+      "trustedBy": "Könyvelők és KKV-k bizalommal használják",
+      "partnerCount": "100+ ellenőrzött partner",
+      "badge": {
+        "secure": "Biztonságos",
+        "realtime": "Valós idejű",
+        "compliant": "Jogszabálykövető"
+      }
+    },
+    "disclaimer": "A RiskGuard kizárólag tájékoztató jellegű szolgáltatást nyújt. Az adatok magyar kormányzati nyilvántartásokból származnak.",
+    "seo": {
+      "title": "RiskGuard — Partnerkockázat átvilágítás",
+      "description": "Ellenőrizze üzleti partnerei hitelességét valós idejű magyar hatósági adatok alapján. Azonnali átvilágítás regisztráció nélkül."
+    }
+  }
+}

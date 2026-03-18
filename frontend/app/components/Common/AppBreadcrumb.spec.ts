@@ -129,3 +129,25 @@ describe('AppBreadcrumb — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="app-breadcrumb"]').exists()).toBe(true)
   })
 })
+
+describe('AppBreadcrumb — accessibility (Story 3.0c)', () => {
+  function mountBreadcrumb() {
+    const NuxtLinkStub = { template: '<a :href="to"><slot /></a>', props: ['to'] }
+    return mount(AppBreadcrumb, {
+      global: { stubs: { NuxtLink: NuxtLinkStub } }
+    })
+  }
+
+  it('nav element has aria-label', () => {
+    const wrapper = mountBreadcrumb()
+    const nav = wrapper.find('[data-testid="app-breadcrumb"]')
+    expect(nav.attributes('aria-label')).toBe('common.a11y.breadcrumb')
+  })
+
+  it('home link has sr-only accessible text', () => {
+    const wrapper = mountBreadcrumb()
+    const srOnly = wrapper.find('.sr-only')
+    expect(srOnly.exists()).toBe(true)
+    expect(srOnly.text()).toBe('common.a11y.home')
+  })
+})

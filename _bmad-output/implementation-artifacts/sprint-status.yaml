@@ -84,7 +84,7 @@ development_status:
   3-2-email-password-registration-fallback-auth: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review 2026-03-17 — Round 1: 11 findings (3H/4M/4L) resolved; Round 2: 6 findings (2H/2M/2L) found and resolved; status → done 2026-03-17
   3-3-feature-flags-and-subscription-tier-gating: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review R1: 10 findings (3H/4M/3L) resolved; code-review R2: 4 findings (1H/2M/1L) — critical: tier gating was dead code (useIdentityStore never populated); all fixed; status → done 2026-03-17
   3-4-encryption-and-infrastructure-hardening: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18 — code tasks complete, INFRA tasks deferred (no prod Cloud SQL/Cloud Run yet); code-review R1 2026-03-18 — 2H/3M/2L findings; 7 action items resolved; code-review R2 2026-03-18 — 2H/2M findings (databaseTls false-DOWN in test/local, cron doc inconsistency, test assertion); 4 items resolved; status → done 2026-03-18
-  3-5-async-nav-debt-ingestor-background-data-freshness: backlog
+  3-5-async-nav-debt-ingestor-background-data-freshness: review  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18; code-review 2026-03-18 — 2H/4M/4L findings; 10 action items resolved 2026-03-18; status → review
   3-6-watchlist-management-crud: backlog
   3-7-24h-background-monitoring-cycle: backlog
   3-8-resend-email-alerts-and-outbox-pattern: backlog

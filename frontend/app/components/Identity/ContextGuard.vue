@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '~/stores/auth'
+import { useFocusTrap } from '~/composables/a11y/useFocusTrap'
 
 const authStore = useAuthStore()
 const { isSwitchingTenant, switchError, switchTargetTenantId } = storeToRefs(authStore)
+
+// Focus trap: when overlay is visible, trap Tab within its interactive elements
+const overlayRef = ref<HTMLElement | null>(null)
+const isOverlayVisible = computed(() => !!(isSwitchingTenant.value || switchError.value))
+useFocusTrap(overlayRef, isOverlayVisible)
 
 async function retry() {
   if (switchTargetTenantId.value) {
@@ -24,6 +30,10 @@ async function logout() {
 <template>
   <div
     v-if="isSwitchingTenant || switchError"
+    ref="overlayRef"
+    role="dialog"
+    :aria-label="$t('identity.contextGuard.errorTitle')"
+    aria-modal="true"
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-sm"
   >
     <div class="max-w-md w-full p-8 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-center">

@@ -17,6 +17,25 @@ export interface VerdictResponse {
   status: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE'
   confidence: 'FRESH' | 'STALE' | 'UNAVAILABLE'
   createdAt: string
+  riskSignals: string[]
+  cached: boolean
+  companyName: string | null
+  /** 64-char hex SHA-256 hash, "HASH_UNAVAILABLE" if computation failed, null for cached results */
+  sha256Hash: string | null
+}
+
+export interface SourceProvenanceEntry {
+  sourceName: string
+  available: boolean
+  checkedAt: string | null
+  sourceUrl: string | null
+}
+
+export interface SnapshotProvenanceResponse {
+  snapshotId: string
+  taxNumber: string
+  checkedAt: string | null
+  sources: SourceProvenanceEntry[]
 }
 
 export interface CompanySnapshotResponse {

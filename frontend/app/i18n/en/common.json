@@ -1,5 +1,15 @@
 {
   "common": {
+    "a11y": {
+      "breadcrumb": "Breadcrumb navigation",
+      "headerNav": "Header navigation",
+      "home": "Home",
+      "mobileNav": "Mobile navigation",
+      "openMenu": "Open menu",
+      "sidebarNav": "Sidebar navigation",
+      "skipToMain": "Skip to main content",
+      "userMenu": "User menu"
+    },
     "actions": {
       "cancel": "Cancel",
       "delete": "Delete",
@@ -11,9 +21,9 @@
       "search": "Search"
     },
     "app": {
+      "copyright": "© 2026 RiskGuard",
       "name": "RiskGuard",
-      "shortName": "RG",
-      "copyright": "© 2026 RiskGuard"
+      "shortName": "RG"
     },
     "breadcrumb": {
       "admin": "Admin",
@@ -22,8 +32,15 @@
       "screening": "Screening",
       "watchlist": "Watchlist"
     },
+    "errors": {
+      "tierUpgradeRequired": "A higher subscription tier is required to access this feature."
+    },
     "layout": {
       "guestBanner": "You are using RiskGuard in guest mode"
+    },
+    "locale": {
+      "currentLanguage": "English",
+      "switchTo": "Switch to Hungarian"
     },
     "nav": {
       "admin": "Admin",
@@ -32,6 +49,9 @@
       "screening": "Screening",
       "watchlist": "Watchlist"
     },
+    "placeholder": {
+      "comingSoon": "Coming soon"
+    },
     "sidebar": {
       "collapse": "Collapse",
       "expand": "Expand"
@@ -39,6 +59,17 @@
     "states": {
       "error": "An error occurred",
       "loading": "Loading..."
+    },
+    "tierGate": {
+      "cta": "Upgrade plan",
+      "description": "This feature is available in the {tier} plan. Upgrade to gain access.",
+      "temporarilyUnavailable": "This feature is temporarily unavailable.",
+      "title": "Upgrade required"
+    },
+    "tiers": {
+      "ALAP": "Free",
+      "PRO": "Pro",
+      "PRO_EPR": "Pro + EPR"
     }
   }
 }

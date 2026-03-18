@@ -1,5 +1,15 @@
 {
   "common": {
+    "a11y": {
+      "breadcrumb": "Navigációs útvonal",
+      "headerNav": "Fejléc navigáció",
+      "home": "Kezdőlap",
+      "mobileNav": "Mobil navigáció",
+      "openMenu": "Menü megnyitása",
+      "sidebarNav": "Oldalsáv navigáció",
+      "skipToMain": "Ugrás a tartalomhoz",
+      "userMenu": "Felhasználói menü"
+    },
     "actions": {
       "cancel": "Mégse",
       "delete": "Törlés",
@@ -11,9 +21,9 @@
       "search": "Keresés"
     },
     "app": {
+      "copyright": "© 2026 RiskGuard",
       "name": "RiskGuard",
-      "shortName": "RG",
-      "copyright": "© 2026 RiskGuard"
+      "shortName": "RG"
     },
     "breadcrumb": {
       "admin": "Admin",
@@ -22,8 +32,15 @@
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"
     },
+    "errors": {
+      "tierUpgradeRequired": "A funkció eléréséhez magasabb előfizetési csomag szükséges."
+    },
     "layout": {
       "guestBanner": "Vendég módban használja a RiskGuard-ot"
+    },
+    "locale": {
+      "currentLanguage": "Magyar",
+      "switchTo": "Váltás angolra"
     },
     "nav": {
       "admin": "Admin",
@@ -32,6 +49,9 @@
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"
     },
+    "placeholder": {
+      "comingSoon": "Hamarosan elérhető"
+    },
     "sidebar": {
       "collapse": "Összecsukás",
       "expand": "Kinyitás"
@@ -39,6 +59,17 @@
     "states": {
       "error": "Hiba történt",
       "loading": "Betöltés..."
+    },
+    "tierGate": {
+      "cta": "Csomag váltás",
+      "description": "Ez a funkció a {tier} csomagban érhető el. Váltson magasabb csomagra a hozzáféréshez.",
+      "temporarilyUnavailable": "A funkció átmenetileg nem elérhető.",
+      "title": "Csomag váltás szükséges"
+    },
+    "tiers": {
+      "ALAP": "Alap",
+      "PRO": "Pro",
+      "PRO_EPR": "Pro + EPR"
     }
   }
 }

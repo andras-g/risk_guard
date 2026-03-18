@@ -41,7 +41,7 @@ public class TokenProvider {
         return signingKey;
     }
 
-    public String createToken(String email, UUID userId, UUID homeTenantId, UUID activeTenantId, String role) {
+    public String createToken(String email, UUID userId, UUID homeTenantId, UUID activeTenantId, String role, String tier) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + properties.getSecurity().getJwtExpirationMs());
 
@@ -51,6 +51,7 @@ public class TokenProvider {
                 .claim("home_tenant_id", homeTenantId.toString())
                 .claim("active_tenant_id", activeTenantId.toString())
                 .claim("role", role)
+                .claim("tier", tier)
                 .issuedAt(now)
                 .expiration(expiryDate)
                 .signWith(signingKey)

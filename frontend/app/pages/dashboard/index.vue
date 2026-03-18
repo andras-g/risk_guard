@@ -3,8 +3,27 @@ import { useScreeningStore } from '~/stores/screening'
 import { storeToRefs } from 'pinia'
 
 const { t } = useI18n()
+const router = useRouter()
 const screeningStore = useScreeningStore()
 const { currentVerdict, isSearching, searchError } = storeToRefs(screeningStore)
+
+// Clear any previous verdict when the dashboard mounts so the watcher below
+// does not immediately redirect back to the detail page if the user navigated here
+// from /screening/[taxNumber] and the store still holds the previous result.
+onMounted(() => {
+  screeningStore.clearSearch()
+})
+
+// Navigate to Verdict Detail page as soon as a verdict arrives.
+// Do NOT gate on !isSearching — the store sets currentVerdict before fetchProvenance()
+// completes, so isSearching is still true when this watcher fires. Gating on it means
+// navigation never happens. The verdict detail page handles a still-loading provenance
+// gracefully (ProvenanceSidebar renders with null provenance until the store updates).
+watch(currentVerdict, (verdict) => {
+  if (verdict) {
+    router.push(`/screening/${verdict.taxNumber}`)
+  }
+})
 </script>
 
 <template>
@@ -23,34 +42,11 @@ const { currentVerdict, isSearching, searchError } = storeToRefs(screeningStore)
     <div
       v-if="searchError"
       class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"
+      data-testid="search-error"
     >
       {{ searchError }}
     </div>
 
-    <!-- Verdict result (basic display — full VerdictCard is Story 2.4) -->
-    <div
-      v-if="currentVerdict && !isSearching"
-      class="p-4 border border-slate-200 rounded-lg bg-white"
-    >
-      <div class="flex items-center gap-3 mb-3">
-        <span class="text-lg font-semibold">
-          {{ currentVerdict.taxNumber }}
-        </span>
-        <span
-          class="px-2 py-1 rounded text-sm font-medium"
-          :class="{
-            'bg-gray-100 text-gray-700': currentVerdict.status === 'INCOMPLETE',
-            'bg-emerald-100 text-emerald-700': currentVerdict.status === 'RELIABLE',
-            'bg-rose-100 text-rose-700': currentVerdict.status === 'AT_RISK' || currentVerdict.status === 'TAX_SUSPENDED',
-            'bg-amber-100 text-amber-700': currentVerdict.status === 'UNAVAILABLE'
-          }"
-        >
-          {{ t(`screening.verdict.${currentVerdict.status.toLowerCase()}`) }}
-        </span>
-      </div>
-      <div class="text-sm text-slate-500">
-        {{ t('screening.verdict.confidence') }}: {{ t(`screening.verdict.${currentVerdict.confidence.toLowerCase()}`) }}
-      </div>
-    </div>
+    <!-- After search completes, navigation to /screening/[taxNumber] happens via watcher -->
   </div>
 </template>

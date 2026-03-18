@@ -72,6 +72,46 @@ public class IdentityRepository extends BaseRepository {
                 .fetchInto(Tenant.class);
     }
 
+    /**
+     * Check if a user exists with the given email — intentionally cross-tenant.
+     */
+    public boolean existsByEmail(String email) {
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(USERS)
+                        .where(USERS.EMAIL.eq(email))
+        );
+    }
+
+    /**
+     * Find the SSO provider for a user by email — intentionally cross-tenant.
+     * Returns empty if user does not exist.
+     */
+    public Optional<String> findSsoProviderByEmail(String email) {
+        return dsl.select(USERS.SSO_PROVIDER)
+                .from(USERS)
+                .where(USERS.EMAIL.eq(email))
+                .fetchOptional(USERS.SSO_PROVIDER);
+    }
+
+    public void updatePreferredLanguage(UUID userId, String language) {
+        dsl.update(USERS)
+                .set(USERS.PREFERRED_LANGUAGE, language)
+                .where(USERS.ID.eq(userId))
+                .execute();
+    }
+
+    /**
+     * Lightweight query returning only the tier column for a tenant.
+     * Used by TierGateInterceptor via IdentityService facade.
+     */
+    public Optional<String> findTenantTier(UUID tenantId) {
+        return dsl.select(TENANTS.TIER)
+                .from(TENANTS)
+                .where(TENANTS.ID.eq(tenantId))
+                .fetchOptional(TENANTS.TIER);
+    }
+
     @Transactional
     public Tenant saveTenant(Tenant tenant) {
         TenantsRecord record = dsl.newRecord(TENANTS);

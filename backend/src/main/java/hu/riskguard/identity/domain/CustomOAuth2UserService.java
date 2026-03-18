@@ -26,7 +26,9 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2User oAuth2User = super.loadUser(userRequest);
         User user = processOAuth2User(userRequest, oAuth2User);
-        return new CustomOAuth2User(oAuth2User, user.getId(), user.getTenantId(), user.getRole());
+        String tier = identityRepository.findTenantTier(user.getTenantId())
+                .orElse(properties.getIdentity().getDefaultTier());
+        return new CustomOAuth2User(oAuth2User, user.getId(), user.getTenantId(), user.getRole(), tier);
     }
 
     User processOAuth2User(OAuth2UserRequest userRequest, OAuth2User oAuth2User) {

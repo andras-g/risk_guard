@@ -18,8 +18,11 @@ const sources = computed(() => [
   <div
     v-if="visible"
     class="flex flex-col gap-4 p-4 border border-slate-200 rounded-lg bg-white"
-    aria-hidden="true"
+    role="status"
+    aria-busy="true"
+    data-testid="skeleton-verdict-card"
   >
+    <span class="sr-only">{{ t('screening.search.searching') }}</span>
     <!-- Header skeleton -->
     <div class="flex items-center gap-3">
       <Skeleton
@@ -47,7 +50,7 @@ const sources = computed(() => [
         class="flex items-center gap-3"
       >
         <span class="text-sm text-slate-500 w-40 shrink-0">
-          [ ] {{ source.label }}
+          <i class="pi pi-circle text-[10px] mr-1" />{{ source.label }}
         </span>
         <Skeleton
           width="100%"

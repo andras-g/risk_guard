@@ -35,11 +35,17 @@ async function onTenantChange() {
     v-if="authStore.isAuthenticated && isAccountant"
     class="flex items-center gap-2"
   >
-    <span class="text-sm font-medium text-slate-400">
+    <label
+      id="tenant-switcher-label"
+      for="tenant-switcher-select"
+      class="text-sm font-medium text-slate-400"
+    >
       {{ $t('identity.tenantSwitcher.label') }}:
-    </span>
+    </label>
     <Select
       v-model="selectedTenantId"
+      input-id="tenant-switcher-select"
+      aria-labelledby="tenant-switcher-label"
       :options="mandates"
       option-label="name"
       option-value="id"

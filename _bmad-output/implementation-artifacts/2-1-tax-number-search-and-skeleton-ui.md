@@ -1,6 +1,6 @@
 # Story 2.1: Tax Number Search & Skeleton UI
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -89,6 +89,16 @@ so that I know the system is actively retrieving government data and I receive i
   - [x] Create `ScreeningServiceIntegrationTest.java` with `@Tag("integration")`, `@Testcontainers`, PostgreSQL container — test full search flow including DB writes and SHA-256 hash generation (4 tests)
   - [x] Create `HungarianTaxNumberValidatorTest.java` — test 8-digit, 11-digit, invalid formats (8 test methods)
   - [x] Verify `ModulithVerificationTest` passes with the new `screening` module
+
+### Review Follow-ups — RESOLVED
+
+All review findings from Round 1 (11 issues) and Round 2 (9 new issues) have been resolved.
+
+**Round 2 Review Summary (2026-03-10):**
+- 6 HIGH fixed: i18n key mapping, ArchUnit jOOQ table isolation rules, domain SearchResult type, integration test selectCount fix, UUID parse error handling, domain→API layering violation
+- 8 MEDIUM fixed: tenantId design documented, SkeletonVerdictCard real mount tests, Zod validation in SearchBar, VerdictResponse imported from types/api, timestamp synchronization, SkeletonVerdictCard accessibility, file list updated, console.error PII safety
+- 6 LOW fixed: constants externalized to risk-guard-tokens.json + @Value, HashUtil null rejection, FQN import, jOOQ JSONB removed from DTO, ArchUnit internal isolation rule, start-local.sh documented
+- 1 MEDIUM deferred: @WebMvcTest MockMvc for @Valid → covered by E2E tests in Story 2.1.5
 
 ## Dev Notes
 
@@ -399,7 +409,7 @@ public class HungarianTaxNumberValidator
 
 ### Story Completion Status
 
-Status: review
+Status: done
 
 ### Project Structure Notes
 
@@ -462,6 +472,8 @@ gitlab/duo-chat-opus-4-6
 ### Change Log
 
 - **2026-03-09:** Story 2.1 implementation complete. Created screening module as reference implementation with full backend (migration, module scaffold, DTOs, validation, controller, service, repository, events, tests) and frontend (SearchBar, SkeletonVerdictCard, dashboard page, Pinia store, i18n, TypeScript types, tests).
+- **2026-03-10:** Adversarial code review Round 1 completed (AI). Found 11 issues. All added as action items.
+- **2026-03-10:** Adversarial code review Round 2 completed (AI). Found 9 new issues. All 20 issues (11 prior + 9 new) auto-fixed: refactored ScreeningService to return SearchResult domain type, moved DTO mapping to controller, added ArchUnit rules for jOOQ table isolation and internal package boundaries, fixed integration test DB verification (selectCount), replaced regex with Zod in SearchBar, rewrote SkeletonVerdictCard tests with @vue/test-utils mount, externalized constants to risk-guard-tokens.json, fixed HashUtil null rejection, added i18n verdict key mapping, fixed accessibility. Story marked done.
 
 ### File List
 
@@ -497,3 +509,10 @@ gitlab/duo-chat-opus-4-6
 
 **Modified Files:**
 - `frontend/nuxt.config.ts` — Added screening i18n locale files
+- `backend/build.gradle` — (review note: jOOQ codegen scoping enforced via ArchUnit, not codegen config)
+- `backend/src/main/resources/application.yml` — Added screening config properties (idempotency-guard-minutes, disclaimer-text)
+- `backend/src/test/resources/application-test.yml` — Added screening config properties for tests
+- `backend/src/test/java/hu/riskguard/architecture/NamingConventionTest.java` — Added ArchUnit rules for jOOQ table isolation and internal package boundaries
+- `risk-guard-tokens.json` — Added screening section (idempotencyGuardMinutes, disclaimerText)
+- `backend/src/main/resources/risk-guard-tokens.json` — Synced with root tokens file
+- `start-local.sh` — Added in initial implementation (GCP Secret Manager integration)

@@ -1,4 +1,24 @@
 @import "tailwindcss";
+
+/* ─── Global Focus-Visible Indicator (Story 3.0c WCAG 2.1 AA) ─────────────── */
+@layer base {
+  *:focus-visible {
+    outline: 2px solid var(--color-authority);
+    outline-offset: 2px;
+  }
+}
+
+/* ─── Reduced Motion Support (Story 3.0c WCAG 2.3.3) ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
 @import "@fontsource/inter/latin-400.css";
 @import "@fontsource/inter/latin-500.css";
 @import "@fontsource/inter/latin-600.css";
@@ -8,9 +28,17 @@
 @theme {
   /* Safe Harbor Color System (UX Spec Section 3.1) */
   --color-authority: #0F172A;       /* Deep Navy — primary/authority */
-  --color-reliable: #15803D;        /* Forest Emerald — success/reliable */
-  --color-at-risk: #B91C1C;         /* Crimson Alert — danger/at-risk */
-  --color-stale: #B45309;           /* Amber — warning/stale */
+  --color-reliable: #15803D;        /* Forest Emerald — success/reliable (backgrounds/borders) */
+  --color-at-risk: #B91C1C;         /* Crimson Alert — danger/at-risk (backgrounds/borders) */
+  --color-stale: #B45309;           /* Amber — warning/stale (backgrounds/borders) */
+
+  /* Contrast-safe text tokens for verdict display (≥7:1 on white) — Story 3.0c WCAG */
+  --color-reliable-text: #166534;   /* green-800 — ~7.1:1 on white */
+  --color-at-risk-text: #991B1B;    /* red-800 — ~7.3:1 on white */
+  --color-stale-text: #92400E;      /* amber-800 — ~7.1:1 on white */
+
+  /* Secondary text token (≥4.5:1 on white) — replaces text-slate-400 on light backgrounds */
+  --color-secondary-text: #64748B;  /* slate-500 — ~4.6:1 on white */
 
   /* Semantic aliases for PrimeVue-compatible usage */
   --color-primary: #0F172A;

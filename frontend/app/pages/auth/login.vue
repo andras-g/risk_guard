@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'public' })
 
-import authConfig from '../../risk-guard-tokens.json'
+import authConfig from '~/risk-guard-tokens.json'
 const { t, te } = useI18n()
 const config = useRuntimeConfig()
 
@@ -18,6 +18,50 @@ const loginWithMicrosoft = () => {
 const route = useRoute()
 const toast = useToast()
 const authStore = useAuthStore()
+
+// Email/password login state
+const loginEmail = ref('')
+const loginPassword = ref('')
+const isLoggingIn = ref(false)
+
+// Error type to i18n key mapping
+const loginErrorMap: Record<string, string> = {
+  'urn:riskguard:error:invalid-credentials': 'auth.login.error.invalidCredentials',
+  'urn:riskguard:error:too-many-attempts': 'auth.login.error.tooManyAttempts',
+}
+
+async function handleEmailLogin() {
+  if (!loginEmail.value || !loginPassword.value || isLoggingIn.value) return
+
+  isLoggingIn.value = true
+  try {
+    await $fetch('/api/public/auth/login', {
+      method: 'POST',
+      body: {
+        email: loginEmail.value,
+        password: loginPassword.value,
+      },
+      baseURL: config.public.apiBase as string,
+      credentials: 'include',
+    })
+
+    // Login successful — cookie is set by backend
+    await authStore.initializeAuth()
+    navigateTo('/')
+  } catch (error: any) {
+    const errorType = error?.data?.type || ''
+    const i18nKey = loginErrorMap[errorType] || 'auth.login.error.generic'
+
+    toast.add({
+      severity: 'error',
+      summary: t('auth.login.error.title'),
+      detail: t(i18nKey),
+      life: 5000,
+    })
+  } finally {
+    isLoggingIn.value = false
+  }
+}
 
 onMounted(async () => {
   // 1. Re-check authentication from cookie (this might have been handled by the middleware already)
@@ -57,6 +101,7 @@ onMounted(async () => {
         </p>
       </div>
 
+      <!-- SSO Buttons -->
       <div class="flex flex-col gap-4">
         <Button 
           icon="pi pi-google" 
@@ -73,6 +118,51 @@ onMounted(async () => {
           severity="secondary"
           @click="loginWithMicrosoft"
         />
+      </div>
+
+      <!-- Divider (AC #1) -->
+      <Divider align="center" class="my-6">
+        <span class="text-surface-500 text-sm">{{ t('auth.login.or') }}</span>
+      </Divider>
+
+      <!-- Email/Password Login Form (AC #4, #5) -->
+      <form class="flex flex-col gap-4" @submit.prevent="handleEmailLogin">
+        <div class="flex flex-col gap-2">
+          <label for="login-email">{{ t('auth.login.emailLabel') }}</label>
+          <InputText
+            id="login-email"
+            v-model="loginEmail"
+            type="email"
+            :placeholder="t('auth.login.emailLabel')"
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label for="login-password">{{ t('auth.login.passwordLabel') }}</label>
+          <InputText
+            id="login-password"
+            v-model="loginPassword"
+            type="password"
+            :placeholder="t('auth.login.passwordLabel')"
+            autocomplete="current-password"
+          />
+        </div>
+
+        <Button
+          type="submit"
+          :label="t('auth.login.emailSubmit')"
+          class="w-full mt-2"
+          :disabled="!loginEmail || !loginPassword || isLoggingIn"
+          :loading="isLoggingIn"
+        />
+      </form>
+
+      <!-- Register link (AC #1) -->
+      <div class="text-center mt-6">
+        <NuxtLink to="/auth/register" class="text-primary-500 hover:text-primary-700">
+          {{ t('auth.login.noAccount') }}
+        </NuxtLink>
       </div>
     </div>
   </div>

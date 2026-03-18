@@ -62,10 +62,10 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 Map.of("email", email, "name", "Test User", "sub", "sub-123"),
                 "sub"
         );
-        CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, homeTenantId, role);
+        CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, homeTenantId, role, "PRO");
 
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
-        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString()))
+        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString(), anyString()))
                 .thenReturn("jwt-token");
 
         // When
@@ -81,7 +81,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 userIdCaptor.capture(),
                 homeTenantCaptor.capture(),
                 activeTenantCaptor.capture(),
-                eq(role)
+                eq(role),
+                eq("PRO")
         );
 
         assertThat(homeTenantCaptor.getValue()).isEqualTo(homeTenantId);
@@ -102,10 +103,10 @@ class OAuth2AuthenticationSuccessHandlerTest {
                 Map.of("email", email, "name", "User", "sub", "sub-456"),
                 "sub"
         );
-        CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, tenantId, "SME_ADMIN");
+        CustomOAuth2User oAuth2User = new CustomOAuth2User(delegate, userId, tenantId, "SME_ADMIN", "ALAP");
 
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
-        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString()))
+        when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString(), anyString()))
                 .thenReturn("jwt-token");
 
         // When

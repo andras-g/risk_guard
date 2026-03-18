@@ -4,6 +4,7 @@ import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.api.dto.TenantSwitchRequest;
+import hu.riskguard.identity.api.dto.UpdateLanguageRequest;
 import hu.riskguard.identity.api.dto.UserResponse;
 import hu.riskguard.identity.domain.events.TenantContextSwitchedEvent;
 import hu.riskguard.identity.domain.IdentityService;
@@ -41,6 +42,17 @@ public class IdentityController {
         User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
         return UserResponse.from(user, jwt.getClaimAsString("active_tenant_id"));
+    }
+
+    @PatchMapping("/me/language")
+    public ResponseEntity<Void> updateLanguage(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody UpdateLanguageRequest request) {
+        String email = jwt.getSubject();
+        User user = identityService.findUserByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        identityService.updatePreferredLanguage(user.getId(), request.language());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/mandates")
@@ -105,7 +117,9 @@ public class IdentityController {
         );
 
         // Issue token — set as HttpOnly cookie ONLY (not in response body to prevent token leaking)
-        String newToken = tokenProvider.createToken(email, user.getId(), user.getTenantId(), request.tenantId(), user.getRole());
+        String tier = identityService.findTenantTier(request.tenantId());
+        String newToken = tokenProvider.createToken(email, user.getId(), user.getTenantId(), request.tenantId(), user.getRole(),
+                tier != null ? tier : properties.getIdentity().getDefaultTier());
 
         ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), newToken)
                 .path("/")

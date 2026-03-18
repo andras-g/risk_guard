@@ -15,12 +15,14 @@ public class CustomOAuth2User implements OAuth2User {
     private final UUID userId;
     private final UUID tenantId;
     private final String role;
+    private final String tier;
 
-    public CustomOAuth2User(OAuth2User delegate, UUID userId, UUID tenantId, String role) {
+    public CustomOAuth2User(OAuth2User delegate, UUID userId, UUID tenantId, String role, String tier) {
         this.delegate = delegate;
         this.userId = userId;
         this.tenantId = tenantId;
         this.role = role;
+        this.tier = tier;
     }
 
     @Override

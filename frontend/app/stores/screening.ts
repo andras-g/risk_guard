@@ -1,27 +1,25 @@
 import { defineStore } from 'pinia'
-
-export interface VerdictResponse {
-  id: string
-  snapshotId: string
-  taxNumber: string
-  status: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE'
-  confidence: 'FRESH' | 'STALE' | 'UNAVAILABLE'
-  createdAt: string
-}
+import type { SnapshotProvenanceResponse, VerdictResponse } from '~/types/api'
 
 interface ScreeningState {
   currentTaxNumber: string
   currentVerdict: VerdictResponse | null
+  currentProvenance: SnapshotProvenanceResponse | null
   isSearching: boolean
+  isLoadingProvenance: boolean
   searchError: string | null
+  provenanceError: string | null
 }
 
 export const useScreeningStore = defineStore('screening', {
   state: (): ScreeningState => ({
     currentTaxNumber: '',
     currentVerdict: null,
+    currentProvenance: null,
     isSearching: false,
-    searchError: null
+    isLoadingProvenance: false,
+    searchError: null,
+    provenanceError: null
   }),
 
   actions: {
@@ -30,6 +28,7 @@ export const useScreeningStore = defineStore('screening', {
       this.isSearching = true
       this.searchError = null
       this.currentVerdict = null
+      this.currentProvenance = null
 
       try {
         const config = useRuntimeConfig()
@@ -40,19 +39,47 @@ export const useScreeningStore = defineStore('screening', {
           credentials: 'include'
         })
         this.currentVerdict = data
+
+        // Eagerly fetch provenance after verdict loads
+        if (data.snapshotId) {
+          await this.fetchProvenance(data.snapshotId)
+        }
       } catch (error: unknown) {
         this.searchError = error instanceof Error ? error.message : String(error)
-        console.error('Search failed:', error)
       } finally {
         this.isSearching = false
+      }
+    },
+
+    async fetchProvenance(snapshotId: string) {
+      this.isLoadingProvenance = true
+      this.provenanceError = null
+
+      try {
+        const config = useRuntimeConfig()
+        const data = await $fetch<SnapshotProvenanceResponse>(
+          `/api/v1/screenings/snapshots/${snapshotId}/provenance`,
+          {
+            baseURL: config.public.apiBase as string,
+            credentials: 'include'
+          }
+        )
+        this.currentProvenance = data
+      } catch (error: unknown) {
+        this.provenanceError = error instanceof Error ? error.message : String(error)
+      } finally {
+        this.isLoadingProvenance = false
       }
     },
 
     clearSearch() {
       this.currentTaxNumber = ''
       this.currentVerdict = null
+      this.currentProvenance = null
       this.searchError = null
+      this.provenanceError = null
       this.isSearching = false
+      this.isLoadingProvenance = false
     }
   }
 })

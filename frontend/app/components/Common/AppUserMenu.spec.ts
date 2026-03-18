@@ -108,8 +108,8 @@ describe('AppUserMenu — display', () => {
 })
 
 describe('AppUserMenu — component mount smoke test', () => {
-  it('renders without error and shows user name and avatar', () => {
-    const wrapper = mount(AppUserMenu, {
+  function mountUserMenu() {
+    return mount(AppUserMenu, {
       global: {
         stubs: {
           Avatar: { template: '<div data-testid="user-avatar" />' },
@@ -117,9 +117,44 @@ describe('AppUserMenu — component mount smoke test', () => {
         }
       }
     })
+  }
+
+  it('renders without error and shows user name and avatar', () => {
+    const wrapper = mountUserMenu()
     expect(wrapper.find('[data-testid="app-user-menu"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="user-name"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="user-name"]').text()).toBe('Andras Kovacs')
     expect(wrapper.find('[data-testid="user-avatar-button"]').exists()).toBe(true)
+  })
+})
+
+describe('AppUserMenu — accessibility (Story 3.0c)', () => {
+  function mountUserMenu() {
+    return mount(AppUserMenu, {
+      global: {
+        stubs: {
+          Avatar: { template: '<div data-testid="user-avatar" />' },
+          Menu: { template: '<div data-testid="user-dropdown-menu" />' }
+        }
+      }
+    })
+  }
+
+  it('avatar button has aria-label', () => {
+    const wrapper = mountUserMenu()
+    const btn = wrapper.find('[data-testid="user-avatar-button"]')
+    expect(btn.attributes('aria-label')).toBe('common.a11y.userMenu')
+  })
+
+  it('avatar button has aria-haspopup="true"', () => {
+    const wrapper = mountUserMenu()
+    const btn = wrapper.find('[data-testid="user-avatar-button"]')
+    expect(btn.attributes('aria-haspopup')).toBe('true')
+  })
+
+  it('avatar button has aria-expanded attribute', () => {
+    const wrapper = mountUserMenu()
+    const btn = wrapper.find('[data-testid="user-avatar-button"]')
+    expect(btn.attributes('aria-expanded')).toBeDefined()
   })
 })

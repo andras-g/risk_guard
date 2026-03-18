@@ -4,6 +4,8 @@ const { t: $t } = useI18n()
 
 <template>
   <div class="min-h-screen flex flex-col bg-white text-slate-900">
+    <CommonSkipLink />
+
     <!-- Header -->
     <header class="h-16 flex items-center justify-between px-6 border-b border-slate-200">
       <NuxtLink
@@ -13,7 +15,10 @@ const { t: $t } = useI18n()
         {{ $t('common.app.name') }}
       </NuxtLink>
 
-      <div class="flex items-center gap-4">
+      <nav
+        :aria-label="$t('common.a11y.headerNav')"
+        class="flex items-center gap-4"
+      >
         <NuxtLink
           to="/auth/login"
           class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
@@ -26,18 +31,20 @@ const { t: $t } = useI18n()
         >
           {{ $t('common.actions.register') }}
         </NuxtLink>
-      </div>
+      </nav>
     </header>
 
     <!-- Content (Gateway density: airy, relaxed) -->
-    <main class="flex-1">
-      <div class="mx-auto max-w-prose leading-relaxed">
-        <slot />
-      </div>
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="flex-1 leading-relaxed"
+    >
+      <slot />
     </main>
 
     <!-- Footer placeholder -->
-    <footer class="py-8 text-center text-sm text-slate-400 border-t border-slate-200">
+    <footer class="py-8 text-center text-sm text-secondary-text border-t border-slate-200">
       <p>{{ $t('common.app.copyright') }}</p>
     </footer>
   </div>

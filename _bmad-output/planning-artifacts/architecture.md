@@ -2,17 +2,27 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 status: 'complete'
 completedAt: '2026-03-05'
+correctedAt: '2026-03-13'
+correctionApplied: 'sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
+correctionRef: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md'
 inputDocuments:
   - "_bmad-output/planning-artifacts/prd.md"
   - "_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md"
   - "_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md"
   - "_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md"
+  - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md"
   - "partnerRadar.md"
 workflowType: 'architecture'
 project_name: 'risk_guard'
 user_name: 'Andras'
 date: '2026-03-04'
 ---
+
+> **CORRECTION APPLIED (2026-03-13)**
+>
+> This document was updated on 2026-03-13 to integrate the course correction approved on 2026-03-12. Key changes: scraping/Playwright architecture removed, `scraping` module renamed to `datasource`, NAV Online Számla integration layer added, demo mode formalized, EPR module updated with NAV invoice data dependency.
+>
+> **Reference:** `_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md`
 
 # Architecture Decision Document
 
@@ -23,7 +33,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 ### Requirements Overview
 
 **Functional Requirements:**
-12 FRs spanning 4 domains: Partner Screening (FR1-FR4: tax number search, NAV/e-Cégjegyzék retrieval, state-machine verdicts, suspended tax detection), Monitoring & Alerts (FR5-FR7: watchlist CRUD, 24h status checks, Resend email triggers), EPR Compliance (FR8-FR10: multi-step questionnaire, JSON DAG validation, schema-perfect exports), and Administration (FR11-FR12: scraper health dashboard, hot-swappable EPR JSON config).
+12 FRs spanning 4 domains: Partner Screening (FR1-FR4: tax number search, NAV Online Számla QueryTaxpayer + demo data retrieval, state-machine verdicts, suspended tax detection), Monitoring & Alerts (FR5-FR7: watchlist CRUD, 24h status checks, Resend email triggers), EPR Compliance (FR8-FR10: multi-step questionnaire, JSON DAG validation, schema-perfect exports), and Administration (FR11-FR12: data source health dashboard, hot-swappable EPR JSON config).
 
 **Non-Functional Requirements:**
 7 NFRs driving architecture: < 30s verdict latency (NFR1), GraalVM native images < 200ms startup (NFR2), min-instances during business hours (NFR3), SHA-256 cryptographic hashing for due diligence (NFR4), AES-256/TLS 1.3 encryption (NFR5), SEO gateway stubs with JSON-LD (NFR6), and scale-to-zero off-peak (NFR7).
@@ -32,36 +42,37 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 - Primary domain: Full-stack B2B SaaS (Java backend-heavy)
 - Complexity level: High
-- Estimated architectural components: 5 Spring Modulith modules (`screening`, `epr`, `scraping`, `notification`, `identity`)
+- Estimated architectural components: 5 Spring Modulith modules (`screening`, `epr`, `datasource`, `notification`, `identity`)
 
 ### Technical Constraints & Dependencies
 
 - **Solo developer maintenance** (< 10 hrs/week) — drives modular monolith over microservices
 - **JVM for MVP, native-image-ready design** — avoid reflection/dynamic proxies; GraalVM native compilation deferred to post-MVP cost optimization
-- **Government portal fragility** — requires adapter pattern for each source with independent health tracking
+- **NAV API access dependency** — NAV Online Számla available immediately (technical user credentials); NAV M2M Adózó API requires representation registration (1-2 months via accountant). Demo mode bridges the gap.
 - **EU data residency** — GCP Frankfurt or Warsaw regions only
 - **MOHU API unavailability** — EPR fee tables must be manually maintained from published legislation until API access is granted
-- **Dual deployment model** — API (Cloud Run) + Scraper Worker (Cloud Run Jobs with sidecar Chrome for Playwright)
+- **Single deployment model** — API (Cloud Run) only. No scraper worker or Chrome sidecar — all data sources are API-based or demo fixtures.
 
 ### Cross-Cutting Concerns Identified
 
 - **Tenant Isolation:** `tenant_id` enforced at the Spring Data repository layer via `TenantFilter` reading from `SecurityContextHolder`. Database-level `NOT NULL` constraint on `tenant_id`. Guests receive synthetic tenant IDs (`guest-{session_uuid}`). No null tenant_id anywhere in the system.
 - **Audit Trail:** Every search produces a SHA-256 hashed, timestamped record with source URLs. Disclaimer text included in hash.
-- **Data Freshness (Tiered Model):** < 6h: serve cached ("Verified today"); 6-24h: auto-trigger background re-scrape, serve cached with "Refreshing..." indicator; 24-48h: "Stale" warning badge, block "Reliable" verdict → "Review Recommended"; > 48h: hard shift to "Unavailable."
-- **Graceful Degradation:** Portal outages surface as global health banner + per-verdict timestamps. "Alert me when portal returns" queues a retry. Degraded mode serves partial verdicts with explicit "Unavailable" fields.
+- **Data Freshness (Tiered Model):** < 6h: serve cached ("Verified today"); 6-24h: auto-trigger background re-fetch from data source, serve cached with "Refreshing..." indicator; 24-48h: "Stale" warning badge, block "Reliable" verdict → "Review Recommended"; > 48h: hard shift to "Unavailable."
+- **Graceful Degradation:** API outages (NAV Online Számla, future NAV M2M) surface as global health banner + per-verdict timestamps. "Alert me when source returns" queues a retry. Degraded mode serves partial verdicts with explicit "Unavailable" fields. In demo mode, degradation does not apply — demo data is always available.
 - **Feature Flags (Simplified):** Tier-based enum (`ALAP`/`PRO`/`PRO_EPR`) with `@TierRequired` annotation on controller methods. Tier embedded in JWT claims and verified server-side.
-- **Observability:** Scraper success rates, search latency, error budgets, and per-adapter MTBF exposed via admin dashboard.
+- **Data Source Mode:** `riskguard.data-source.mode=demo|test|live` controls which adapters are active. `demo`: in-app fixtures, no network. `test`: NAV test environment (`api-test.onlineszamla.nav.gov.hu`). `live`: production NAV APIs.
+- **Observability:** Data source success rates, search latency, error budgets, and per-adapter health exposed via admin dashboard. In demo mode, health is always HEALTHY.
 - **Per-Tenant Cache with Response Jitter:** Cache is per-tenant (Tenant A's cache does not warm Tenant B's). 50-200ms random jitter on all search responses to prevent timing oracle attacks.
 
 ### Architecture Decision Records
 
 #### ADR-1: Application Architecture — Spring Modulith (Modular Monolith)
 
-**Decision:** Spring Modulith with 5 modules (`screening`, `epr`, `scraping`, `notification`, `identity`) as a single deployable. Playwright scraper worker is a separate Cloud Run Job due to Chrome sidecar requirements.
+**Decision:** Spring Modulith with 5 modules (`screening`, `epr`, `datasource`, `notification`, `identity`) as a single deployable.
 
-**Rationale:** Solo developer maintainability. Enforced module boundaries with the operational simplicity of a single deployable. One CI/CD pipeline, one database connection pool, shared transaction context. Module boundaries make future extraction clean if scale demands it. Notification stays in-process — 100 users × 10 watchlist entries = trivial load for `@Scheduled`.
+**Rationale:** Solo developer maintainability. Enforced module boundaries with the operational simplicity of a single deployable. One CI/CD pipeline, one database connection pool, shared transaction context. Module boundaries make future extraction clean if scale demands it. Notification stays in-process — 100 users × 10 watchlist entries = trivial load for `@Scheduled`. All data sources are API-based (NAV Online Számla, future NAV M2M) or demo fixtures — no scraper worker or Chrome sidecar needed.
 
-**Rejected:** Microservices (operational complexity), selective decomposition with Pub/Sub (premature optimization).
+**Rejected:** Microservices (operational complexity), selective decomposition with Pub/Sub (premature optimization), separate scraper worker (eliminated — no scraping, all data from APIs).
 
 #### ADR-2: Persistence — PostgreSQL 17 Only
 
@@ -79,13 +90,23 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 **Rejected:** GraalVM native from day 1 (build time overhead, library risk), JVM-only with no native plan (locked out of future cost savings).
 
-#### ADR-4: Scraper Architecture — Hexagonal Ports & Adapters with Parallel Virtual Threads
+#### ADR-4: Data Source Architecture — Hexagonal Ports & Adapters with Parallel Virtual Threads
 
-**Decision:** Each government source implements a `CompanyDataPort` interface with `fetch()`, `requiredFields()`, `health()`, and `validateCanary()`. `CompanyDataAggregator` orchestrates all adapters in parallel using Java 25 Virtual Threads (`StructuredTaskScope`). Each adapter has its own Resilience4j circuit breaker.
+> **Corrected 2026-03-13.** Original ADR assumed JSoup/Playwright scraping of government portals. Research (2026-03-10, 2026-03-12) proved all government portals are bot-protected (reCAPTCHA, Cloudflare Turnstile). Owner decision: no CAPTCHA bypass. Adapters are now NAV Online Számla API client (XML/JAXB) and demo fixtures. Hexagonal pattern and Virtual Thread orchestration remain valid.
 
-**Rationale:** 30s latency budget requires parallel execution (latency = slowest adapter, not sum). Canary validation with known-good companies detects semantic breakage proactively. Independent circuit breakers prevent NAV failure from taking down e-Cégjegyzék. Failed adapters return explicit `SourceUnavailable` results for deterministic verdict handling.
+**Decision:** Each data source implements a `CompanyDataPort` interface with `fetch()`, `requiredFields()`, `health()`, and `validateCanary()`. `CompanyDataAggregator` orchestrates all adapters in parallel using Java 25 Virtual Threads (`StructuredTaskScope`). Each adapter has its own Resilience4j circuit breaker. Data source mode (`riskguard.data-source.mode=demo|test|live`) selects which adapter implementations are active.
 
-**Rejected:** Sequential adapters (breaks latency budget), async with callbacks (harder to reason about).
+**Adapters:**
+
+| Adapter | Mode | Protocol | Data Provided |
+|---------|------|----------|---------------|
+| `DemoCompanyDataAdapter` | `demo` | In-memory fixtures | Realistic Hungarian company data (debt, insolvency, tax status) for demos and development |
+| `NavOnlineSzamlaAdapter` | `test`, `live` | XML/HTTPS (JAXB) | `QueryTaxpayer`: partner name, address, incorporation type, VAT group status |
+| `NavM2mAdapter` (deferred) | `live` | REST/JSON | `KoztartozasEgyenleg`: public debt balance, `HianyzoBevallas`: missing filings |
+
+**Rationale:** 30s latency budget requires parallel execution (latency = slowest adapter, not sum). Canary validation with known-good tax numbers detects API contract breakage proactively. Independent circuit breakers prevent one NAV service failure from affecting another. Failed adapters return explicit `SourceUnavailable` results for deterministic verdict handling. Demo mode provides a fully functional product for sales demos and development without any external dependencies.
+
+**Rejected:** Government portal scraping (all portals bot-protected, owner decision: no bypass), sequential adapters (breaks latency budget), async with callbacks (harder to reason about).
 
 #### ADR-5: Authentication — OAuth2 SSO + Dual-Claim JWT
 
@@ -95,20 +116,83 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 **Rejected:** Single tenant claim JWT (context switch requires full re-auth), server-side sessions (breaks Cloud Run statelessness).
 
+#### ADR-6: NAV Online Számla Integration — XML/JAXB with SHA-512/SHA3-512 Request Signing
+
+> **Added 2026-03-13** as part of correct course integration (CP-3).
+
+**Decision:** Integrate with NAV Online Számla API v3 (`api.onlineszamla.nav.gov.hu/invoiceService/v3/`) using JAXB-generated classes from official NAV XSD schemas, with a dedicated `NavOnlineSzamlaClient` Spring service encapsulating authentication, request signing, and XML marshalling.
+
+**Authentication Model:** No OAuth. User provides 4 credentials from the NAV Online Számla portal (technical user):
+
+| Credential | Storage | Used For |
+|-----------|---------|----------|
+| `login` (technical user name) | AES-256 encrypted in DB | All API requests |
+| `password` | SHA-512 hashed → sent as `passwordHash` | All API requests |
+| `signing key` (cserekulcs) | AES-256 encrypted in DB, never transmitted | Computing SHA3-512 `requestSignature` per request |
+| `tax number` (adószám) | Plain text | Identifies the company |
+
+**Request Signing:** Every request requires `SHA3-512(requestId + timestamp + signingKey + <operation-specific-data>)`. The `software` block identifies RiskGuard as the calling application (required by NAV).
+
+**Operations Used:**
+
+| Operation | Use Case | Module |
+|-----------|----------|--------|
+| `QueryTaxpayer` | Verify partner tax number → name, address, incorporation type | `screening` (via `datasource`) |
+| `QueryInvoiceDigest` | List invoices by date range for EPR quarterly aggregation | `epr` (via `datasource`) |
+| `QueryInvoiceData` | Full invoice with line items (product descriptions, VTSZ codes, quantities) | `epr` (via `datasource`) |
+
+**Three-Layer Mode Switching:**
+
+| Mode | Behavior | When |
+|------|----------|------|
+| `mock` | Returns realistic Hungarian invoice/company data from in-app Java fixtures. No network, no XML. | Development, demos, UI work |
+| `test` | Calls `api-test.onlineszamla.nav.gov.hu` with real test credentials | Integration testing |
+| `live` | Calls `api.onlineszamla.nav.gov.hu` with production credentials | Production |
+
+**Implementation Architecture:**
+```
+NavOnlineSzamlaClient (Spring @Service)
+├── AuthService          — credential management, SHA-512 password hash
+├── SignatureService      — SHA3-512 request signature computation
+├── XmlMarshaller        — JAXB from NAV XSD schemas (invoiceApi, invoiceData, invoiceBase)
+└── Operations:
+    ├── queryTaxpayer(taxNumber) → TaxpayerInfo
+    ├── queryInvoiceDigest(dateRange, direction) → [InvoiceSummary]
+    └── queryInvoiceData(invoiceNumber) → InvoiceDetail
+```
+
+**Rationale:** NAV Online Számla is the single most valuable integration because it serves both product modules simultaneously. `QueryTaxpayer` provides real partner verification (not representation-bound — any technical user can query any tax number). `QueryInvoiceDigest` + `QueryInvoiceData` provide full invoice data for EPR calculations. When an accountant connects their NAV credentials, both screening and EPR modules activate with real data.
+
+**Rejected:** Direct HTTP + manual XML parsing (error-prone, ignores NAV's XSD contract), JSON-based approach (NAV API is XML-only), scraping NAV portal (bot-protected, owner decision: no bypass).
+
+#### ADR-7: NAV M2M Adózó API — Deferred Production Data Path
+
+> **Added 2026-03-13** as part of correct course integration (CP-1).
+
+**Decision:** Defer NAV M2M REST API integration (`m2m.nav.gov.hu/rest-api/1.0/`) to post-MVP. When available, it provides `KoztartozasEgyenleg` (public debt balance) and `HianyzoBevallas` (missing filings) — the core tax compliance signals for screening.
+
+**Critical Constraint:** The M2M Adózó API is representation-bound — you can only query companies you legally represent (via törvényes képviselő or EGYKE meghatalmazás). An accountant with representation for many companies is the ideal first customer AND the data access channel.
+
+**Auth Model (for future implementation):** API Key activation → phantom token → signing key → bearer token + signature. Registration via NAV Ügyfélportál (1-2 months via accountant's company).
+
+**Rationale for Deferral:** No credentials available today. Registration takes 1-2 months. Demo-first MVP proves product value to an accountant, who then provides both market validation and legitimate data access. Once registered, `NavM2mAdapter` replaces demo data for tax compliance signals.
+
 ### Module-Level Failure Mode Analysis
 
-#### `scraping` Module
-- **DOM layout changes:** Mandatory field contracts per adapter + DOM fingerprint hashing (>30% divergence = circuit break) + canary company validation on every monitoring cycle.
-- **Anti-bot blocking:** Rotating proxy support in Playwright sidecar, exponential backoff, fallback to cached last-known-good snapshot with staleness badge.
-- **Portal downtime:** Per-adapter circuit breaker (Resilience4j), global health banner, "Alert me when portal returns" queues retry.
-- **Playwright OOM/crash:** Cloud Run Jobs auto-restart, isolated jobs per adapter, dead-letter alerting.
-- **Parse exceptions:** Defensive parsing with fallback to raw JSONB storage. Flag record as "Parse Error" for manual review.
+#### `datasource` Module
+- **NAV API downtime:** Per-adapter Resilience4j circuit breaker, global health banner, "Alert me when source returns" queues retry. In demo mode, this cannot occur — demo data is always available.
+- **NAV XSD schema changes:** JAXB-generated classes are pinned to a specific schema version. Canary validation with known-good tax numbers detects response structure drift. Schema version mismatch → circuit break + admin alert.
+- **Token/credential expiry:** NAV Online Számla technical user password or signing key rotation. `AuthService` detects `INVALID_SECURITY_CONTENT` error → surfaces "Credentials expired" in admin dashboard with re-entry prompt.
+- **Rate limiting:** NAV APIs have undocumented rate limits. Resilience4j rate limiter per adapter with conservative defaults. Exponential backoff on HTTP 429 / throttling responses.
+- **XML parse exceptions:** JAXB unmarshalling failure → defensive fallback to raw XML string storage in JSONB. Flag record as "Parse Error" for manual review.
+- **Request signing errors:** SHA3-512 signature computation failure (corrupted signing key, encoding mismatch) → immediate circuit break for that adapter, admin alert. Canary validation catches this proactively.
+- **Demo mode data staleness:** Demo fixtures are static. Not a failure mode per se, but admin dashboard clearly labels data source as "Demo" to prevent confusion.
 
 #### `screening` Module
 - **Logic bug (wrong verdict):** Immutable regression suite of 50+ golden-case snapshots. CI blocks deployment on failure. State machine is a pure function.
 - **Partial data verdict:** Mandatory source checklist. Missing NAV data = verdict CANNOT be "Reliable" → must be "Incomplete" or "Manual Review Required." No silent gaps.
 - **Suspended tax number:** `TAX_SUSPENDED` is a first-class state-machine state, equivalent to "At-Risk" with distinct "Manual Review Required" badge.
-- **Race conditions:** Idempotency guard — check for fresh snapshot (< 15 min) before scraping. Database advisory lock on tax_number during active scrape.
+- **Race conditions:** Idempotency guard — check for fresh snapshot (< 15 min) before fetching from data sources. Database advisory lock on tax_number during active fetch.
 
 #### `epr` Module
 - **Legislation changes:** JSON-driven versioned configuration. Admin updates without code redeploy. Each export stamps config version used.
@@ -116,6 +200,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 - **DAG logic errors:** Each decision tree path is a test case. User traversal path stored alongside result for auditability.
 - **Encoding issues:** UTF-8 BOM for Excel compatibility, semicolon delimiters (Hungarian locale), automated round-trip test.
 - **EPR golden test cases:** 5-10 known-correct calculations validated nightly against current config. Unexpected output changes block the wizard.
+- **NAV Online Számla invoice data unavailable:** EPR module depends on `QueryInvoiceDigest`/`QueryInvoiceData` for automatic invoice aggregation. If NAV API is down or credentials missing → EPR wizard falls back to manual data entry mode with clear "Automatic invoice import unavailable" notice. In demo mode, mock invoice fixtures provide full EPR flow.
 
 #### `notification` Module
 - **Resend API downtime:** Outbox pattern — notifications persisted to `notification_outbox` table first. Retry scheduler with exponential backoff. Pending/failed notifications visible in UI.
@@ -134,18 +219,23 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 
 | Cascade Scenario | Safeguard |
 |---|---|
-| Scraper fails → Verdict serves stale data | Tiered freshness model. Stale data = "Incomplete" verdict, never "Reliable." |
-| Scraper fails → Watchlist diff misses change | Watchlist monitor logs "scraper unavailable" as explicit event. Triggers "monitoring interrupted" notification. |
+| NAV API fails → Verdict serves stale data | Tiered freshness model. Stale data = "Incomplete" verdict, never "Reliable." In demo mode, data is always fresh (static fixtures). |
+| NAV API fails → Watchlist diff misses change | Watchlist monitor logs "data source unavailable" as explicit event. Triggers "monitoring interrupted" notification. |
+| NAV credentials expire → All API adapters fail | `AuthService` detects auth errors, surfaces credential re-entry prompt in admin dashboard. Demo mode unaffected. |
+| NAV API fails → EPR invoice import unavailable | EPR wizard falls back to manual data entry mode. Clear "automatic import unavailable" notice. |
 | Identity breach → Tenant leak | Defense in depth: repository-layer filtering is the last line even if session is compromised. |
 | EPR config update → Old exports invalid | Versioned configs. Old exports retain config version reference. Admin alert on new version. |
 
 ### Pre-mortem Risk Mitigations
 
-#### Risk 1: Scraper Treadmill (Priority: 🔴 Critical)
-- **Scraper Repair Playbooks:** Each adapter ships with `repair-guide.md` documenting selector strategy and common government change patterns.
-- **LLM-Assisted Repair Triage (v1.1):** Auto-generate diff report showing old vs. new selectors on DOM fingerprint divergence.
-- **Adapter Independence Scoring:** Track MTBF per adapter. Prioritize API migration for most fragile sources.
-- **Degraded Mode Architecture:** Define "minimum viable verdict" — partial data renders partial verdict with explicit gaps.
+#### Risk 1: Data Source Availability (Priority: 🟡 Medium — reduced from 🔴 Critical)
+
+> **Corrected 2026-03-13.** Original risk assumed scraping government portals with constant DOM breakage. With API-based data sources, the risk profile shifts from "continuous repair treadmill" to "dependency on NAV API registration and stability."
+
+- **NAV M2M Registration Delay:** Production tax compliance data requires M2M API registration via an accountant's company (1-2 months). Demo mode bridges the gap completely — the product is fully functional for demos and development without real data.
+- **NAV Online Számla Availability:** QueryTaxpayer is available immediately to any technical user. API uptime is historically excellent (government SLA). Circuit breakers + health banner handle transient outages.
+- **NAV API Versioning/Deprecation:** NAV publishes XSD schema updates. JAXB-generated classes are pinned to a version. Canary validation detects contract drift. Schema change → admin alert, regenerate JAXB classes, test, deploy.
+- **Degraded Mode Architecture:** Define "minimum viable verdict" — partial data renders partial verdict with explicit gaps. In demo mode, degradation does not apply.
 
 #### Risk 2: Accountant Persona Mismatch (Priority: 🟡 Medium)
 - **Validate workflows before building:** Paper prototype with 2-3 real bookkeepers before full implementation.
@@ -158,7 +248,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 - **VerdictProjection Pattern:** One state machine, multiple views. Full details for PRO, summary for ALAP, teaser for GUEST.
 
 #### Risk 4: EPR Staleness (Priority: 🔴 Critical)
-- **Regulatory Monitor:** Scrape MOHU announcements + Magyar Közlöny for EPR-related keywords. Alert admin on any content change.
+- **Regulatory Monitor:** Monitor MOHU announcements + Magyar Közlöny for EPR-related keywords (manual review or RSS). Alert admin on any content change.
 - **EPR Golden Test Cases:** 5-10 known-correct calculations validated nightly. Unexpected changes block EPR wizard.
 - **User Upload Feedback Loop:** Post-upload prompt: "Did your MOHU upload succeed?" Track success rates. Spike in "No" triggers config review.
 
@@ -166,7 +256,7 @@ _This document builds collaboratively through step-by-step discovery. Sections a
 - **Auto-Degradation Protocol:** Canary fail + no admin response in 4h → auto circuit-break adapter, update health banner, send bulk notification to affected watchlist users.
 - **Outbox Backpressure:** Max queue depth per tenant with auto-digest fallback.
 - **Automated Status Page:** Static page (GitHub Pages/Cloudflare Pages) updated by health check job. Users see status even if main API is down.
-- **Operational Runbooks:** Every procedure (scraper repair, EPR config update, deployment, incident response) documented as a runbook in the repo.
+- **Operational Runbooks:** Every procedure (NAV credential rotation, EPR config update, deployment, incident response) documented as a runbook in the repo.
 
 ## Starter Template Evaluation
 
@@ -224,8 +314,8 @@ curl https://start.spring.io/starter.tgz \
 - `hu.riskguard` root package
 - Spring Modulith module discovery via top-level packages:
   - `hu.riskguard.screening` — Partner screening and state-machine verdicts
-  - `hu.riskguard.epr` — EPR compliance wizard and MOHU exports
-  - `hu.riskguard.scraping` — Scraper adapters (JSoup/Playwright), health tracking
+  - `hu.riskguard.epr` — EPR compliance wizard, NAV invoice aggregation, MOHU exports
+  - `hu.riskguard.datasource` — Data source adapters (NAV Online Számla XML/JAXB, demo fixtures), health tracking
   - `hu.riskguard.notification` — Watchlist monitoring, Resend email alerts
   - `hu.riskguard.identity` — Auth, RBAC, tenant isolation, tier management
 
@@ -235,11 +325,12 @@ curl https://start.spring.io/starter.tgz \
 - Configuration processor for IDE autocompletion on custom properties
 
 **Dependencies Added Manually (Not in Initializr):**
-- JSoup (HTML parsing for static government pages)
-- Playwright Java (browser-based scraping with sidecar Chrome)
+- JAXB Runtime + Maven JAXB plugin (XSD code generation from NAV Online Számla schemas — 5 XSD files)
 - Tabula-java / Apache POI (PDF/Excel parsing for EPR fee tables)
 - Spring AI BOM (OpenAI o3/GPT-5 integration)
 - Resend Java SDK (email delivery)
+- Bouncy Castle (SHA3-512 for NAV request signing — JDK may not include SHA3 provider)
+- WireMock (test dependency — NAV Online Számla API simulator for integration tests)
 
 **Note:** Project initialization using this command should be the first implementation story.
 
@@ -358,7 +449,7 @@ frontend/
 **Table Ownership Per Module:**
 - `screening`: `company_snapshots`, `verdicts`, `search_audit_log`
 - `epr`: `epr_configs`, `epr_calculations`, `epr_exports`
-- `scraping`: `scraper_health`, `canary_companies`, `dom_fingerprints`
+- `datasource`: `adapter_health`, `canary_companies`, `nav_credentials`
 - `notification`: `watchlist_entries`, `notification_outbox`
 - `identity`: `users`, `tenants`, `tenant_mandates`, `guest_sessions`
 
@@ -392,7 +483,7 @@ CI verifies: no `type: object` without properties, no `Record<string, unknown>`,
 
 | Scenario | Pattern | Example |
 |---|---|---|
-| Need data from another module (request/response) | **Facade call** via `@Service` | `scrapingService.fetchCompanyData(taxNumber)` |
+| Need data from another module (request/response) | **Facade call** via `@Service` | `dataSourceService.fetchCompanyData(taxNumber)` |
 | Broadcast that something happened (fire-and-forget) | **Application Event** | `PartnerStatusChanged` event |
 | Need another module to act, don't need to wait | **Application Event** | `EprExportGenerated` event |
 
@@ -469,7 +560,7 @@ CI verifies: no `type: object` without properties, no `Record<string, unknown>`,
 **Backend:**
 - Global `@ControllerAdvice` maps exceptions to RFC 7807 responses.
 - Error type format: `urn:riskguard:error:{error-key}`.
-- Exception hierarchy: `RiskGuardException` (base) → `NotFoundException`, `ValidationException`, `ScrapingException`, `TenantAccessDeniedException`.
+- Exception hierarchy: `RiskGuardException` (base) → `NotFoundException`, `ValidationException`, `DataSourceException`, `TenantAccessDeniedException`.
 
 **Frontend:**
 - Unified `useApiError` composable handles error responses.
@@ -483,9 +574,9 @@ CI verifies: no `type: object` without properties, no `Record<string, unknown>`,
 - No global loading state — each data fetch has its own `pending`.
 
 **Retry & Resilience:**
-- Backend: Resilience4j circuit breakers and retries (configured per scraper adapter).
+- Backend: Resilience4j circuit breakers and retries (configured per data source adapter).
 - Frontend: `ofetch` (via Nuxt `$fetch`) retry configuration for network errors.
-- Scraper health: Resilience4j Actuator endpoints (`/actuator/circuitbreakers`) polled by admin dashboard.
+- Data source health: Resilience4j Actuator endpoints (`/actuator/circuitbreakers`) polled by admin dashboard.
 
 ### Automated Fail-Safes & CI Pipeline
 
@@ -606,7 +697,7 @@ risk-guard/                                    # Monorepo root
 │       │   │   │   │   ├── RiskGuardException.java    # Base exception
 │       │   │   │   │   ├── NotFoundException.java
 │       │   │   │   │   ├── ValidationException.java
-│       │   │   │   │   ├── ScrapingException.java
+│       │   │   │   │   ├── DataSourceException.java
 │       │   │   │   │   ├── TenantAccessDeniedException.java
 │       │   │   │   │   └── GlobalExceptionHandler.java # @ControllerAdvice → RFC 7807
 │       │   │   │   └── util/
@@ -623,7 +714,7 @@ risk-guard/                                    # Monorepo root
 │       │   │   │   ├── domain/
 │       │   │   │   │   ├── ScreeningService.java              # Module FACADE @Service
 │       │   │   │   │   ├── VerdictEngine.java                 # State machine (pure function)
-│       │   │   │   │   ├── CompanyDataAggregator.java         # Orchestrates parallel scraping via Virtual Threads
+│       │   │   │   │   ├── CompanyDataAggregator.java         # Orchestrates parallel data source fetching via Virtual Threads
 │       │   │   │   │   └── events/
 │       │   │   │   │       ├── PartnerStatusChanged.java
 │       │   │   │   │       └── PartnerSearchCompleted.java
@@ -647,30 +738,34 @@ risk-guard/                                    # Monorepo root
 │       │   │   │   └── internal/
 │       │   │   │       └── EprRepository.java                 # jOOQ (tables: epr_configs, epr_calculations, epr_exports)
 │       │   │   │
-│       │   │   ├── scraping/                  # MODULE: Scraper Engine (FR1-FR2, FR11)
+│       │   │   ├── datasource/                # MODULE: Data Source Engine (FR1-FR2, FR11)
 │       │   │   │   ├── api/
-│       │   │   │   │   ├── ScrapingAdminController.java       # Admin health dashboard API
+│       │   │   │   │   ├── DataSourceAdminController.java     # Admin health dashboard API
 │       │   │   │   │   └── dto/
 │       │   │   │   │       ├── AdapterHealthResponse.java
-│       │   │   │   │       └── CanaryStatusResponse.java
+│       │   │   │   │       ├── CanaryStatusResponse.java
+│       │   │   │   │       └── NavCredentialRequest.java      # NAV Online Számla credential entry
 │       │   │   │   ├── domain/
-│       │   │   │   │   ├── ScrapingService.java               # Module FACADE @Service
+│       │   │   │   │   ├── DataSourceService.java             # Module FACADE @Service
 │       │   │   │   │   ├── CompanyDataPort.java               # PORT INTERFACE
-│       │   │   │   │   ├── CanaryValidator.java               # Canary company verification
+│       │   │   │   │   ├── CanaryValidator.java               # Canary tax number verification
 │       │   │   │   │   └── events/
 │       │   │   │   │       ├── AdapterHealthChanged.java
 │       │   │   │   │       └── CanaryValidationFailed.java
 │       │   │   │   └── internal/
 │       │   │   │       ├── adapters/
-│       │   │   │       │   ├── NavDebtAdapter.java            # JSoup — NAV debt list
-│       │   │   │       │   ├── ECegjegyzekAdapter.java        # JSoup — company registry
-│       │   │   │       │   ├── CegkozlonyAdapter.java         # JSoup — insolvency gazette
-│       │   │   │       │   └── PlaywrightAdapterClient.java   # Client — sends ScrapeRequest to worker
-│       │   │   │       ├── ScrapingRepository.java            # jOOQ (tables: scraper_health, canary_companies, dom_fingerprints)
-│       │   │   │       └── repair-guides/
-│       │   │   │           ├── nav-repair-guide.md
-│       │   │   │           ├── ecegjegyzek-repair-guide.md
-│       │   │   │           └── cegkozlony-repair-guide.md
+│       │   │   │       │   ├── demo/
+│       │   │   │       │   │   └── DemoCompanyDataAdapter.java    # In-memory fixtures — realistic Hungarian company data
+│       │   │   │       │   └── nav/
+│       │   │   │       │       ├── NavOnlineSzamlaClient.java     # Spring @Service — XML/HTTPS client for NAV API v3
+│       │   │   │       │       ├── NavOnlineSzamlaAdapter.java    # CompanyDataPort impl — QueryTaxpayer for screening
+│       │   │   │       │       ├── NavInvoiceAdapter.java         # Invoice queries for EPR (QueryInvoiceDigest/Data)
+│       │   │   │       │       ├── AuthService.java               # Credential management, SHA-512 password hash
+│       │   │   │       │       ├── SignatureService.java          # SHA3-512 request signature computation
+│       │   │   │       │       └── XmlMarshaller.java             # JAXB marshal/unmarshal from NAV XSD schemas
+│       │   │   │       ├── DataSourceRepository.java          # jOOQ (tables: adapter_health, canary_companies, nav_credentials)
+│       │   │   │       └── generated/                         # JAXB-generated classes from NAV XSD (build-time, not edited)
+│       │   │   │           └── hu.riskguard.datasource.internal.generated.nav/
 │       │   │   │
 │       │   │   ├── notification/              # MODULE: Alerts & Watchlist (FR5-FR7)
 │       │   │   │   ├── api/
@@ -717,7 +812,7 @@ risk-guard/                                    # Monorepo root
 │       │       └── db/migration/                              # Flyway migrations (timestamp-based)
 │       │           ├── V20260304_001__create_identity_tables.sql
 │       │           ├── V20260304_002__create_screening_tables.sql
-│       │           ├── V20260304_003__create_scraping_tables.sql
+│       │           ├── V20260304_003__create_datasource_tables.sql
 │       │           ├── V20260304_004__create_notification_tables.sql
 │       │           ├── V20260304_005__create_epr_tables.sql
 │       │           └── V20260304_006__seed_canary_companies.sql
@@ -739,8 +834,11 @@ risk-guard/                                    # Monorepo root
 │               │   ├── DagEngineTest.java
 │               │   ├── MohuExporterTest.java                  # Schema validation + round-trip
 │               │   └── FeeCalculatorTest.java                 # EPR golden test cases
-│               ├── scraping/
-│               │   ├── NavDebtAdapterTest.java
+│               ├── datasource/
+│               │   ├── NavOnlineSzamlaClientTest.java         # XML marshalling, request signing
+│               │   ├── NavOnlineSzamlaAdapterTest.java        # QueryTaxpayer integration (WireMock)
+│               │   ├── DemoCompanyDataAdapterTest.java         # Demo fixture completeness
+│               │   ├── SignatureServiceTest.java               # SHA-512/SHA3-512 computation
 │               │   ├── CanaryValidatorTest.java
 │               │   └── CompanyDataAggregatorTest.java
 │               ├── notification/
@@ -752,14 +850,6 @@ risk-guard/                                    # Monorepo root
 │               └── fixtures/
 │                   ├── CanaryCompanyFixtures.java             # Shared canary test data
 │                   └── TenantFixtures.java                    # Multi-tenant test helpers
-│
-├── worker/                                    # Playwright scraper worker (Cloud Run Jobs)
-│   ├── Dockerfile                             # JVM + Chrome sidecar
-│   ├── build.gradle.kts
-│   └── src/main/java/hu/riskguard/worker/
-│       ├── WorkerApplication.java
-│       ├── PlaywrightScraperJob.java
-│       └── ScrapeRequest.java
 │
 ├── frontend/                                  # Nuxt 3 application
 │   ├── package.json
@@ -809,8 +899,10 @@ risk-guard/                                    # Monorepo root
 │   │   │   ├── TierBadge.vue                  # ALAP/PRO/PRO_EPR indicator
 │   │   │   └── TierBadge.spec.ts
 │   │   └── Admin/
-│   │       ├── ScraperHealthDashboard.vue      # Adapter status + charts
-│   │       ├── ScraperHealthDashboard.spec.ts
+│   │       ├── DataSourceHealthDashboard.vue   # Adapter status + charts (NAV API health, demo mode indicator)
+│   │       ├── DataSourceHealthDashboard.spec.ts
+│   │       ├── NavCredentialManager.vue        # NAV Online Számla credential entry/rotation
+│   │       ├── NavCredentialManager.spec.ts
 │   │       ├── EprConfigManager.vue            # EPR JSON config editor
 │   │       └── EprConfigManager.spec.ts
 │   │
@@ -866,7 +958,7 @@ risk-guard/                                    # Monorepo root
 │   │   ├── watchlist/
 │   │   │   └── index.vue                      # Watchlist management
 │   │   ├── admin/
-│   │   │   ├── scrapers.vue                   # Scraper health dashboard
+│   │   │   ├── datasources.vue                # Data source health dashboard + NAV credential management
 │   │   │   └── epr-config.vue                 # EPR config management
 │   │   └── company/
 │   │       └── [taxNumber].vue                # PUBLIC: SEO gateway stub (SSR/ISR)
@@ -911,7 +1003,8 @@ risk-guard/                                    # Monorepo root
 │
 ├── docs/                                      # Operational documentation
 │   ├── runbooks/
-│   │   ├── scraper-repair.md                  # How to fix a broken scraper adapter
+│   │   ├── nav-credential-rotation.md         # How to rotate NAV Online Számla technical user credentials
+│   │   ├── nav-schema-update.md               # How to regenerate JAXB classes after NAV XSD update
 │   │   ├── epr-config-update.md               # How to update EPR fee tables
 │   │   ├── deployment.md                      # GCP Cloud Run deployment procedure
 │   │   └── incident-response.md               # What to do when alerts fire
@@ -953,16 +1046,16 @@ risk-guard/                                    # Monorepo root
 | FR | Module | Backend Key Files | Frontend Key Files |
 |---|---|---|---|
 | FR1: Tax Number Search | `screening` | `ScreeningController`, `PartnerSearchRequest` | `SearchBar.vue`, `pages/dashboard/` |
-| FR2: NAV/e-Cégjegyzék Retrieval | `scraping` | `NavDebtAdapter`, `ECegjegyzekAdapter` | (backend only) |
+| FR2: NAV Data Retrieval | `datasource` | `NavOnlineSzamlaAdapter` (QueryTaxpayer), `DemoCompanyDataAdapter` | (backend only) |
 | FR3: State-Machine Verdict | `screening` | `VerdictEngine`, `VerdictResponse` | `VerdictCard.vue` |
 | FR4: Suspended Tax Detection | `screening` | `VerdictEngine` (TAX_SUSPENDED state) | `VerdictCard.vue` (badge) |
 | FR5: Watchlist CRUD | `notification` | `WatchlistController`, DTOs | `WatchlistTable.vue`, `pages/watchlist/` |
 | FR6: 24h Status Checks | `notification` | `WatchlistMonitor` (@Scheduled) | (results in WatchlistTable) |
 | FR7: Email Alerts | `notification` | `OutboxProcessor`, `ResendEmailSender` | `AlertHistoryList.vue` |
 | FR8: EPR Questionnaire | `epr` | `EprController`, `DagEngine` | `WizardStepper.vue`, `MaterialSelector.vue` |
-| FR9: Fee Calculation | `epr` | `FeeCalculator` | `WizardStepper.vue` (results step) |
+| FR9: Fee Calculation | `epr` | `FeeCalculator`, `NavInvoiceAdapter` (QueryInvoiceDigest/Data) | `WizardStepper.vue` (results step) |
 | FR10: MOHU Export | `epr` | `MohuExporter`, `EprExportResponse` | `ExportButton.vue`, `pages/epr/export/` |
-| FR11: Scraper Dashboard | `scraping` | `ScrapingAdminController` | `ScraperHealthDashboard.vue`, `pages/admin/scrapers.vue` |
+| FR11: Data Source Dashboard | `datasource` | `DataSourceAdminController` | `DataSourceHealthDashboard.vue`, `pages/admin/datasources.vue` |
 | FR12: EPR Config Admin | `epr` | `EprController` (config endpoints) | `EprConfigManager.vue`, `pages/admin/epr-config.vue` |
 
 ### Cross-Cutting Concerns Mapping
@@ -975,22 +1068,22 @@ risk-guard/                                    # Monorepo root
 | Rate Limiting | `core/config/SecurityConfig.java` (Bucket4j) | (transparent to frontend) |
 | i18n | `resources/messages_*.properties` (exports/emails) | `i18n/**/*.json` (all user-facing text) |
 | Health Banner | Resilience4j Actuator endpoints | `stores/health.ts` + `HealthBanner.vue` |
+| Data Source Mode | `application.yml` (`riskguard.data-source.mode`) | `stores/health.ts` (mode indicator) |
+| NAV Credentials | `datasource/internal/DataSourceRepository` (encrypted) | `NavCredentialManager.vue` |
 
 ### External Integration Points
 
 | Integration | Module | Backend File | Protocol |
 |---|---|---|---|
-| NAV Open Data | `scraping` | `NavDebtAdapter.java` | JSoup HTTP scraping |
-| e-Cégjegyzék | `scraping` | `ECegjegyzekAdapter.java` | JSoup HTTP scraping |
-| Cégközlöny | `scraping` | `CegkozlonyAdapter.java` | JSoup HTTP scraping |
-| Anti-bot Sites | `worker` | `PlaywrightScraperJob.java` | Playwright (Chrome sidecar) |
+| NAV Online Számla API v3 | `datasource` | `NavOnlineSzamlaClient.java` | XML/HTTPS (JAXB), SHA-512/SHA3-512 signed requests |
+| NAV M2M Adózó API (deferred) | `datasource` | `NavM2mAdapter.java` (future) | REST/JSON, bearer token + signature |
+| Demo Data Fixtures | `datasource` | `DemoCompanyDataAdapter.java` | In-memory (no network) |
 | MOHU Portal | `epr` | `MohuExporter.java` | CSV/XLSX file generation |
 | Google SSO | `identity` | `SecurityConfig.java` | OAuth2/OIDC |
 | Microsoft Entra ID | `identity` | `SecurityConfig.java` | OAuth2/OIDC |
 | Resend Email API | `notification` | `ResendEmailSender.java` | REST API |
 | OpenAI (Spring AI) | `screening` | `ScreeningService.java` | REST API (async enrichment) |
 | GCP Cloud Run | infrastructure | `Dockerfile`, `deploy.yml` | Container |
-| GCP Cloud Run Jobs | infrastructure | `worker/Dockerfile` | Container (batch) |
 
 ### Data Flow
 
@@ -1000,15 +1093,23 @@ User → Nuxt Frontend (SPA)
                                     → ScreeningService (facade)
                                         → CompanyDataAggregator
                                             → [Virtual Threads]
-                                                → NavDebtAdapter (JSoup)
-                                                → ECegjegyzekAdapter (JSoup)
-                                                → PlaywrightAdapterClient → Worker (Cloud Run Jobs)
+                                                → NavOnlineSzamlaAdapter (XML/JAXB — QueryTaxpayer)
+                                                → DemoCompanyDataAdapter (in-memory fixtures)
+                                                → [future: NavM2mAdapter (REST/JSON)]
+                                            → mode switch: demo|test|live selects active adapters
                                         → VerdictEngine (state machine)
                                         → ScreeningRepository (jOOQ → PostgreSQL)
                                     → publishes PartnerStatusChanged event
                                         → NotificationService listens
                                             → OutboxProcessor → Resend API
          ← VerdictResponse (JSON) ←
+
+EPR Invoice Flow (parallel path):
+         → EprService (facade)
+             → DataSourceService.queryInvoices(dateRange)
+                 → NavOnlineSzamlaClient (QueryInvoiceDigest → QueryInvoiceData)
+             → FeeCalculator (VTSZ codes → EPR category → fee)
+             → MohuExporter (CSV/XLSX)
 ```
 
 ### Development Workflow
@@ -1027,7 +1128,6 @@ Example: V20260315_001__add_risk_score_to_verdicts.sql
 **Build Process:**
 - Backend: `./gradlew build` → fat JAR → Docker image → Cloud Run
 - Frontend: `npm run build` → static output → Cloud Storage/CDN
-- Worker: `./gradlew :worker:build` → Docker image (JVM + Chrome) → Cloud Run Jobs
 
 ## Architecture Validation Results (Step 7)
 
@@ -1040,7 +1140,7 @@ All technology choices verified compatible. Spring Boot 4.0.3 + Spring Modulith 
 All patterns support architectural decisions. Naming chain is clean: DB (snake_case) → jOOQ codegen (camelCase) → DTO (camelCase) → JSON (camelCase). i18n boundary is crisp: frontend owns all user-facing text, backend owns export/email text. Error handling pipeline is end-to-end: RFC 7807 codes → `useApiError` → i18n Toast.
 
 **Structure Alignment:**
-Monorepo structure (`backend/` + `frontend/` + `worker/`) supports atomic PRs and shared `risk-guard-tokens.json`. Module-per-package with scoped jOOQ codegen enforces physical isolation matching logical isolation. Frontend composables organized by concern (`formatting/`, `api/`, `auth/`).
+Monorepo structure (`backend/` + `frontend/`) supports atomic PRs and shared `risk-guard-tokens.json`. Module-per-package with scoped jOOQ codegen enforces physical isolation matching logical isolation. Frontend composables organized by concern (`formatting/`, `api/`, `auth/`).
 
 ### Requirements Coverage Validation ✅
 
@@ -1049,7 +1149,7 @@ Monorepo structure (`backend/` + `frontend/` + `worker/`) supports atomic PRs an
 | FR | Status | Covered By |
 |---|---|---|
 | FR1: Tax number search | ✅ | `screening` module, `ScreeningController`, `SearchBar.vue` |
-| FR2: NAV/e-Cégjegyzék data retrieval | ✅ | `scraping` module, `CompanyDataPort` adapters, Virtual Thread parallel orchestration |
+| FR2: NAV Data Retrieval | ✅ | `datasource` module, `CompanyDataPort` adapters (NavOnlineSzamlaAdapter + DemoCompanyDataAdapter), Virtual Thread parallel orchestration |
 | FR3: State-machine verdicts | ✅ | `VerdictEngine` (pure function), 50+ golden snapshot regression tests |
 | FR4: Suspended tax detection | ✅ | `TAX_SUSPENDED` first-class state in VerdictEngine |
 | FR5: Watchlist CRUD | ✅ | `notification` module, `WatchlistController`, `WatchlistTable.vue` |
@@ -1058,14 +1158,14 @@ Monorepo structure (`backend/` + `frontend/` + `worker/`) supports atomic PRs an
 | FR8: EPR questionnaire | ✅ | `epr` module, `DagEngine`, `WizardStepper.vue` |
 | FR9: Fee calculation | ✅ | `FeeCalculator`, versioned JSON config, EPR golden test cases |
 | FR10: MOHU export | ✅ | `MohuExporter`, `@ExportLocale("hu")`, schema version gate |
-| FR11: Scraper dashboard | ✅ | Resilience4j Actuator endpoints, `ScraperHealthDashboard.vue` |
+| FR11: Data Source Dashboard | ✅ | Resilience4j Actuator endpoints, `DataSourceHealthDashboard.vue` |
 | FR12: EPR config admin | ✅ | Hot-swappable JSON config, `EprConfigManager.vue` |
 
 **Non-Functional Requirements Coverage:**
 
 | NFR | Status | How |
 |---|---|---|
-| NFR1: < 30s verdict latency | ✅ | Virtual Thread parallel scraping, Caffeine cache, 15-min idempotency guard |
+| NFR1: < 30s verdict latency | ✅ | Virtual Thread parallel data source fetching, Caffeine cache, 15-min idempotency guard |
 | NFR2: GraalVM < 200ms startup | ⏳ Deferred | JVM for MVP, native-image-ready design. Post-MVP optimization. |
 | NFR3: Min-Instances during business hours | ✅ | Cloud Run config in `deploy.yml` |
 | NFR4: SHA-256 cryptographic hashing | ✅ | `HashUtil.java`, audit trail in `search_audit_log` |
@@ -1082,7 +1182,7 @@ Monorepo structure (`backend/` + `frontend/` + `worker/`) supports atomic PRs an
 - Reference implementation (`screening` module) with review checklist ✅
 
 **Structure Completeness:**
-- ~120 files defined across backend/frontend/worker ✅
+- ~110 files defined across backend/frontend ✅
 - All files mapped to FRs via requirements-to-structure table ✅
 - External integration points specified with protocols ✅
 - Module boundaries enforced at code AND SQL level ✅
@@ -1130,17 +1230,17 @@ Monorepo structure (`backend/` + `frontend/` + `worker/`) supports atomic PRs an
 
 | Table | Key Columns | Relationships |
 |---|---|---|
-| `company_snapshots` | `id` (UUID, PK), `tenant_id` (FK → tenants, NOT NULL), `tax_number` (VARCHAR(11)), `snapshot_data` (JSONB), `source_urls` (JSONB), `dom_fingerprint_hash` (VARCHAR(64)), `checked_at` (TIMESTAMPTZ), `created_at` | belongs to `tenants` |
+| `company_snapshots` | `id` (UUID, PK), `tenant_id` (FK → tenants, NOT NULL), `tax_number` (VARCHAR(11)), `snapshot_data` (JSONB), `source_urls` (JSONB), `data_source_mode` (ENUM: DEMO/TEST/LIVE), `checked_at` (TIMESTAMPTZ), `created_at` | belongs to `tenants` |
 | `verdicts` | `id` (UUID, PK), `tenant_id` (FK → tenants, NOT NULL), `snapshot_id` (FK → company_snapshots), `tax_number`, `status` (ENUM: RELIABLE/AT_RISK/INCOMPLETE/TAX_SUSPENDED/UNAVAILABLE), `confidence` (ENUM: FRESH/STALE/UNAVAILABLE), `sha256_hash` (VARCHAR(64)), `disclaimer_text`, `ai_narrative` (TEXT, nullable), `created_at` | belongs to `company_snapshots` |
 | `search_audit_log` | `id` (UUID, PK), `tenant_id` (FK → tenants, NOT NULL), `user_id` (FK → users), `tax_number`, `verdict_id` (FK → verdicts), `source_urls` (JSONB), `sha256_hash` (VARCHAR(64)), `searched_at` (TIMESTAMPTZ) | GDPR audit trail |
 
-#### `scraping` Module Tables
+#### `datasource` Module Tables
 
 | Table | Key Columns | Relationships |
 |---|---|---|
-| `scraper_health` | `id` (UUID, PK), `adapter_name` (VARCHAR), `status` (ENUM: HEALTHY/DEGRADED/CIRCUIT_OPEN), `last_success_at` (TIMESTAMPTZ), `last_failure_at` (TIMESTAMPTZ), `failure_count` (INT), `mtbf_hours` (DECIMAL) | per-adapter health |
+| `adapter_health` | `id` (UUID, PK), `adapter_name` (VARCHAR), `status` (ENUM: HEALTHY/DEGRADED/CIRCUIT_OPEN), `last_success_at` (TIMESTAMPTZ), `last_failure_at` (TIMESTAMPTZ), `failure_count` (INT), `mtbf_hours` (DECIMAL) | per-adapter health |
 | `canary_companies` | `id` (UUID, PK), `tax_number`, `adapter_name`, `expected_data` (JSONB), `last_validated_at` (TIMESTAMPTZ), `validation_status` (ENUM: PASS/FAIL) | known-good reference |
-| `dom_fingerprints` | `id` (UUID, PK), `adapter_name`, `selector_paths_hash` (VARCHAR(64)), `baseline_hash` (VARCHAR(64)), `divergence_pct` (DECIMAL), `recorded_at` (TIMESTAMPTZ) | DOM change detection |
+| `nav_credentials` | `id` (UUID, PK), `tenant_id` (FK → tenants, NOT NULL), `login` (VARCHAR, AES-256 encrypted), `password_hash` (VARCHAR(128), SHA-512), `signing_key` (VARCHAR, AES-256 encrypted), `tax_number` (VARCHAR(11)), `environment` (ENUM: TEST/LIVE), `created_at`, `rotated_at` | NAV Online Számla technical user credentials |
 
 #### `notification` Module Tables
 
@@ -1185,7 +1285,7 @@ CREATE INDEX idx_guest_expires ON guest_sessions (expires_at);
 - [x] 5 ADRs documented with rationale and rejected alternatives
 - [x] Technology stack fully specified with verified versions
 - [x] Integration patterns defined (facade + events)
-- [x] Performance considerations addressed (Virtual Threads, Caffeine, parallel scraping)
+- [x] Performance considerations addressed (Virtual Threads, Caffeine, parallel data source fetching)
 
 **✅ Implementation Patterns**
 - [x] Naming conventions established (DB, API, JSON, Java, Vue, i18n keys)
@@ -1220,7 +1320,7 @@ CREATE INDEX idx_guest_expires ON guest_sessions (expires_at);
 - GraalVM native image compilation for scale-to-zero cost optimization
 - E2E testing with Playwright/Cypress
 - WebSocket/SSE for real-time health dashboard updates
-- LLM-assisted scraper repair triage
+- LLM-assisted NAV API response anomaly detection
 - Batch-first Accountant workflow (CSV upload → portfolio screening)
 - Mobile PWA with offline capability
 
@@ -1251,7 +1351,7 @@ curl https://start.spring.io/starter.tgz \
   -d dependencies=modulith,data-jpa,flyway,oauth2-client,oauth2-resource-server,actuator,web,validation,mail,docker-compose,devtools,configuration-processor,native \
   | tar -xzf -
 ```
-Then add manually: jOOQ, Resilience4j (`resilience4j-spring-boot3`), JSoup, Spring AI BOM, Resend SDK, Bucket4j, Caffeine.
+Then add manually: jOOQ, Resilience4j (`resilience4j-spring-boot3`), JAXB Runtime + Maven JAXB plugin, Bouncy Castle (SHA3-512), Spring AI BOM, Resend SDK, Bucket4j, Caffeine, WireMock (test).
 
 ## Architecture Completion Summary (Step 8)
 
@@ -1274,7 +1374,7 @@ Then add manually: jOOQ, Resilience4j (`resilience4j-spring-boot3`), JSoup, Spri
 **🏗️ Implementation Ready Foundation**
 - 11+ architectural decisions made (5 ADRs + 6 core decisions)
 - 14+ implementation patterns defined with automated enforcement
-- 3 deployable units specified (backend, frontend, worker)
+- 2 deployable units specified (backend, frontend)
 - 12 functional requirements fully supported
 - 15 database tables designed with relationships and indexes
 

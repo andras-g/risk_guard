@@ -1,6 +1,51 @@
 {
   "screening": {
+    "actions": {
+      "addToWatchlist": "Figyelőlistára",
+      "addToWatchlistTooltip": "Hamarosan elérhető – Figyelőlista (3. sztori)",
+      "backToDashboard": "Vissza a vezérlőpulthoz",
+      "copyHash": "Audit hash másolása vágólapra",
+      "exportPdf": "PDF exportálás",
+      "exportPdfTooltip": "Hamarosan elérhető – PDF export (5.1 sztori)"
+    },
+    "disclaimer": {
+      "text": "Ez a keresési eredmény kizárólag tájékoztató jellegű. Az adatok magyar kormányzati nyilvántartásokból származnak, és nem biztos, hogy valós idejű állapotot tükröznek."
+    },
+    "freshness": {
+      "fresh": "Friss",
+      "label": "Adatfrissesség:",
+      "stale": "Elavult",
+      "unavailable": "Nem elérhető"
+    },
+    "provenance": {
+      "checkedAt": "Utolsó ellenőrzés:",
+      "dataSourceDetails": "Adatforrások részletei",
+      "noSources": "Nincs elérhető adatforrás-információ",
+      "sourceAvailable": "Elérhető",
+      "sourceStale": "Elavult",
+      "sourceUnavailable": "Nem elérhető",
+      "sources": {
+        "cegkozlony": "Cégközlöny",
+        "demo": "Demo adatok",
+        "e-cegjegyzek": "e-Cégjegyzék",
+        "nav-debt": "NAV Tartozás",
+        "nav-online-szamla": "NAV Online Számla"
+      },
+      "title": "Adatforrások",
+      "viewSource": "Forrás megtekintése"
+    },
+    "riskSignals": {
+      "DATA_EXPIRED": "Az adatok lejártak",
+      "INSOLVENCY_PROCEEDINGS_ACTIVE": "Fizetésképtelenségi eljárás folyamatban",
+      "noSignals": "Nem észlelhetők kockázati jelek",
+      "noSignalsForCached": "Kockázati jelek nem elérhetők gyorsítótárazott eredményeknél",
+      "PUBLIC_DEBT_DETECTED": "Aktív köztartozás észlelve",
+      "SOURCE_UNAVAILABLE": "Forrás nem elérhető: {name}",
+      "TAX_NUMBER_SUSPENDED": "Adószám felfüggesztve",
+      "title": "Kockázati jelek"
+    },
     "search": {
+      "ariaLabel": "Partnerkockázat keresés adószám alapján",
       "invalidTaxNumber": "Érvénytelen magyar adószám. Adja meg a 8 vagy 11 jegyű adószámot.",
       "placeholder": "Adószám (8 vagy 11 jegyű)",
       "searching": "Keresés folyamatban...",
@@ -12,13 +57,29 @@
       "navDebt": "NAV tartozás"
     },
     "verdict": {
+      "announced": "Verdikt: {status}",
       "atRisk": "Kockázatos",
+      "atRiskEn": "At Risk",
+      "cached": "Gyorsítótárazott eredmény",
+      "companyLabel": "Cégnév",
       "confidence": "Megbízhatóság",
+      "fresh": "Friss",
+      "hashLabel": "Audit hash",
+      "hashUnavailable": "Audit hash nem elérhető",
       "incomplete": "Hiányos",
+      "incompleteEn": "Incomplete",
+      "manualReviewRequired": "Manuális ellenőrzés szükséges",
       "reliable": "Megbízható",
+      "reliableEn": "Reliable",
+      "stale": "Elavult",
+      "staleWarning": "Az adatok elavultak (>48 óra)",
       "status": "Állapot",
+      "taxNumber": "Adószám",
+      "searchFailed": "A keresés sikertelen. Kérjük, próbálja újra.",
       "taxSuspended": "Adószám felfüggesztve",
-      "unavailable": "Nem elérhető"
+      "taxSuspendedEn": "Tax Suspended",
+      "unavailable": "Nem elérhető",
+      "unavailableEn": "Unavailable"
     }
   }
 }

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 /**
  * Placeholder event for Story 2.3+ — published when a verdict status changes
- * (e.g., from INCOMPLETE to RELIABLE after scraper data arrives).
+ * (e.g., from INCOMPLETE to RELIABLE after fresh data source results arrive).
  *
  * <p>PII policy: No tax number or user data included.
  *

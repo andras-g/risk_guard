@@ -1,5 +1,6 @@
 <template>
   <nav
+    :aria-label="$t('common.a11y.breadcrumb')"
     data-testid="app-breadcrumb"
     class="flex items-center gap-2 text-sm"
   >
@@ -8,7 +9,11 @@
       to="/dashboard"
       class="text-slate-400 hover:text-white transition-colors"
     >
-      <i class="pi pi-home" />
+      <i
+        class="pi pi-home"
+        aria-hidden="true"
+      />
+      <span class="sr-only">{{ $t('common.a11y.home') }}</span>
     </NuxtLink>
 
     <template
@@ -16,7 +21,10 @@
       :key="index"
     >
       <!-- Separator -->
-      <i class="pi pi-chevron-right text-xs text-slate-600" />
+      <i
+        class="pi pi-chevron-right text-xs text-slate-600"
+        aria-hidden="true"
+      />
 
       <!-- Segment -->
       <NuxtLink

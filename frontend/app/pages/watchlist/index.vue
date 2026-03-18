@@ -8,7 +8,7 @@ const { t } = useI18n()
       {{ t('common.nav.watchlist') }}
     </h1>
     <p class="text-slate-500">
-      Coming soon — Story 3.6
+      {{ t('common.placeholder.comingSoon') }}
     </p>
   </div>
 </template>

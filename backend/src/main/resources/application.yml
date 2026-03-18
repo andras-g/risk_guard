@@ -113,3 +113,7 @@ risk-guard:
       connect-timeout-ms: 8000
       read-timeout-ms: 8000
       global-deadline-seconds: 20
+   async-ingestor:
+      cron: "${ASYNC_INGESTOR_CRON:0 0 2 * * ?}"    # 02:00 UTC daily (04:00 Budapest)
+      delay-between-requests-ms: ${ASYNC_INGESTOR_DELAY_MS:500}
+      # thread-pool-size removed — ingestor runs sequentially on scheduler thread (see RiskGuardProperties TODO)

@@ -19,6 +19,7 @@
 
     <!-- Navigation -->
     <nav
+      :aria-label="$t('common.a11y.sidebarNav')"
       class="flex-1 py-2 overflow-y-auto"
       data-testid="sidebar-nav"
     >
@@ -38,6 +39,7 @@
                 ? 'bg-slate-800 border-l-3 border-indigo-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             ]"
+            :aria-current="isActive(item.to) ? 'page' : undefined"
             :data-testid="`nav-item-${item.key}`"
           >
             <i :class="['pi', item.icon, 'text-base']" />
@@ -69,6 +71,7 @@
                 ? 'bg-slate-800 border-l-3 border-indigo-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
             ]"
+            :aria-current="isActive('/admin') ? 'page' : undefined"
             data-testid="nav-item-admin"
           >
             <i class="pi pi-cog text-base" />
@@ -84,6 +87,8 @@
     <!-- Collapse toggle -->
     <div class="border-t border-slate-800 p-2 shrink-0">
       <button
+        :aria-label="sidebarExpanded ? $t('common.sidebar.collapse') : $t('common.sidebar.expand')"
+        :aria-expanded="sidebarExpanded"
         class="flex items-center justify-center w-full h-10 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
         data-testid="sidebar-toggle"
         @click="layoutStore.toggleSidebar()"

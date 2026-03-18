@@ -1,0 +1,27 @@
+# application-e2e.yml — Spring profile for local Playwright E2E test runs
+#
+# Activated by: SPRING_PROFILES_ACTIVE=e2e (via start-local-e2e.sh)
+#
+# Differences from the default profile:
+#   - TestAuthController and TestSecurityConfig are activated (@Profile "e2e")
+#   - Flyway also runs the test seed migration (R__e2e_test_data.sql) so
+#     the canonical E2E user (e2e@riskguard.hu) exists in the local DB
+#   - Uses the real local Docker PostgreSQL — NOT Testcontainers
+#   - OAuth client IDs are set to dummy values (E2E tests bypass OAuth entirely)
+#
+# The local DB and JWT secret are inherited from the default application.yml
+# (DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, JWT_SECRET env vars).
+
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/test-seed
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:dummy-e2e}
+            client-secret: ${GOOGLE_CLIENT_SECRET:dummy-e2e}
+          microsoft:
+            client-id: ${MICROSOFT_CLIENT_ID:dummy-e2e}
+            client-secret: ${MICROSOFT_CLIENT_SECRET:dummy-e2e}

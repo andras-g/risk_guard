@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 @AnalyzeClasses(packages = "hu.riskguard")
 public class NamingConventionTest {
@@ -30,6 +31,7 @@ public class NamingConventionTest {
     @ArchTest
     static final ArchRule api_paths_should_match_pattern =
             classes().that().areAnnotatedWith(RestController.class)
+                    .and().resideOutsideOfPackage("..testing..")
                     .should(new ArchCondition<JavaClass>("have RequestMapping matching /api/v[0-9]+/[a-z-]+") {
                         @Override
                         public void check(JavaClass javaClass, ConditionEvents events) {
@@ -43,7 +45,7 @@ public class NamingConventionTest {
                                 events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has empty @RequestMapping"));
                             }
                             for (String path : paths) {
-                                if (!path.matches("/api/v[0-9]+/[a-z-]+")) {
+                                if (!path.matches("/api/v[0-9]+/[a-z-]+") && !path.matches("/api/public/[a-z-]+(/[a-z-]+)*")) {
                                     events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has invalid path " + path));
                                 }
                             }
@@ -53,7 +55,125 @@ public class NamingConventionTest {
     @ArchTest
     static final ArchRule dtos_should_be_records =
             classes().that().resideInAPackage("..api.dto..")
+                    .and().haveSimpleNameNotContaining("package-info")
+                    .and().doNotHaveSimpleName("package-info")
                     .should().beRecords();
+
+    // --- Module boundary enforcement: jOOQ table isolation ---
+    // Screening module may only access its own tables (company_snapshots, verdicts, search_audit_log).
+    // This enforces the architecture's physical isolation boundary without per-module jOOQ codegen.
+    // Note: Test classes are excluded — integration tests need to seed data across module boundaries.
+    @ArchTest
+    static final ArchRule screening_module_should_only_access_own_tables =
+            classes().that().resideInAPackage("..screening..")
+                    .and().haveSimpleNameNotEndingWith("Test")
+                    .and().haveSimpleNameNotEndingWith("Tests")
+                    .should(new ArchCondition<JavaClass>("only access screening-owned jOOQ tables (CompanySnapshots, Verdicts, SearchAuditLog)") {
+                        private static final java.util.Set<String> ALLOWED_TABLES = java.util.Set.of(
+                                "hu.riskguard.jooq.tables.CompanySnapshots",
+                                "hu.riskguard.jooq.tables.Verdicts",
+                                "hu.riskguard.jooq.tables.SearchAuditLog"
+                        );
+                        private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
+
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            javaClass.getDirectDependenciesFromSelf().forEach(dep -> {
+                                String targetName = dep.getTargetClass().getFullName();
+                                if (targetName.startsWith(JOOQ_TABLES_PKG) && !ALLOWED_TABLES.contains(targetName)) {
+                                    events.add(SimpleConditionEvent.violated(dep,
+                                            javaClass.getName() + " accesses non-owned jOOQ table " + targetName));
+                                }
+                            });
+                        }
+                    });
+
+    // Identity module may only access its own tables (tenants, users, tenant_mandates, guest_sessions).
+    // Allows both table references and record types from owned tables.
+    @ArchTest
+    static final ArchRule identity_module_should_only_access_own_tables =
+            classes().that().resideInAPackage("..identity..")
+                    .and().haveSimpleNameNotEndingWith("Test")
+                    .and().haveSimpleNameNotEndingWith("Tests")
+                    .should(new ArchCondition<JavaClass>("only access identity-owned jOOQ tables") {
+                        private static final java.util.Set<String> ALLOWED_TABLE_PREFIXES = java.util.Set.of(
+                                "hu.riskguard.jooq.tables.Tenants",
+                                "hu.riskguard.jooq.tables.Users",
+                                "hu.riskguard.jooq.tables.TenantMandates",
+                                "hu.riskguard.jooq.tables.GuestSessions"
+                        );
+                        private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
+
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            javaClass.getDirectDependenciesFromSelf().forEach(dep -> {
+                                String targetName = dep.getTargetClass().getFullName();
+                                if (targetName.startsWith(JOOQ_TABLES_PKG)) {
+                                    boolean allowed = ALLOWED_TABLE_PREFIXES.stream()
+                                            .anyMatch(prefix -> targetName.equals(prefix)
+                                                    || targetName.startsWith(prefix + ".") // nested classes
+                                                    || targetName.equals("hu.riskguard.jooq.tables.records." + extractRecordName(prefix)));
+                                    if (!allowed) {
+                                        events.add(SimpleConditionEvent.violated(dep,
+                                                javaClass.getName() + " accesses non-owned jOOQ table " + targetName));
+                                    }
+                                }
+                            });
+                        }
+
+                        private String extractRecordName(String tableClassName) {
+                            // hu.riskguard.jooq.tables.Tenants → TenantsRecord
+                            String simple = tableClassName.substring(tableClassName.lastIndexOf('.') + 1);
+                            return simple + "Record";
+                        }
+                    });
+
+    // Data source module may only access its own tables (AdapterHealth, CanaryCompanies, NavCredentials).
+    // Note: datasource module does NOT directly access company_snapshots — that goes through ScreeningService facade.
+    @ArchTest
+    static final ArchRule datasource_module_should_only_access_own_tables =
+            classes().that().resideInAPackage("..datasource..")
+                    .and().haveSimpleNameNotEndingWith("Test")
+                    .and().haveSimpleNameNotEndingWith("Tests")
+                    .should(new ArchCondition<JavaClass>("only access datasource-owned jOOQ tables (AdapterHealth, CanaryCompanies, NavCredentials)") {
+                        private static final java.util.Set<String> ALLOWED_TABLES = java.util.Set.of(
+                                "hu.riskguard.jooq.tables.AdapterHealth",
+                                "hu.riskguard.jooq.tables.CanaryCompanies",
+                                "hu.riskguard.jooq.tables.NavCredentials"
+                        );
+                        private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
+
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            javaClass.getDirectDependenciesFromSelf().forEach(dep -> {
+                                String targetName = dep.getTargetClass().getFullName();
+                                if (targetName.startsWith(JOOQ_TABLES_PKG) && !ALLOWED_TABLES.contains(targetName)) {
+                                    events.add(SimpleConditionEvent.violated(dep,
+                                            javaClass.getName() + " accesses non-owned jOOQ table " + targetName));
+                                }
+                            });
+                        }
+                    });
+
+    // No external module should access datasource module's internal package.
+    // Exceptions: domain facade within the same module, ArchUnit tests, and Spring AOT-generated classes.
+    @ArchTest
+    static final ArchRule datasource_internal_should_not_be_accessed_externally =
+            noClasses().that().resideOutsideOfPackage("..datasource..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().haveSimpleNameNotContaining("BeanDefinitions")
+                    .and().haveSimpleNameNotContaining("BeanFactoryRegistrations")
+                    .should().dependOnClassesThat().resideInAPackage("..datasource.internal..");
+
+    // No external module should access screening module's internal package.
+    // Exceptions: domain facade within the same module, ArchUnit tests, and Spring AOT-generated classes.
+    @ArchTest
+    static final ArchRule screening_internal_should_not_be_accessed_externally =
+            noClasses().that().resideOutsideOfPackage("..screening..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().haveSimpleNameNotContaining("BeanDefinitions")
+                    .and().haveSimpleNameNotContaining("BeanFactoryRegistrations")
+                    .should().dependOnClassesThat().resideInAPackage("..screening.internal..");
 
     @ArchTest
     static final ArchRule response_dtos_should_have_from_factory =

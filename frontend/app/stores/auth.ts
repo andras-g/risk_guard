@@ -7,6 +7,8 @@ interface AuthState {
   email: string | null
   name: string | null
   role: string | null
+  tier: 'ALAP' | 'PRO' | 'PRO_EPR' | null
+  preferredLanguage: string | null
   homeTenantId: string | null
   activeTenantId: string | null
   mandates: Array<{ id: string, name: string }>
@@ -23,6 +25,7 @@ interface DecodedToken {
   home_tenant_id: string
   active_tenant_id: string
   role: string
+  tier: string
   exp: number
 }
 
@@ -32,6 +35,8 @@ export const useAuthStore = defineStore('auth', {
     email: null,
     name: null,
     role: null,
+    tier: null,
+    preferredLanguage: null,
     homeTenantId: null,
     activeTenantId: null,
     mandates: [],
@@ -55,6 +60,7 @@ export const useAuthStore = defineStore('auth', {
         const decoded = jwtDecode<DecodedToken>(token)
         this.email = decoded.sub
         this.role = decoded.role
+        this.tier = (decoded.tier as AuthState['tier']) ?? null
         this.homeTenantId = decoded.home_tenant_id
         this.activeTenantId = decoded.active_tenant_id
       } catch (e) {
@@ -77,6 +83,8 @@ export const useAuthStore = defineStore('auth', {
         this.email = data.email
         this.name = data.name
         this.role = data.role
+        this.tier = data.tier ?? null
+        this.preferredLanguage = data.preferredLanguage ?? 'hu'
         this.homeTenantId = data.homeTenantId
         this.activeTenantId = data.activeTenantId
         
@@ -107,6 +115,8 @@ export const useAuthStore = defineStore('auth', {
       this.email = null
       this.name = null
       this.role = null
+      this.tier = null
+      this.preferredLanguage = null
       this.homeTenantId = null
       this.activeTenantId = null
       this.mandates = []
@@ -135,6 +145,24 @@ export const useAuthStore = defineStore('auth', {
       
       // Always fetch /me to get full profile and re-validate session via HttpOnly cookie
       await this.fetchMe()
+
+      // Sync UI locale from the user's stored preference (AC #3).
+      // Uses $i18n directly because Pinia actions don't have a composable context.
+      if (this.preferredLanguage) {
+        try {
+          const { $i18n } = useNuxtApp()
+          const i18n = $i18n as { locale: { value: string }, setLocale?: (l: string) => Promise<void> }
+          if (i18n.locale.value !== this.preferredLanguage) {
+            if (typeof i18n.setLocale === 'function') {
+              await i18n.setLocale(this.preferredLanguage)
+            } else {
+              i18n.locale.value = this.preferredLanguage
+            }
+          }
+        } catch {
+          // Best-effort — if i18n isn't ready yet, the cookie/default will apply.
+        }
+      }
     },
 
     async switchTenant(tenantId: string) {

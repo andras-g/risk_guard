@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { z } from 'zod'
 import { useScreeningStore } from '~/stores/screening'
+import { formatTaxNumber, taxNumberSchema } from '~/utils/taxNumber'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 
@@ -9,28 +9,6 @@ const screeningStore = useScreeningStore()
 
 const taxNumberInput = ref('')
 const validationError = ref('')
-
-/**
- * Zod schema for Hungarian tax number validation (AC1).
- * Accepts 8-digit (adószám) or 11-digit (adóazonosító jel) formats.
- * Validation runs on cleaned (digits-only) input.
- */
-const hungarianTaxNumberSchema = z.string().regex(
-  /^\d{8}(\d{3})?$/,
-  'screening.search.invalidTaxNumber'
-)
-
-/**
- * Auto-format the tax number with visual masking:
- * 8-digit: 1234-5678
- * 11-digit: 1234-5678-901
- */
-function formatTaxNumber(raw: string): string {
-  const digits = raw.replace(/[^\d]/g, '').slice(0, 11)
-  if (digits.length <= 4) return digits
-  if (digits.length <= 8) return `${digits.slice(0, 4)}-${digits.slice(4)}`
-  return `${digits.slice(0, 4)}-${digits.slice(4, 8)}-${digits.slice(8)}`
-}
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement
@@ -42,7 +20,7 @@ function onInput(event: Event) {
 
 function validate(): boolean {
   const cleaned = taxNumberInput.value.replace(/[^\d]/g, '')
-  const result = hungarianTaxNumberSchema.safeParse(cleaned)
+  const result = taxNumberSchema.safeParse(cleaned)
   if (!result.success) {
     validationError.value = t('screening.search.invalidTaxNumber')
     return false
@@ -60,22 +38,36 @@ async function onSubmit() {
 
 <template>
   <form
+    role="search"
+    :aria-label="t('screening.search.ariaLabel')"
     class="flex flex-col gap-3 w-full max-w-lg"
     @submit.prevent="onSubmit"
   >
     <div class="flex gap-2">
       <div class="flex-1">
+        <label
+          for="screening-tax-number"
+          class="sr-only"
+        >
+          {{ t('screening.search.placeholder') }}
+        </label>
         <InputText
+          id="screening-tax-number"
           :model-value="taxNumberInput"
           :placeholder="t('screening.search.placeholder')"
           class="w-full"
           :class="{ 'p-invalid': validationError }"
           :disabled="screeningStore.isSearching"
+          :aria-describedby="validationError ? 'screening-tax-error' : undefined"
+          :aria-invalid="!!validationError"
           @input="onInput"
         />
         <small
           v-if="validationError"
+          id="screening-tax-error"
           class="text-at-risk mt-1 block"
+          role="alert"
+          data-testid="validation-error"
         >
           {{ validationError }}
         </small>

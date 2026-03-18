@@ -15,6 +15,7 @@
 
     <!-- Navigation -->
     <nav
+      :aria-label="$t('common.a11y.mobileNav')"
       class="flex flex-col gap-1"
       data-testid="drawer-nav"
     >
@@ -28,6 +29,7 @@
             ? 'bg-slate-100 text-authority'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
         ]"
+        :aria-current="isActive(item.to) ? 'page' : undefined"
         :data-testid="`drawer-nav-${item.key}`"
         @click="handleNavigation(item.to)"
       >
@@ -46,6 +48,7 @@
             ? 'bg-slate-100 text-authority'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
         ]"
+        :aria-current="isActive('/admin') ? 'page' : undefined"
         data-testid="drawer-nav-admin"
         @click="handleNavigation('/admin')"
       >
@@ -53,6 +56,14 @@
         <span>{{ $t('common.nav.admin') }}</span>
       </NuxtLink>
     </nav>
+
+    <!-- Locale switcher -->
+    <div
+      class="mt-4 px-3"
+      data-testid="drawer-locale-switcher"
+    >
+      <CommonLocaleSwitcher />
+    </div>
 
     <!-- User info at bottom -->
     <template #footer>

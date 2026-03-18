@@ -7,6 +7,8 @@
     <div class="flex items-center gap-3">
       <!-- Mobile hamburger -->
       <button
+        :aria-label="$t('common.a11y.openMenu')"
+        :aria-expanded="mobileDrawerOpen"
         class="md:hidden flex items-center justify-center w-10 h-10 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/50 transition-colors"
         data-testid="hamburger-button"
         @click="layoutStore.openMobileDrawer()"
@@ -38,6 +40,9 @@
         class="h-6 w-px bg-slate-700"
       />
 
+      <!-- Locale switcher -->
+      <CommonLocaleSwitcher />
+
       <!-- User menu -->
       <CommonAppUserMenu />
     </div>
@@ -54,6 +59,7 @@ const route = useRoute()
 const layoutStore = useLayoutStore()
 const authStore = useAuthStore()
 
+const { mobileDrawerOpen } = storeToRefs(layoutStore)
 const { isAccountant } = storeToRefs(authStore)
 
 const currentPageTitle = computed(() => {

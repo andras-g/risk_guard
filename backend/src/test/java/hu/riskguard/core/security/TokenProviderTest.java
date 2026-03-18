@@ -31,16 +31,17 @@ class TokenProviderTest {
     }
 
     @Test
-    void shouldIncludeRoleClaimInToken() {
+    void shouldIncludeRoleAndTierClaimsInToken() {
         // Given
         String email = "user@test.com";
         UUID homeTenantId = UUID.randomUUID();
         UUID activeTenantId = UUID.randomUUID();
         String role = "SME_ADMIN";
+        String tier = "PRO";
 
         // When
         UUID userId = UUID.randomUUID();
-        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role);
+        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role, tier);
 
         // Then — verify using the same cached key exposed by getSigningKey()
         Claims claims = Jwts.parser().verifyWith(tokenProvider.getSigningKey()).build()
@@ -51,6 +52,7 @@ class TokenProviderTest {
         assertThat(claims.get("home_tenant_id", String.class)).isEqualTo(homeTenantId.toString());
         assertThat(claims.get("active_tenant_id", String.class)).isEqualTo(activeTenantId.toString());
         assertThat(claims.get("role", String.class)).isEqualTo(role);
+        assertThat(claims.get("tier", String.class)).isEqualTo(tier);
         assertThat(claims.getIssuedAt()).isNotNull();
         assertThat(claims.getExpiration()).isNotNull();
     }
@@ -65,7 +67,7 @@ class TokenProviderTest {
 
         // When
         UUID userId = UUID.randomUUID();
-        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role);
+        String token = tokenProvider.createToken(email, userId, homeTenantId, activeTenantId, role, "ALAP");
 
         // Then
         Claims claims = Jwts.parser().verifyWith(tokenProvider.getSigningKey()).build()

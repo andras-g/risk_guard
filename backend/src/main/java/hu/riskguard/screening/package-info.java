@@ -2,7 +2,7 @@
  * Screening module — partner risk screening (search, snapshots, verdicts, audit trail).
  *
  * <p>This is the reference implementation module. All future modules
- * (epr, scraping, notification) must follow the patterns established here:
+ * (epr, datasource, notification) must follow the patterns established here:
  * <ul>
  *   <li>{@code api/} — REST controllers and DTOs (public API surface)</li>
  *   <li>{@code domain/} — service facade and application events (public domain surface)</li>

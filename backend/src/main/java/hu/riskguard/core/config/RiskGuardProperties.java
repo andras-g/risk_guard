@@ -26,7 +26,9 @@ public class RiskGuardProperties {
     private Guest guest = new Guest();
     private Identity identity = new Identity();
     private RateLimits rateLimits = new RateLimits();
+    private DataSource dataSource = new DataSource();
     private Security security = new Security();
+    private AsyncIngestor asyncIngestor = new AsyncIngestor();
 
     @PostConstruct
     public void init() {
@@ -95,10 +97,33 @@ public class RiskGuardProperties {
     }
 
     @Data
+    public static class DataSource {
+        private String mode = "demo";
+        private int connectTimeoutMs = 8000;
+        private int readTimeoutMs = 8000;
+        private int globalDeadlineSeconds = 20;
+    }
+
+    @Data
     public static class Security {
         private String jwtSecret = "default_secret_must_be_overridden_in_production_32_chars_min";
         private long jwtExpirationMs = 3600000; // 1 hour
         private String frontendBaseUrl = "http://localhost:3000";
         private boolean cookieSecure = false; // Set to true behind TLS-terminating reverse proxy
+    }
+
+    /**
+     * Configuration for the background async ingestor that refreshes partner data daily.
+     * Currently runs sequentially on the Spring scheduler thread with inter-request delay.
+     */
+    @Data
+    public static class AsyncIngestor {
+        /** Spring cron expression — 6-field format: sec min hour day month dow. Default: 02:00 UTC daily. */
+        private String cron = "0 0 2 * * ?";
+        /** Delay in milliseconds between successive data source calls (rate limiting). */
+        private long delayBetweenRequestsMs = 500;
+        // TODO: threadPoolSize is reserved for future parallel execution via a dedicated
+        //  ThreadPoolTaskExecutor bean. Currently unused — the ingestor runs sequentially
+        //  on Spring's scheduler thread. Do not create a pool bean until workload demands it.
     }
 }

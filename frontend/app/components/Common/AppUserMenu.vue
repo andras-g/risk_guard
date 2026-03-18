@@ -19,6 +19,9 @@
     </div>
 
     <button
+      :aria-label="$t('common.a11y.userMenu')"
+      aria-haspopup="true"
+      :aria-expanded="menuOpen"
       class="flex items-center justify-center"
       data-testid="user-avatar-button"
       @click="toggleMenu"
@@ -36,6 +39,7 @@
       :model="menuItems"
       :popup="true"
       data-testid="user-dropdown-menu"
+      @hide="menuOpen = false"
     />
   </div>
 </template>
@@ -48,6 +52,7 @@ const authStore = useAuthStore()
 const { name: userName, role: userRole } = storeToRefs(authStore)
 
 const menuRef = ref()
+const menuOpen = ref(false)
 
 const userInitials = computed(() => {
   const n = userName.value
@@ -70,5 +75,6 @@ const menuItems = computed(() => [
 
 function toggleMenu(event: Event) {
   menuRef.value?.toggle(event)
+  menuOpen.value = !menuOpen.value
 }
 </script>

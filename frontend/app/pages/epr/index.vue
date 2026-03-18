@@ -8,7 +8,7 @@ const { t } = useI18n()
       {{ t('common.nav.epr') }}
     </h1>
     <p class="text-slate-500">
-      Coming soon — Epic 4
+      {{ t('common.placeholder.comingSoon') }}
     </p>
   </div>
 </template>

@@ -1,6 +1,51 @@
 {
   "screening": {
+    "actions": {
+      "addToWatchlist": "Add to Watchlist",
+      "addToWatchlistTooltip": "Coming in a future release – Watchlist (Story 3)",
+      "backToDashboard": "Back to Dashboard",
+      "copyHash": "Copy audit hash to clipboard",
+      "exportPdf": "Export PDF",
+      "exportPdfTooltip": "Coming in a future release – PDF Export (Story 5.1)"
+    },
+    "disclaimer": {
+      "text": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
+    },
+    "freshness": {
+      "fresh": "Fresh",
+      "label": "Data Freshness:",
+      "stale": "Stale",
+      "unavailable": "Unavailable"
+    },
+    "provenance": {
+      "checkedAt": "Last Checked:",
+      "dataSourceDetails": "Data source details",
+      "noSources": "No data source information available",
+      "sourceAvailable": "Available",
+      "sourceStale": "Stale",
+      "sourceUnavailable": "Unavailable",
+      "sources": {
+        "cegkozlony": "Company Gazette",
+        "demo": "Demo data",
+        "e-cegjegyzek": "Company Registry",
+        "nav-debt": "NAV Debt",
+        "nav-online-szamla": "NAV Online Invoice"
+      },
+      "title": "Data Sources",
+      "viewSource": "View source"
+    },
+    "riskSignals": {
+      "DATA_EXPIRED": "Data expired",
+      "INSOLVENCY_PROCEEDINGS_ACTIVE": "Insolvency proceedings active",
+      "noSignals": "No risk signals detected",
+      "noSignalsForCached": "Risk signal details not available for cached results",
+      "PUBLIC_DEBT_DETECTED": "Active public debt detected",
+      "SOURCE_UNAVAILABLE": "Source unavailable: {name}",
+      "TAX_NUMBER_SUSPENDED": "Tax number suspended",
+      "title": "Risk Signals"
+    },
     "search": {
+      "ariaLabel": "Partner risk search by tax number",
       "invalidTaxNumber": "Invalid Hungarian tax number. Enter an 8 or 11 digit tax number.",
       "placeholder": "Tax number (8 or 11 digits)",
       "searching": "Searching...",
@@ -12,13 +57,29 @@
       "navDebt": "NAV Debt"
     },
     "verdict": {
+      "announced": "Verdict: {status}",
       "atRisk": "At Risk",
+      "atRiskEn": "At Risk",
+      "cached": "Cached result",
+      "companyLabel": "Company Name",
       "confidence": "Confidence",
+      "fresh": "Fresh",
+      "hashLabel": "Audit hash",
+      "hashUnavailable": "Audit hash unavailable",
       "incomplete": "Incomplete",
+      "incompleteEn": "Incomplete",
+      "manualReviewRequired": "Manual Review Required",
       "reliable": "Reliable",
+      "reliableEn": "Reliable",
+      "stale": "Stale",
+      "staleWarning": "Data is stale (>48 hours)",
       "status": "Status",
+      "taxNumber": "Tax Number",
+      "searchFailed": "Search failed. Please try again.",
       "taxSuspended": "Tax Suspended",
-      "unavailable": "Unavailable"
+      "taxSuspendedEn": "Tax Suspended",
+      "unavailable": "Unavailable",
+      "unavailableEn": "Unavailable"
     }
   }
 }

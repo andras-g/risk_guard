@@ -1,0 +1,43 @@
+{
+  "landing": {
+    "hero": {
+      "headline": "Partner risk screening in seconds",
+      "tagline": "Verify the credibility of your business partners using real-time Hungarian government data — no registration required.",
+      "searchPlaceholder": "Tax number (e.g. 1234-5678)",
+      "searchAriaLabel": "Partner risk search by tax number",
+      "cta": "Start screening"
+    },
+    "search": {
+      "invalidTaxNumber": "Invalid Hungarian tax number. Enter an 8 or 11-digit tax number.",
+      "serviceUnavailable": "Service temporarily unavailable. Please try again later."
+    },
+    "features": {
+      "verdicts": {
+        "title": "Deterministic verdicts",
+        "description": "Clear risk classification for every partner — no subjective assessment, just facts."
+      },
+      "speed": {
+        "title": "Results in under 30 seconds",
+        "description": "Government data retrieval and analysis completed in seconds."
+      },
+      "evidence": {
+        "title": "Court-ready evidence",
+        "description": "SHA-256 authenticated audit log for every search — legally admissible documentation."
+      }
+    },
+    "socialProof": {
+      "trustedBy": "Trusted by accountants and SMEs",
+      "partnerCount": "100+ verified partners",
+      "badge": {
+        "secure": "Secure",
+        "realtime": "Real-time",
+        "compliant": "Compliant"
+      }
+    },
+    "disclaimer": "RiskGuard provides informational services only. Data is sourced from Hungarian government registries.",
+    "seo": {
+      "title": "RiskGuard — Partner Risk Screening",
+      "description": "Verify the credibility of your business partners using real-time Hungarian government data. Instant screening without registration."
+    }
+  }
+}

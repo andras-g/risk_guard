@@ -121,19 +121,56 @@ describe('AppTopBar — mobile page title', () => {
 })
 
 describe('AppTopBar — component mount smoke test', () => {
-  it('renders without error and contains expected testid elements', () => {
-    const wrapper = mount(AppTopBar, {
+  function mountTopBar() {
+    return mount(AppTopBar, {
       global: {
         stubs: {
           CommonAppBreadcrumb: { template: '<div data-testid="app-breadcrumb" />' },
           CommonAppUserMenu: { template: '<div data-testid="app-user-menu" />' },
+          CommonLocaleSwitcher: { template: '<div data-testid="locale-switcher" />' },
           IdentityTenantSwitcher: { template: '<div data-testid="tenant-switcher" />' }
         }
       }
     })
+  }
+
+  it('renders without error and contains expected testid elements', () => {
+    const wrapper = mountTopBar()
     expect(wrapper.find('[data-testid="app-topbar"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="hamburger-button"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="app-breadcrumb"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="app-user-menu"]').exists()).toBe(true)
+  })
+
+  it('renders the LocaleSwitcher component', () => {
+    const wrapper = mountTopBar()
+    expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(true)
+  })
+})
+
+describe('AppTopBar — accessibility (Story 3.0c)', () => {
+  function mountTopBar() {
+    return mount(AppTopBar, {
+      global: {
+        stubs: {
+          CommonAppBreadcrumb: { template: '<div data-testid="app-breadcrumb" />' },
+          CommonAppUserMenu: { template: '<div data-testid="app-user-menu" />' },
+          CommonLocaleSwitcher: { template: '<div data-testid="locale-switcher" />' },
+          IdentityTenantSwitcher: { template: '<div data-testid="tenant-switcher" />' }
+        }
+      }
+    })
+  }
+
+  it('hamburger button has aria-label', () => {
+    const wrapper = mountTopBar()
+    const hamburger = wrapper.find('[data-testid="hamburger-button"]')
+    expect(hamburger.attributes('aria-label')).toBe('common.a11y.openMenu')
+  })
+
+  it('hamburger button has aria-expanded tracking drawer state', () => {
+    const wrapper = mountTopBar()
+    const hamburger = wrapper.find('[data-testid="hamburger-button"]')
+    expect(hamburger.attributes('aria-expanded')).toBeDefined()
   })
 })

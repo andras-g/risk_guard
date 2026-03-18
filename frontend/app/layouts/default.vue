@@ -1,5 +1,7 @@
 <template>
   <div class="min-h-screen bg-slate-50 text-slate-900">
+    <CommonSkipLink />
+
     <!-- Sidebar (desktop/tablet) -->
     <CommonAppSidebar />
 
@@ -14,7 +16,11 @@
       <CommonAppTopBar />
 
       <!-- Page Content -->
-      <main class="flex-1 p-3 sm:p-4 lg:p-6">
+      <main
+        id="main-content"
+        tabindex="-1"
+        class="flex-1 p-3 sm:p-4 lg:p-6"
+      >
         <div class="mx-auto max-w-7xl">
           <slot />
         </div>

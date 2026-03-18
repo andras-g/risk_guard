@@ -17,5 +17,6 @@ public class User {
     private String preferredLanguage = "hu";
     private String ssoProvider;
     private String ssoSubject;
+    private String passwordHash;
     private OffsetDateTime createdAt;
 }

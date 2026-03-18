@@ -1,6 +1,6 @@
 {
   "cookieName": "auth_token",
-  "publicRoutes": ["/auth/login", "/login/callback", "/public"],
+  "publicRoutes": ["/auth/login", "/auth/register", "/login/callback", "/public"],
   "endpoints": {
     "me": "/api/v1/identity/me",
     "logout": "/api/v1/identity/logout",
@@ -29,5 +29,9 @@
   "rateLimits": {
     "searchesPerMinutePerTenant": 30,
     "maxAlertsPerDayPerTenant": 10
+  },
+  "screening": {
+    "idempotencyGuardMinutes": 15,
+    "disclaimerText": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
   }
 }

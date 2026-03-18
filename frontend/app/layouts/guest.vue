@@ -4,6 +4,8 @@ const { t: $t } = useI18n()
 
 <template>
   <div class="min-h-screen flex flex-col bg-white text-slate-900">
+    <CommonSkipLink />
+
     <!-- Header with guest banner -->
     <header class="border-b border-slate-200">
       <div class="h-16 flex items-center justify-between px-6">
@@ -41,14 +43,18 @@ const { t: $t } = useI18n()
     </header>
 
     <!-- Content -->
-    <main class="flex-1">
+    <main
+      id="main-content"
+      tabindex="-1"
+      class="flex-1"
+    >
       <div class="mx-auto max-w-7xl p-6">
         <slot />
       </div>
     </main>
 
     <!-- Footer placeholder -->
-    <footer class="py-8 text-center text-sm text-slate-400 border-t border-slate-200">
+    <footer class="py-8 text-center text-sm text-secondary-text border-t border-slate-200">
       <p>{{ $t('common.app.copyright') }}</p>
     </footer>
   </div>

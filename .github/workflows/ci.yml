@@ -123,3 +123,126 @@ jobs:
       - name: "Step 11b: Run frontend tests"
         run: npm run test
         working-directory: frontend
+
+  e2e:
+    name: E2E Tests (Playwright)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: riskguard
+          POSTGRES_USER: riskguard
+          POSTGRES_PASSWORD: localdev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      # Run Flyway migrations (schema + test seed data) against the CI postgres service.
+      # The test seed migration (R__e2e_test_data.sql) is in src/test/resources/db/test-seed/
+      # so we add it as an extra Flyway location.
+      - name: Run Flyway migrations (schema + test seed)
+        run: |
+          ./gradlew flywayMigrate \
+            -Dflyway.url=jdbc:postgresql://localhost:5432/riskguard \
+            -Dflyway.user=riskguard \
+            -Dflyway.password=localdev \
+            -Dflyway.locations=filesystem:src/main/resources/db/migration,filesystem:src/test/resources/db/test-seed
+        working-directory: backend
+
+      # Start backend in background with test profile.
+      # Uses the CI postgres service (port 5432) directly — no Testcontainers or Docker Compose.
+      - name: Start backend (Spring Boot with test profile)
+        run: |
+          ./gradlew bootRun \
+            -Dspring.datasource.url=jdbc:postgresql://localhost:5432/riskguard \
+            -Dspring.datasource.username=riskguard \
+            -Dspring.datasource.password=localdev \
+            -Dspring.docker.compose.enabled=false \
+            -Dspring.flyway.enabled=false \
+            &
+          # Wait for backend health endpoint
+          echo "Waiting for backend to start..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo "Backend is healthy!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Backend failed to start within 120s"
+              exit 1
+            fi
+            sleep 2
+          done
+        working-directory: backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          JWT_SECRET: e2e_ci_secret_must_be_at_least_32_characters_long
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      # Start Nuxt dev server in background.
+      # After the initial HTTP response succeeds, wait an extra 5s for Nuxt to
+      # finish compiling pages — prevents flaky Playwright tests hitting partially-
+      # compiled routes.
+      - name: Start frontend (Nuxt dev)
+        run: |
+          npm run dev &
+          echo "Waiting for frontend to start..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Frontend is responding — waiting 5s for page compilation..."
+              sleep 5
+              echo "Frontend is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Frontend failed to start within 60s"
+              exit 1
+            fi
+            sleep 2
+          done
+        working-directory: frontend
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+        working-directory: frontend
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test
+        working-directory: frontend
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_API_BASE: http://localhost:8080
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 14

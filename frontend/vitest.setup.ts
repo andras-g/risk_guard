@@ -1,4 +1,8 @@
-import { vi } from 'vitest'
+import { vi, expect } from 'vitest'
+import * as matchers from 'vitest-axe/matchers'
+
+// Register vitest-axe custom matchers (toHaveNoViolations) for axe-core a11y testing
+expect.extend(matchers)
 
 // Stub Nuxt auto-imports (ref, computed, watch, onMounted, etc.) for non-SSR unit test env.
 // In a full @nuxt/test-utils setup these are available globally; in vitest + jsdom we mock them.

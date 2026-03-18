@@ -149,31 +149,82 @@ describe('AppMobileDrawer — PrimeVue Drawer config', () => {
 })
 
 describe('AppMobileDrawer — component mount smoke test', () => {
-  it('renders without error and contains expected testid elements', () => {
-    // Stores mocked via vi.mock above — no pinia instance needed
-    const NuxtLinkStub = { template: '<a :data-testid="$attrs[\'data-testid\']" :href="to"><slot /></a>', props: ['to'], inheritAttrs: true }
+  function mountDrawer() {
+    const NuxtLinkStub = { template: '<a :data-testid="$attrs[\'data-testid\']" :href="to" :aria-current="$attrs[\'aria-current\']"><slot /></a>', props: ['to'], inheritAttrs: true }
     const DrawerStub = {
       template: '<div data-testid="mobile-drawer"><slot /><slot name="header" /><slot name="footer" /></div>',
       props: ['visible', 'position', 'header']
     }
     const AvatarStub = { template: '<div />' }
     const DividerStub = { template: '<hr />' }
-    const wrapper = mount(AppMobileDrawer, {
+    const LocaleSwitcherStub = { template: '<div data-testid="locale-switcher" />' }
+    return mount(AppMobileDrawer, {
       global: {
         stubs: {
           Drawer: DrawerStub,
           NuxtLink: NuxtLinkStub,
           Avatar: AvatarStub,
-          Divider: DividerStub
+          Divider: DividerStub,
+          CommonLocaleSwitcher: LocaleSwitcherStub
         },
         mocks: {
           $t: (key: string) => key
         }
       }
     })
+  }
+
+  it('renders without error and contains expected testid elements', () => {
+    const wrapper = mountDrawer()
     expect(wrapper.find('[data-testid="mobile-drawer"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-dashboard"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-screening"]').exists()).toBe(true)
+  })
+
+  it('renders the LocaleSwitcher in the drawer', () => {
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-locale-switcher"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(true)
+  })
+})
+
+describe('AppMobileDrawer — accessibility (Story 3.0c)', () => {
+  function mountDrawer() {
+    const NuxtLinkStub = { template: '<a :data-testid="$attrs[\'data-testid\']" :href="to" :aria-current="$attrs[\'aria-current\']"><slot /></a>', props: ['to'], inheritAttrs: true }
+    const DrawerStub = {
+      template: '<div data-testid="mobile-drawer"><slot /><slot name="header" /><slot name="footer" /></div>',
+      props: ['visible', 'position', 'header']
+    }
+    const AvatarStub = { template: '<div />' }
+    const DividerStub = { template: '<hr />' }
+    const LocaleSwitcherStub = { template: '<div data-testid="locale-switcher" />' }
+    return mount(AppMobileDrawer, {
+      global: {
+        stubs: {
+          Drawer: DrawerStub,
+          NuxtLink: NuxtLinkStub,
+          Avatar: AvatarStub,
+          Divider: DividerStub,
+          CommonLocaleSwitcher: LocaleSwitcherStub
+        },
+        mocks: {
+          $t: (key: string) => key
+        }
+      }
+    })
+  }
+
+  it('nav element has aria-label', () => {
+    const wrapper = mountDrawer()
+    const nav = wrapper.find('[data-testid="drawer-nav"]')
+    expect(nav.attributes('aria-label')).toBe('common.a11y.mobileNav')
+  })
+
+  it('active nav link has aria-current="page"', () => {
+    // useRoute returns /dashboard — so the dashboard link should be active
+    const wrapper = mountDrawer()
+    const dashboardLink = wrapper.find('[data-testid="drawer-nav-dashboard"]')
+    expect(dashboardLink.attributes('aria-current')).toBe('page')
   })
 })

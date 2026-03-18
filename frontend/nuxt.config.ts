@@ -14,6 +14,7 @@ export default defineNuxtConfig({
   // Nuxt Hybrid Rendering — SEO stubs for /company/[taxNumber] use ISR (AC: 3)
   // All other routes use SPA/client-side rendering.
   routeRules: {
+    '/': { ssr: true },              // Landing page: SSR for SEO (Story 3.0b AC4)
     '/company/**': { isr: true },   // ISR: cached on CDN, revalidates in background
   },
 
@@ -33,19 +34,24 @@ export default defineNuxtConfig({
       { 
         code: 'hu', 
         name: 'Magyar',
-        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/screening.json']
+        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json']
       },
       { 
         code: 'en', 
         name: 'English',
-        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/screening.json']
+        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/landing.json', 'en/screening.json']
       }
     ],
-    lazy: false,
     langDir: 'app/i18n',
     restructureDir: '',
     defaultLocale: 'hu',
-    strategy: 'no_prefix'
+    strategy: 'no_prefix',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'rg_locale',
+      redirectOn: 'root',
+      fallbackLocale: 'en'
+    }
   },
   css: ['primeicons/primeicons.css', '~/assets/css/main.css'],
   runtimeConfig: {

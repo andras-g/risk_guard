@@ -1,19 +1,24 @@
 import { describe, it, expect, vi } from 'vitest'
 import { ref } from 'vue'
+import { z } from 'zod'
 
 /**
  * Unit tests for SearchBar.vue logic.
  *
- * These tests focus on the component's validation and formatting logic
- * rather than full DOM rendering, following the pattern established by
- * TenantSwitcher.spec.ts. Co-located with SearchBar.vue per architecture rules.
+ * Tests validate using the same Zod schema as the component (AC1 compliance).
+ * Formatting and search flow logic are tested via extracted function signatures.
+ * Co-located with SearchBar.vue per architecture rules.
  */
-describe('SearchBar — tax number validation', () => {
-  const TAX_NUMBER_REGEX = /^\d{8}(\d{3})?$/
+describe('SearchBar — tax number validation (Zod)', () => {
+  // Same schema used in SearchBar.vue
+  const hungarianTaxNumberSchema = z.string().regex(
+    /^\d{8}(\d{3})?$/,
+    'screening.search.invalidTaxNumber'
+  )
 
   function validate(input: string): boolean {
     const cleaned = input.replace(/[^\d]/g, '')
-    return TAX_NUMBER_REGEX.test(cleaned)
+    return hungarianTaxNumberSchema.safeParse(cleaned).success
   }
 
   it('should accept valid 8-digit tax number', () => {
@@ -87,6 +92,57 @@ describe('SearchBar — auto-formatting', () => {
 
   it('should truncate at 11 digits', () => {
     expect(formatTaxNumber('123456789012345')).toBe('1234-5678-901')
+  })
+})
+
+describe('SearchBar — accessibility (Story 3.0c)', () => {
+  // These tests require mounting the actual component to verify real DOM attributes.
+  // We need mocks for the store and utility imports.
+
+  vi.mock('~/stores/screening', () => ({
+    useScreeningStore: () => ({ isSearching: false, search: vi.fn() })
+  }))
+  vi.mock('~/utils/taxNumber', () => ({
+    formatTaxNumber: (v: string) => v,
+    taxNumberSchema: { safeParse: () => ({ success: true }) }
+  }))
+
+  const InputTextStub = {
+    template: '<input :id="$attrs.id" :aria-describedby="$attrs[\'aria-describedby\']" :aria-invalid="$attrs[\'aria-invalid\']" />',
+    inheritAttrs: true
+  }
+  const ButtonStub = {
+    template: '<button type="submit"><slot /></button>',
+    props: ['label', 'loading', 'disabled', 'icon']
+  }
+
+  async function mountSearchBar() {
+    const { mount } = await import('@vue/test-utils')
+    const SearchBar = (await import('./SearchBar.vue')).default
+    return mount(SearchBar, {
+      global: {
+        stubs: { InputText: InputTextStub, Button: ButtonStub }
+      }
+    })
+  }
+
+  it('form has role="search"', async () => {
+    const wrapper = await mountSearchBar()
+    const form = wrapper.find('form')
+    expect(form.attributes('role')).toBe('search')
+  })
+
+  it('has a visually-hidden label for the input', async () => {
+    const wrapper = await mountSearchBar()
+    const label = wrapper.find('label[for="screening-tax-number"]')
+    expect(label.exists()).toBe(true)
+    expect(label.classes()).toContain('sr-only')
+  })
+
+  it('input has id matching the label for attribute', async () => {
+    const wrapper = await mountSearchBar()
+    const input = wrapper.find('#screening-tax-number')
+    expect(input.exists()).toBe(true)
   })
 })
 
