@@ -154,6 +154,7 @@ jobs:
         working-directory: frontend
         env:
           NUXT_PUBLIC_API_BASE: ${{ vars.STAGING_CLOUD_RUN_URL }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Deploy frontend to Cloud Storage (staging)
         run: |
@@ -230,6 +231,7 @@ jobs:
         working-directory: frontend
         env:
           NUXT_PUBLIC_API_BASE: ${{ vars.PRODUCTION_CLOUD_RUN_URL }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Deploy frontend to Cloud Storage (production)
         run: |
