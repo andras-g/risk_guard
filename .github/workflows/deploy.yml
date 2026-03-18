@@ -43,7 +43,10 @@ jobs:
           --health-retries 5
 
     outputs:
-      image_tag: ${{ steps.meta.outputs.image_tag }}
+      # Pass only the git SHA — the full tag is reconstructed in deploy jobs using the same
+      # formula. This avoids the GitHub Actions "secret masking" issue where outputs containing
+      # secret values (GCP_PROJECT_ID) are redacted to empty strings in downstream jobs.
+      image_sha: ${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +59,7 @@ jobs:
           cache: 'gradle'
 
       - name: Run Flyway migrations and generate jOOQ sources
-        # The Dockerfile runs `./gradlew clean build -x flywayMigrate -x generateJooq`
+        # The Dockerfile runs `./gradlew build -x flywayMigrate -x generateJooq`
         # which requires pre-generated jOOQ sources in build/generated-sources/jooq/.
         # We generate them here against the CI postgres service (localhost:5432, default creds),
         # then docker build picks them up from build/generated-sources/jooq/.
@@ -76,24 +79,17 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
-      - name: Extract image metadata
-        id: meta
+      - name: Build and push backend Docker image
         run: |
           IMAGE_TAG="${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
-
-      - name: Build backend Docker image
-        run: |
+          IMAGE_LATEST="${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest"
           docker build \
-            --tag "${{ steps.meta.outputs.image_tag }}" \
-            --tag "${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest" \
+            --tag "${IMAGE_TAG}" \
+            --tag "${IMAGE_LATEST}" \
             --file backend/Dockerfile \
             backend/
-
-      - name: Push image to Artifact Registry
-        run: |
-          docker push "${{ steps.meta.outputs.image_tag }}"
-          docker push "${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:latest"
+          docker push "${IMAGE_TAG}"
+          docker push "${IMAGE_LATEST}"
 
   # ───────────────────────────────────────────────────────────────────────────
   # Deploy to Staging — every push to main
@@ -127,7 +123,7 @@ jobs:
       - name: Deploy backend to Cloud Run (staging)
         run: |
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_STAGING }} \
-            --image="${{ needs.build.outputs.image_tag }}" \
+            --image="${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_sha }}" \
             --region="${{ env.REGION }}" \
             --platform=managed \
             --min-instances=0 \
@@ -202,7 +198,7 @@ jobs:
         run: |
           # --allow-unauthenticated: public API, Spring Security enforces auth at application layer.
           gcloud run deploy ${{ vars.CLOUD_RUN_SERVICE_PRODUCTION }} \
-            --image="${{ needs.build.outputs.image_tag }}" \
+            --image="${{ env.ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.image_sha }}" \
             --region="${{ env.REGION }}" \
             --platform=managed \
             --min-instances=1 \
