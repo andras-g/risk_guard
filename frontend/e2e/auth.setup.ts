@@ -45,23 +45,29 @@ export async function loginAsTestUser(page: Page): Promise<void> {
     )
   }
 
-  // Extract the auth_token value from the Set-Cookie response header
-  const setCookieHeaders = response.headers()['set-cookie'] ?? ''
-  const tokenMatch = setCookieHeaders.match(/auth_token=([^;]+)/)
+  // Extract the auth_token value from the Set-Cookie response header.
+  // Playwright's page.request stores the cookie in the API context but NOT in the
+  // browser's cookie jar. We extract and inject it manually for both origins.
+  const allHeaders = await response.headersArray()
+  const setCookieHeader = allHeaders.find(h => h.name.toLowerCase() === 'set-cookie')
+  const setCookieValue = setCookieHeader?.value ?? ''
+  const tokenMatch = setCookieValue.match(/auth_token=([^;]+)/)
   if (!tokenMatch) {
     throw new Error(
-      `No auth_token cookie in login response. Set-Cookie: ${setCookieHeaders}`
+      `No auth_token cookie in login response. Headers: ${JSON.stringify(allHeaders.map(h => h.name))}`
     )
   }
 
-  // Inject the cookie into the browser context for the frontend origin.
-  // This bypasses all cross-origin / SameSite / proxy cookie forwarding issues.
+  // Inject the cookie into the browser context for BOTH origins:
+  // - localhost (covers both :3000 and :8080 since cookies are not port-scoped)
+  // This ensures the cookie is sent on both same-origin and cross-origin requests.
   await page.context().addCookies([{
     name: 'auth_token',
     value: tokenMatch[1],
-    domain: frontendUrl.hostname,
+    domain: 'localhost',
     path: '/',
     httpOnly: true,
-    sameSite: 'Lax',
+    sameSite: 'None',
+    secure: false,
   }])
 }
