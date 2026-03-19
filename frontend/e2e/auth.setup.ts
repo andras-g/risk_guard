@@ -19,44 +19,49 @@ export const E2E_USER = {
  * on the Playwright page context. The backend must be running with
  * SPRING_PROFILES_ACTIVE=test for this endpoint to exist.
  *
- * Uses the Nuxt dev proxy (localhost:3000/api/... → localhost:8080/api/...)
- * so the cookie is set on the same origin as the SPA. This avoids cross-origin
- * cookie issues with SameSite=Lax.
+ * Strategy: call the backend directly via Playwright's API context, extract
+ * the auth_token from the Set-Cookie response header, then inject it into
+ * the browser context for the frontend origin. This avoids all cross-origin
+ * and proxy cookie forwarding issues.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+  const apiBase = process.env.PLAYWRIGHT_API_BASE ?? 'http://localhost:8080'
+  const frontendBase = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+  const frontendUrl = new URL(frontendBase)
 
-  // Navigate to the frontend first to establish the browser context origin.
-  await page.goto(baseURL, { waitUntil: 'load', timeout: 30_000 })
+  // Call the backend directly via Playwright's API context
+  const response = await page.request.post(`${apiBase}/api/test/auth/login`, {
+    data: {
+      email: E2E_USER.email,
+      role: E2E_USER.role,
+    },
+  })
 
-  // Login via the Nuxt dev proxy — the request goes through localhost:3000/api/...
-  // which proxies to localhost:8080/api/... The Set-Cookie from the backend is
-  // forwarded by the proxy and stored for localhost:3000 (same origin as the SPA).
-  const result = await page.evaluate(async ({ email, role }) => {
-    const res = await fetch('/api/test/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role }),
-      credentials: 'include',
-    })
-    return { ok: res.ok, status: res.status, body: await res.text() }
-  }, { email: E2E_USER.email, role: E2E_USER.role })
-
-  if (!result.ok) {
+  if (!response.ok()) {
+    const body = await response.text()
     throw new Error(
-      `Test auth login failed (${result.status}): ${result.body}. ` +
+      `Test auth login failed (${response.status()}): ${body}. ` +
       `Is the backend running with SPRING_PROFILES_ACTIVE=test?`
     )
   }
 
-  // Verify the auth cookie was stored in the browser context
-  const cookies = await page.context().cookies()
-  const authCookie = cookies.find(c => c.name === 'auth_token')
-  if (!authCookie) {
-    const cookieNames = cookies.map(c => c.name).join(', ')
+  // Extract the auth_token value from the Set-Cookie response header
+  const setCookieHeaders = response.headers()['set-cookie'] ?? ''
+  const tokenMatch = setCookieHeaders.match(/auth_token=([^;]+)/)
+  if (!tokenMatch) {
     throw new Error(
-      `Auth cookie 'auth_token' not found after login. ` +
-      `Available cookies: [${cookieNames}]. Login response was ${result.status}.`
+      `No auth_token cookie in login response. Set-Cookie: ${setCookieHeaders}`
     )
   }
+
+  // Inject the cookie into the browser context for the frontend origin.
+  // This bypasses all cross-origin / SameSite / proxy cookie forwarding issues.
+  await page.context().addCookies([{
+    name: 'auth_token',
+    value: tokenMatch[1],
+    domain: frontendUrl.hostname,
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+  }])
 }
