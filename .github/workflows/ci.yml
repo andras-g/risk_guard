@@ -181,11 +181,10 @@ jobs:
             &
           # Wait for backend to respond (any HTTP response = app is running).
           # /actuator/health may return 503 if a non-critical health indicator is DOWN
-          # (e.g., databaseTls on CI PostgreSQL without SSL), so we check for any response.
+          # (e.g., databaseTls on CI PostgreSQL without SSL), so we accept any HTTP response.
           echo "Waiting for backend to start..."
           for i in $(seq 1 60); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health 2>/dev/null || echo "000")
-            if [ "$HTTP_CODE" != "000" ]; then
+            if HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health 2>/dev/null) && [ "$HTTP_CODE" -ge 100 ] 2>/dev/null; then
               echo "Backend is responding (HTTP $HTTP_CODE)!"
               break
             fi
