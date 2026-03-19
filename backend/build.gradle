@@ -184,9 +184,13 @@ jooq {
 
 tasks.register('flywayMigrate') {
 	doLast {
+		def locations = ['filesystem:src/main/resources/db/migration']
+		if (project.hasProperty('flywayExtraLocations')) {
+			locations.addAll(project.property('flywayExtraLocations').split(','))
+		}
 		def flyway = org.flywaydb.core.Flyway.configure()
 				.dataSource(jooqDbUrl, jooqDbUser, jooqDbPassword)
-				.locations('filesystem:src/main/resources/db/migration')
+				.locations(locations as String[])
 				.ignoreMigrationPatterns('*:missing')
 				.load()
 		flyway.migrate()

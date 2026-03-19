@@ -160,15 +160,12 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       # Run Flyway migrations (schema + test seed data) against the CI postgres service.
-      # The test seed migration (R__e2e_test_data.sql) is in src/test/resources/db/test-seed/
-      # so we add it as an extra Flyway location.
+      # The test seed migration (R__e2e_test_data.sql) is in src/main/resources/db/test-seed/
+      # and is added via the flywayExtraLocations Gradle project property.
       - name: Run Flyway migrations (schema + test seed)
         run: |
           ./gradlew flywayMigrate \
-            -Dflyway.url=jdbc:postgresql://localhost:5432/riskguard \
-            -Dflyway.user=riskguard \
-            -Dflyway.password=localdev \
-            -Dflyway.locations=filesystem:src/main/resources/db/migration,filesystem:src/test/resources/db/test-seed
+            -PflywayExtraLocations=filesystem:src/main/resources/db/test-seed
         working-directory: backend
 
       # Start backend in background with test profile.
