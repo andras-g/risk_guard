@@ -68,11 +68,35 @@ export default defineNuxtConfig({
   css: ['primeicons/primeicons.css', '~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      // Default for local dev. Overridden at build time via NUXT_PUBLIC_API_BASE env var
+      // Default for local dev: empty string means same-origin (proxied via Nitro devProxy below).
+      // In production/staging: overridden via NUXT_PUBLIC_API_BASE env var at build time
       // (e.g. NUXT_PUBLIC_API_BASE=https://risk-guard-backend-staging-xxx.run.app in CI/deploy.yml).
       // Nuxt automatically maps NUXT_PUBLIC_<KEY> → runtimeConfig.public.<key>.
-      // Do NOT use process.env.API_BASE — that env var is never set and would bake in localhost.
-      apiBase: 'http://localhost:8080'
+      apiBase: ''
     }
-  }
+  },
+
+  // Dev proxy: route API calls through the Nuxt dev server to avoid cross-origin cookie issues.
+  // In production, the frontend is served from the same domain as the API (Cloud Run) or
+  // apiBase is set to the backend URL and CORS + SameSite=None handles cookies.
+  nitro: {
+    devProxy: {
+      '/api/': {
+        target: 'http://localhost:8080/api/',
+        changeOrigin: true,
+      },
+      '/actuator/': {
+        target: 'http://localhost:8080/actuator/',
+        changeOrigin: true,
+      },
+      '/oauth2/': {
+        target: 'http://localhost:8080/oauth2/',
+        changeOrigin: true,
+      },
+      '/login/': {
+        target: 'http://localhost:8080/login/',
+        changeOrigin: true,
+      },
+    },
+  },
 })

@@ -19,28 +19,28 @@ export const E2E_USER = {
  * on the Playwright page context. The backend must be running with
  * SPRING_PROFILES_ACTIVE=test for this endpoint to exist.
  *
- * Uses page.evaluate(fetch) instead of page.request.post() to ensure the
- * cookie is stored in the browser's cookie jar (same origin context as
- * subsequent $fetch calls from the SPA to the backend API).
+ * Uses the Nuxt dev proxy (localhost:3000/api/... → localhost:8080/api/...)
+ * so the cookie is set on the same origin as the SPA. This avoids cross-origin
+ * cookie issues with SameSite=Lax.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  const apiBase = process.env.PLAYWRIGHT_API_BASE ?? 'http://localhost:8080'
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
-  // Navigate to the backend origin first so the browser context is on localhost:8080.
-  // This ensures the Set-Cookie header from the login response is stored for this origin.
-  await page.goto(`${apiBase}/actuator/health`, { waitUntil: 'load', timeout: 30_000 })
+  // Navigate to the frontend first to establish the browser context origin.
+  await page.goto(baseURL, { waitUntil: 'load', timeout: 30_000 })
 
-  // Perform the login request from within the browser context (not Playwright's API context).
-  // This guarantees the HttpOnly cookie is stored in the browser's cookie jar.
-  const result = await page.evaluate(async ({ email, role, base }) => {
-    const res = await fetch(`${base}/api/test/auth/login`, {
+  // Login via the Nuxt dev proxy — the request goes through localhost:3000/api/...
+  // which proxies to localhost:8080/api/... The Set-Cookie from the backend is
+  // forwarded by the proxy and stored for localhost:3000 (same origin as the SPA).
+  const result = await page.evaluate(async ({ email, role }) => {
+    const res = await fetch('/api/test/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, role }),
       credentials: 'include',
     })
     return { ok: res.ok, status: res.status, body: await res.text() }
-  }, { email: E2E_USER.email, role: E2E_USER.role, base: apiBase })
+  }, { email: E2E_USER.email, role: E2E_USER.role })
 
   if (!result.ok) {
     throw new Error(
@@ -48,8 +48,4 @@ export async function loginAsTestUser(page: Page): Promise<void> {
       `Is the backend running with SPRING_PROFILES_ACTIVE=test?`
     )
   }
-
-  // The HttpOnly cookie is now stored in the browser for localhost.
-  // When the SPA (localhost:3000) makes $fetch calls to localhost:8080
-  // with credentials: 'include', the cookie will be sent (same-site).
 }
