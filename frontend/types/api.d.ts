@@ -65,3 +65,30 @@ export interface TenantResponse {
 export interface TenantSwitchRequest {
   tenantId: string
 }
+
+// ─── Watchlist DTOs (Story 3.6) ─────────────────────────────────────────────
+
+export interface AddWatchlistEntryRequest {
+  taxNumber: string
+  companyName?: string | null
+  verdictStatus?: string | null
+}
+
+export interface WatchlistEntryResponse {
+  id: string
+  taxNumber: string
+  companyName: string | null
+  label: string | null
+  currentVerdictStatus: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE' | null
+  lastCheckedAt: string | null
+  createdAt: string
+}
+
+export interface AddWatchlistEntryResponse {
+  entry: WatchlistEntryResponse
+  duplicate: boolean
+}
+
+export interface WatchlistCountResponse {
+  count: number
+}

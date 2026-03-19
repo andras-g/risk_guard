@@ -84,14 +84,15 @@ development_status:
   3-2-email-password-registration-fallback-auth: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review 2026-03-17 — Round 1: 11 findings (3H/4M/4L) resolved; Round 2: 6 findings (2H/2M/2L) found and resolved; status → done 2026-03-17
   3-3-feature-flags-and-subscription-tier-gating: done  # Story file created 2026-03-17; dev started 2026-03-17; review 2026-03-17; code-review R1: 10 findings (3H/4M/3L) resolved; code-review R2: 4 findings (1H/2M/1L) — critical: tier gating was dead code (useIdentityStore never populated); all fixed; status → done 2026-03-17
   3-4-encryption-and-infrastructure-hardening: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18 — code tasks complete, INFRA tasks deferred (no prod Cloud SQL/Cloud Run yet); code-review R1 2026-03-18 — 2H/3M/2L findings; 7 action items resolved; code-review R2 2026-03-18 — 2H/2M findings (databaseTls false-DOWN in test/local, cron doc inconsistency, test assertion); 4 items resolved; status → done 2026-03-18
-  3-5-async-nav-debt-ingestor-background-data-freshness: review  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18; code-review 2026-03-18 — 2H/4M/4L findings; 10 action items resolved 2026-03-18; status → review
-  3-6-watchlist-management-crud: backlog
-  3-7-24h-background-monitoring-cycle: backlog
+  3-5-async-nav-debt-ingestor-background-data-freshness: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18; code-review R1 2026-03-18 — 2H/4M/4L findings resolved; code-review R2 2026-03-18 — 2H/3M/2L findings resolved; status → done 2026-03-18
+  3-6-watchlist-management-crud: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-18; code-review R1 2026-03-18 — 2H/5M/3L findings resolved; code-review R2 2026-03-18 — 2H/3M/2L findings; 5 HIGH+MEDIUM auto-fixed (useApi, DB read-back, error handling, count guard, tech debt docs); status → done 2026-03-18
+  3-7-24h-background-monitoring-cycle: done  # Story file created 2026-03-18; dev started 2026-03-18; review 2026-03-19 — code-review R1: 3H/4M/3L findings; 10 action items resolved; code-review R2: 2H/2M/2L findings; 4 items auto-fixed; status → done 2026-03-19
   3-8-resend-email-alerts-and-outbox-pattern: backlog
   3-9-the-accountant-portfolio-pulse-feed: backlog
   3-10-accountant-flight-control-dashboard: backlog
   3-11-seo-gateway-stubs-public-company-pages: ready-for-dev  # Moved from Epic 2 (was 2.6) on 2026-03-16
   3-12-demo-mode-and-guest-rate-limiting: ready-for-dev  # Moved from Epic 2 (was 2.7) on 2026-03-16
+  3-13-refresh-token-rotation-silent-renewal: backlog  # Tech debt — replace 24h JWT with short-lived access + refresh token rotation
   epic-3-retrospective: optional
 
   epic-4: backlog

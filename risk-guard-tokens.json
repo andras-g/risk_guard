@@ -1,6 +1,6 @@
 {
   "cookieName": "auth_token",
-  "publicRoutes": ["/auth/login", "/auth/register", "/login/callback", "/public"],
+  "publicRoutes": ["/", "/auth/login", "/auth/register", "/login/callback", "/public", "/company"],
   "endpoints": {
     "me": "/api/v1/identity/me",
     "logout": "/api/v1/identity/logout",

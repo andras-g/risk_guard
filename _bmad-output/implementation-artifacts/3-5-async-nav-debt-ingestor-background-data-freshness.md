@@ -1,6 +1,6 @@
 # Story 3.5: Async NAV Debt Ingestor (Background Data Freshness)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -114,6 +114,16 @@ so that my partner verdicts are always based on recent data without waiting for 
 - [x] [AI-Review][LOW] `NotificationRepository` raw jOOQ string refs (`field("tenant_id")`, `table("watchlist_entries")`) have no compile-time safety. Add TODO to replace with type-safe generated references once jOOQ codegen includes `watchlist_entries`. [NotificationRepository.java:41-44]
 - [x] [AI-Review][LOW] Dev Notes section still states "No new Flyway migrations needed — all required tables exist" — contradicted by DB-1 which created `V20260318_001`. Update Dev Notes to reflect reality. [Story file, Dev Notes, line 145]
 - [x] [AI-Review][LOW] No test covers `updateSnapshotFromIngestor` receiving a `CompanyData` with `null` `snapshotData` when `allSourcesAvailable` returns true — `JSON.writeValueAsString(null)` produces `"null"` string written to DB. [AsyncIngestorTest.java, ScreeningRepository.java:308]
+
+### Review Follow-ups Round 2 (AI)
+
+- [x] [AI-Review-R2][HIGH] `AsyncIngestorHealthState.recordRun()` torn-read race condition — three separate `AtomicReference`/`AtomicInteger` writes allow health check to see inconsistent mix of two different runs. Fixed: replaced with single `AtomicReference<RunSnapshot>` immutable record for atomic swap. [AsyncIngestorHealthState.java:20-33]
+- [x] [AI-Review-R2][HIGH] `@Scheduled` cron fires during `@SpringBootTest` integration tests — `@EnableScheduling` on main app class, no test profile disable. Could interfere with Testcontainers test data. Fixed: added `spring.task.scheduling.enabled: false` and `cron: "-"` in `application-test.yml`. [RiskGuardApplication.java:21, application-test.yml]
+- [x] [AI-Review-R2][MEDIUM] `updateSnapshotFromIngestor()` and `updateSnapshotCheckedAt()` silently succeed when snapshot deleted between find and update (0 rows affected). Fixed: added row count verification with WARN log. [ScreeningRepository.java:282-288, 309-333]
+- [x] [AI-Review-R2][MEDIUM] `processed` counter semantics inconsistent — mixes skipped, errored, and succeeded entries. Renamed to `attempted`, incremented at loop start for consistent health reporting. [AsyncIngestor.java:81-136]
+- [x] [AI-Review-R2][MEDIUM] No `async-ingestor` config in `application-test.yml` — integration tests rely on class-level defaults. Fixed: added explicit test config with disabled cron and zero delay. [application-test.yml]
+- [x] [AI-Review-R2][LOW] `maskTaxNumber` contains dead `Math.min(4, length)` — early return guarantees length > 4. Simplified to `substring(0, 4)`. [AsyncIngestor.java:189-194]
+- [x] [AI-Review-R2][LOW] `WatchlistPartner` record has no null guard — `null` tenantId would silently corrupt TenantContext. Added compact constructor with `Objects.requireNonNull`. [WatchlistPartner.java:12]
 
 ---
 
@@ -273,9 +283,15 @@ gitlab/duo-chat-opus-4-6
 - `backend/src/main/java/hu/riskguard/screening/internal/ScreeningRepository.java` — `updateSnapshotFromIngestor()` now updates `source_urls` and `dom_fingerprint_hash`; null snapshotData serialized as `{}`
 - `backend/src/main/java/hu/riskguard/notification/internal/NotificationRepository.java` — added TODO for future type-safe jOOQ codegen refs
 - `backend/src/main/resources/application.yml` — removed dead `thread-pool-size` config entry
+- `backend/src/main/java/hu/riskguard/core/config/AsyncIngestorHealthState.java` — refactored to single AtomicReference<RunSnapshot> for atomic reads (R2 fix)
+- `backend/src/main/java/hu/riskguard/screening/domain/AsyncIngestor.java` — renamed `processed` to `attempted`; simplified `maskTaxNumber` (R2 fix)
+- `backend/src/main/java/hu/riskguard/screening/internal/ScreeningRepository.java` — added row count verification on ingestor update methods (R2 fix)
+- `backend/src/main/java/hu/riskguard/notification/domain/WatchlistPartner.java` — added null-guard compact constructor (R2 fix)
+- `backend/src/test/resources/application-test.yml` — disabled scheduling; added explicit async-ingestor config (R2 fix)
 
 ### Change Log
 
 - **2026-03-18:** Story 3.5 implemented — Async NAV Debt Ingestor with background data freshness. Created scheduled ingestor, health indicator, notification module, watchlist_entries migration, and 14 unit tests. All existing tests pass.
 - **2026-03-18:** Code review (AI adversarial) — 2 HIGH, 4 MEDIUM, 4 LOW findings. 10 action items added to "Review Follow-ups (AI)". Status → in-progress. Key issues: delay-in-finally applies to non-data-source iterations; `fetchInto(record.class)` has no integration test; flaky timing test; dead `threadPoolSize` config; ingestor live path skips `source_urls`/`dom_fingerprint_hash` update.
 - **2026-03-18:** Code review findings resolved — all 10 action items addressed. Fixed delay-in-finally bug; added NotificationRepository integration test; replaced flaky timing test with spy verification; removed dead threadPoolSize config; fixed updateSnapshotFromIngestor to update source_urls/dom_fingerprint_hash; added actuator health integration test; improved PII masking; added TODOs for future jOOQ codegen; fixed Dev Notes. 328 tests pass (6 new). Status → review.
+- **2026-03-18:** Code review Round 2 (AI adversarial) — 2 HIGH, 3 MEDIUM, 2 LOW findings. All 7 resolved in-place. Key fixes: AsyncIngestorHealthState torn-read race (single AtomicReference<RunSnapshot>); scheduling disabled in test profile; row count verification on ingestor updates; `processed` → `attempted` counter semantics; WatchlistPartner null guards. All tests pass (0 regressions). Status → done.

@@ -2,7 +2,7 @@
   "screening": {
     "actions": {
       "addToWatchlist": "Figyelőlistára",
-      "addToWatchlistTooltip": "Hamarosan elérhető – Figyelőlista (3. sztori)",
+      "addToWatchlistTooltip": "Partner hozzáadása a Figyelőlistához felügyelethez",
       "backToDashboard": "Vissza a vezérlőpulthoz",
       "copyHash": "Audit hash másolása vágólapra",
       "exportPdf": "PDF exportálás",

@@ -71,6 +71,16 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Alphabetical i18n:** Keep `hu/*.json` and `en/*.json` sorted to minimize Git noise.
 - **Public API Contract:** Only `@Service` facades and `api.dto` records are accessible across modules.
 
+### AI Agent Tool Usage Rules
+
+- **NEVER attempt to Write large files (100+ lines) in a single Write tool call.** The Write tool's JSON serialization breaks on large content containing backticks, code fences, pipe tables, curly braces, and mixed quoting — which is every story file, architecture doc, and markdown artifact. This causes repeated `JSON Parse error: Expected '}'` failures that waste time.
+- **Mandatory pattern for creating large markdown files (stories, docs, specs):**
+  1. `Write` a minimal skeleton file with section headers and short placeholder text (e.g., "(placeholder)")
+  2. `Read` the skeleton file back
+  3. `Edit` each section one at a time — replace each placeholder with real content
+  4. Never attempt to write more than ~80 lines of markdown content in a single tool call
+- **This applies to ALL workflows that produce documents** — create-story, create-architecture, create-prd, etc. The Edit tool handles special characters reliably because each replacement chunk is smaller.
+
 ### Development Workflow Rules
 
 - **Conventional Commits:** Use `type: description`. Atomic commits only (one PR per feature).

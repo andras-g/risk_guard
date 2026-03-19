@@ -4,27 +4,23 @@ definePageMeta({ layout: 'public' })
 const { t } = useI18n()
 const authStore = useAuthStore()
 
-// AC7: Lightweight health check for service availability
 const serviceUnavailable = ref(false)
 
-// AC5 + AC7: Combined mounted hook — auth redirect first, then health check.
-// Avoids a navigation race where the health check response arrives for an unmounting component.
 onMounted(async () => {
-  // AC5: If authenticated, redirect to dashboard and skip health check
-  if (!authStore.isAuthenticated) {
-    await authStore.initializeAuth()
-  }
+  // If already authenticated (e.g., navigated back to landing), redirect to dashboard.
   if (authStore.isAuthenticated) {
     navigateTo('/dashboard')
-    return // Skip health check — component is unmounting
+    return
   }
 
-  // AC7: Only run health check for unauthenticated visitors who will see the landing page
+  // Health check: any HTTP response (even 503) means the backend is reachable.
+  // Only set serviceUnavailable on actual network failures (server down, timeout, CORS).
   try {
     const config = useRuntimeConfig()
     await $fetch('/actuator/health', {
       baseURL: config.public.apiBase as string,
-      timeout: 5000
+      timeout: 5000,
+      ignoreResponseError: true,
     })
   } catch {
     serviceUnavailable.value = true

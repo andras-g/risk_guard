@@ -7,6 +7,9 @@
     <mandate>Execute ALL steps in instructions IN EXACT ORDER</mandate>
     <mandate>Save to template output file after EVERY "template-output" tag</mandate>
     <mandate>NEVER skip a step - YOU are responsible for every steps execution without fail or excuse</mandate>
+    <mandate>LARGE FILE WRITING: NEVER Write files over 80 lines in a single tool call — JSON serialization breaks on markdown with
+      backticks, code fences, pipe tables, and curly braces. ALWAYS use: (1) Write minimal skeleton with placeholders,
+      (2) Read skeleton back, (3) Edit each section individually. This is MANDATORY for all template-output saves.</mandate>
   </llm>
 
   <WORKFLOW-RULES critical="true">

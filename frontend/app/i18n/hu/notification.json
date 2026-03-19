@@ -1,0 +1,37 @@
+{
+  "notification": {
+    "watchlist": {
+      "addButton": "Partner hozzáadása",
+      "addDialog": {
+        "cancel": "Mégse",
+        "changePartner": "Partner módosítása",
+        "notFound": "A partner nem található. Próbáljon meg egy másik adószámot, vagy futtasson először egy szűrést.",
+        "submit": "Hozzáadás a figyelőlistához",
+        "title": "Partner hozzáadása a figyelőlistához"
+      },
+      "addedToast": "Partner hozzáadva a figyelőlistához",
+      "columns": {
+        "actions": "Műveletek",
+        "companyName": "Cégnév",
+        "lastChecked": "Utolsó ellenőrzés",
+        "taxNumber": "Adószám",
+        "verdictStatus": "Verdikt állapot"
+      },
+      "confirmRemove": "{companyName} eltávolítása a figyelőlistáról?",
+      "confirmYes": "Eltávolítás",
+      "confirmNo": "Mégse",
+      "duplicateToast": "A partner már a figyelőlistán van",
+      "emptyCta": "Keressen egy partnert a kezdéshez",
+      "emptyDescription": "Adja hozzá a partnereket a keresési eredményekből, vagy használja a fenti Partner hozzáadása gombot.",
+      "emptyTitle": "Még nincs partner a figyelőlistáján",
+      "lastMonitored": "Utolsó monitorozás",
+      "monitoringActive": "Monitorozás aktív",
+      "onWatchlist": "Figyelőlistán",
+      "removeButton": "Eltávolítás",
+      "removedToast": "Partner eltávolítva a figyelőlistáról",
+      "searchPlaceholder": "Keresés cégnév vagy adószám alapján...",
+      "sidebarLabel": "Figyelőlista",
+      "title": "Figyelőlista"
+    }
+  }
+}

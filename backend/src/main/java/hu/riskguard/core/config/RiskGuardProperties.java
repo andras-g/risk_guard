@@ -29,6 +29,7 @@ public class RiskGuardProperties {
     private DataSource dataSource = new DataSource();
     private Security security = new Security();
     private AsyncIngestor asyncIngestor = new AsyncIngestor();
+    private WatchlistMonitor watchlistMonitor = new WatchlistMonitor();
 
     @PostConstruct
     public void init() {
@@ -125,5 +126,18 @@ public class RiskGuardProperties {
         // TODO: threadPoolSize is reserved for future parallel execution via a dedicated
         //  ThreadPoolTaskExecutor bean. Currently unused — the ingestor runs sequentially
         //  on Spring's scheduler thread. Do not create a pool bean until workload demands it.
+    }
+
+    /**
+     * Configuration for the background watchlist monitor that detects verdict status changes.
+     * Runs after the AsyncIngestor (default: 04:00 UTC) to re-evaluate verdicts from fresh snapshots.
+     * Sequential processing on the Spring scheduler thread with configurable inter-evaluation delay.
+     */
+    @Data
+    public static class WatchlistMonitor {
+        /** Spring cron expression — 6-field format: sec min hour day month dow. Default: 04:00 UTC daily. */
+        private String cron = "0 0 4 * * ?";
+        /** Delay in milliseconds between successive verdict evaluations (rate limiting). */
+        private long delayBetweenEvaluationsMs = 200;
     }
 }

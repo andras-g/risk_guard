@@ -1,6 +1,11 @@
 spring:
   main:
     allow-bean-definition-overriding: true
+  task:
+    scheduling:
+      # Disable @Scheduled cron triggers during integration tests — prevents AsyncIngestor
+      # from firing on the real Testcontainers DB and interfering with test data assertions.
+      enabled: false
   datasource:
     url: jdbc:tc:postgresql:17:///riskguard
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
@@ -92,3 +97,9 @@ risk-guard:
     connect-timeout-ms: 1000
     read-timeout-ms: 2000
     global-deadline-seconds: 5
+  async-ingestor:
+    cron: "-"                          # Disabled in test profile (scheduling also disabled above)
+    delay-between-requests-ms: 0       # No delay in tests — unit tests control this via mock properties
+  watchlist-monitor:
+    cron: "-"                          # Disabled in test profile (scheduling also disabled above)
+    delay-between-evaluations-ms: 0    # No delay in tests

@@ -187,6 +187,7 @@ tasks.register('flywayMigrate') {
 		def flyway = org.flywaydb.core.Flyway.configure()
 				.dataSource(jooqDbUrl, jooqDbUser, jooqDbPassword)
 				.locations('filesystem:src/main/resources/db/migration')
+				.ignoreMigrationPatterns('*:missing')
 				.load()
 		flyway.migrate()
 	}

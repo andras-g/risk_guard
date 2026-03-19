@@ -45,8 +45,14 @@
             <i :class="['pi', item.icon, 'text-base']" />
             <span
               v-if="sidebarExpanded"
-              class="text-sm font-medium"
+              class="text-sm font-medium flex-1"
             >{{ $t(`common.nav.${item.key}`) }}</span>
+            <Badge
+              v-if="item.showBadge && watchlistCount > 0 && sidebarExpanded"
+              :value="watchlistCount"
+              severity="info"
+              :data-testid="`badge-${item.key}`"
+            />
           </NuxtLink>
         </li>
       </ul>
@@ -105,25 +111,34 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import Badge from 'primevue/badge'
 import { useLayoutStore } from '~/stores/layout'
 import { useAuthStore } from '~/stores/auth'
+import { useWatchlistStore } from '~/stores/watchlist'
 
 const { t: $t } = useI18n()
 const route = useRoute()
 const layoutStore = useLayoutStore()
 const authStore = useAuthStore()
+const watchlistStore = useWatchlistStore()
 
 const { sidebarExpanded } = storeToRefs(layoutStore)
 const { role } = storeToRefs(authStore)
 
 const isAdmin = computed(() => role.value === 'ADMIN')
+const watchlistCount = computed(() => watchlistStore.count)
 
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
+  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
   { key: 'epr', to: '/epr', icon: 'pi-file-export' }
 ]
+
+// Fetch watchlist count on mount for sidebar badge
+onMounted(async () => {
+  await watchlistStore.fetchCount()
+})
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')

@@ -68,6 +68,11 @@ echo "    PostgreSQL ready on localhost:5432"
 
 # ── 2. Backend (Spring Boot) ─────────────────────────────────────────────────
 echo "==> Starting Backend (Spring Boot)..."
+# Run WatchlistMonitor every 60s in local dev (default prod cron is 04:00 UTC daily).
+# This lets you observe monitoring cycles without waiting — check logs for:
+#   "WatchlistMonitor completed [demo mode] entries_processed=N changes_detected=0"
+export WATCHLIST_MONITOR_CRON="0 */1 * * * ?"
+
 cd "$ROOT_DIR/backend"
 ./gradlew bootRun \
   -Dspring.docker.compose.enabled=false \

@@ -3,6 +3,7 @@ package hu.riskguard.screening.domain;
 import hu.riskguard.core.config.AsyncIngestorHealthState;
 import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.core.security.TenantContext;
+import hu.riskguard.core.util.PiiUtil;
 import hu.riskguard.datasource.api.dto.CompanyData;
 import hu.riskguard.datasource.api.dto.ScrapedData;
 import hu.riskguard.datasource.domain.DataSourceService;
@@ -78,10 +79,11 @@ public class AsyncIngestor {
         log.info("Async ingestor starting mode={}", mode);
 
         List<WatchlistPartner> partners = notificationService.getMonitoredPartners();
-        int processed = 0;
+        int attempted = 0;
         int errors = 0;
 
         for (WatchlistPartner partner : partners) {
+            attempted++;
             boolean dataSourceCalled = false;
             try {
                 TenantContext.setCurrentTenant(partner.tenantId());
@@ -95,7 +97,6 @@ public class AsyncIngestor {
                     // existing data, it does not create new snapshots (that's the search flow).
                     log.debug("No existing snapshot for partner tenant={} — skipping",
                             partner.tenantId());
-                    processed++;
                     continue;
                 }
 
@@ -118,14 +119,11 @@ public class AsyncIngestor {
                         // Source unavailable — retain existing snapshot, do NOT overwrite
                         errors++;
                         log.warn("Source unavailable during ingestion tax_number={} tenant={}",
-                                maskTaxNumber(partner.taxNumber()), partner.tenantId());
+                                PiiUtil.maskTaxNumber(partner.taxNumber()), partner.tenantId());
                     }
                 }
-
-                processed++;
             } catch (Exception e) {
                 errors++;
-                processed++;
                 log.error("Ingestor entry failed tenant={}", partner.tenantId(), e);
             } finally {
                 TenantContext.clear();
@@ -135,13 +133,13 @@ public class AsyncIngestor {
             }
         }
 
-        healthState.recordRun(processed, errors);
+        healthState.recordRun(attempted, errors);
 
         if (isDemoMode) {
-            log.info("Async ingestor completed [demo mode] entries_processed={}", processed);
+            log.info("Async ingestor completed [demo mode] entries_attempted={}", attempted);
         } else {
-            log.info("Async ingestor completed mode={} entries_processed={} errors={}",
-                    mode, processed, errors);
+            log.info("Async ingestor completed mode={} entries_attempted={} errors={}",
+                    mode, attempted, errors);
         }
     }
 
@@ -182,15 +180,4 @@ public class AsyncIngestor {
         }
     }
 
-    /**
-     * Mask a tax number for logging — PII-compliant: at most first 4 characters visible.
-     * An 8-digit Hungarian tax number becomes "1234****".
-     */
-    private static String maskTaxNumber(String taxNumber) {
-        if (taxNumber == null || taxNumber.length() <= 4) {
-            return "****";
-        }
-        int visibleChars = Math.min(4, taxNumber.length());
-        return taxNumber.substring(0, visibleChars) + "****";
-    }
 }

@@ -98,7 +98,7 @@ server:
 risk-guard:
   security:
     jwt-secret: ${JWT_SECRET}
-    jwt-expiration-ms: 3600000
+    jwt-expiration-ms: 86400000  # 24h — until refresh token rotation is implemented
     frontend-base-url: ${FRONTEND_URL}
     cookie-secure: true
   identity:

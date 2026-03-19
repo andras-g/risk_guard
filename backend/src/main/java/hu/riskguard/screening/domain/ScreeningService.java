@@ -10,7 +10,7 @@ import hu.riskguard.datasource.api.dto.CompanyData;
 import hu.riskguard.datasource.domain.DataSourceService;
 import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.domain.events.PartnerSearchCompleted;
-import hu.riskguard.screening.domain.events.PartnerStatusChanged;
+import hu.riskguard.core.events.PartnerStatusChanged;
 import hu.riskguard.screening.internal.ScreeningRepository;
 import hu.riskguard.screening.internal.ScreeningRepository.FreshSnapshot;
 import hu.riskguard.screening.internal.ScreeningRepository.SnapshotRecord;
@@ -214,7 +214,7 @@ public class ScreeningService {
                 screeningRepository.findPreviousVerdict(normalizedTaxNumber, verdictId));
         if (previousStatus != null && previousStatus.isPresent() && previousStatus.get() != tx2.status()) {
             eventPublisher.publishEvent(PartnerStatusChanged.of(
-                    verdictId, tenantId,
+                    verdictId, tenantId, normalizedTaxNumber,
                     previousStatus.get().getLiteral(),
                     tx2.status().getLiteral()));
         }
@@ -237,6 +237,49 @@ public class ScreeningService {
                 tx2.sha256Hash()
         );
     }
+
+    /**
+     * Retrieve the latest verdict status for a given tenant and tax number.
+     * Used by the {@code WatchlistMonitor} (notification module) to compare the current verdict
+     * against the watchlist entry's stored verdict status for change detection.
+     *
+     * <p>This is a simple read-only facade call — no re-evaluation or data source access.
+     * The verdict was already computed by the search flow or AsyncIngestor refresh.
+     *
+     * @param tenantId  explicit tenant ID (background job context — TenantContext must be set by caller)
+     * @param taxNumber normalized tax number
+     * @return the latest verdict data, or {@code null} if no verdict exists for this partner
+     */
+    public SnapshotVerdictResult getLatestSnapshotWithVerdict(UUID tenantId, String taxNumber) {
+        return screeningRepository.findLatestVerdictByTenantAndTaxNumber(tenantId, taxNumber)
+                .map(rec -> {
+                    boolean transient_ = rec.status() == VerdictStatus.INCOMPLETE
+                            || rec.status() == VerdictStatus.UNAVAILABLE;
+                    return new SnapshotVerdictResult(
+                            rec.verdictId(),
+                            rec.status().getLiteral(),
+                            rec.createdAt(),
+                            transient_
+                    );
+                })
+                .orElse(null);
+    }
+
+    /**
+     * Result of looking up the latest snapshot + verdict for a partner.
+     * Used by the WatchlistMonitor for status change detection.
+     *
+     * @param verdictId       the verdict UUID
+     * @param verdictStatus   the verdict status literal (e.g., "RELIABLE", "AT_RISK")
+     * @param createdAt       when the verdict was created
+     * @param transientFailure true if the data indicates a transient failure (stale/unavailable)
+     */
+    public record SnapshotVerdictResult(
+            UUID verdictId,
+            String verdictStatus,
+            OffsetDateTime createdAt,
+            boolean transientFailure
+    ) {}
 
     /**
      * Canonical public URLs for known government data source adapters.

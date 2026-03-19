@@ -1,14 +1,17 @@
 /**
- * Global $fetch interceptor that adds the Accept-Language header to all API calls.
+ * Global $fetch interceptor for all API calls.
  *
- * This ensures the backend's AcceptHeaderLocaleResolver always receives the user's
- * current i18n locale, regardless of whether the calling code uses the useApi
- * composable or raw $fetch.
+ * Responsibilities:
+ * 1. Adds the Accept-Language header matching the user's current i18n locale,
+ *    ensuring the backend's AcceptHeaderLocaleResolver resolves correctly.
+ * 2. Catches 401 responses (expired token) and redirects to login — prevents
+ *    the user from staying on an authenticated page with a stale session.
  *
  * Runs on every request to the configured apiBase URL. Non-API requests (e.g.,
  * CDN assets, third-party services) are left untouched.
  *
  * Story 3.1 — AC #5 (backend uses locale-aware message bundles).
+ * Story 3.7 — Session expiry redirect on 401.
  */
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig()
@@ -31,6 +34,30 @@ export default defineNuxtPlugin(() => {
           options.headers = headers
         } catch {
           // i18n not yet initialized — skip header injection
+        }
+      }
+    },
+
+    onResponseError({ response, request }) {
+      // Redirect to login on 401 — session/token has expired.
+      // Only handle API calls to avoid interfering with third-party requests.
+      // Skip auth-related endpoints to prevent redirect loops during login/initialization.
+      if (response.status === 401) {
+        const url = typeof request === 'string' ? request : request.toString()
+        const isApiCall = url.startsWith('/api/') || url.startsWith(apiBase)
+        const isAuthRelated = url.includes('/auth/') || url.includes('/identity/')
+
+        if (isApiCall && !isAuthRelated) {
+          try {
+            const authStore = useAuthStore()
+            authStore.$reset()
+            navigateTo('/auth/login')
+          } catch {
+            // If store/router not ready, force a hard redirect
+            if (import.meta.client) {
+              window.location.href = '/auth/login'
+            }
+          }
         }
       }
     },

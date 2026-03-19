@@ -19,6 +19,22 @@ vi.mock('~/stores/screening', () => ({
     search: vi.fn()
   })
 }))
+vi.mock('~/stores/watchlist', () => ({
+  useWatchlistStore: () => ({
+    count: 0,
+    entries: [],
+    isLoading: false,
+    error: null,
+    isOnWatchlist: () => false,
+    addEntry: vi.fn().mockResolvedValue({ duplicate: false }),
+    fetchCount: vi.fn(),
+  })
+}))
+
+// Mock PrimeVue useToast
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({ add: vi.fn() }),
+}))
 
 const mockVerdict = {
   taxNumber: '12345678',

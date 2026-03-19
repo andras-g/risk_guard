@@ -137,31 +137,36 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async initializeAuth() {
-      // First, try reading if it's NOT HttpOnly (legacy or manual token setting)
-      const cookie = useCookie(authConfig.cookieName)
-      if (cookie.value) {
-        this.setToken(cookie.value as string)
-      }
-      
-      // Always fetch /me to get full profile and re-validate session via HttpOnly cookie
-      await this.fetchMe()
-
-      // Sync UI locale from the user's stored preference (AC #3).
-      // Uses $i18n directly because Pinia actions don't have a composable context.
-      if (this.preferredLanguage) {
-        try {
-          const { $i18n } = useNuxtApp()
-          const i18n = $i18n as { locale: { value: string }, setLocale?: (l: string) => Promise<void> }
-          if (i18n.locale.value !== this.preferredLanguage) {
-            if (typeof i18n.setLocale === 'function') {
-              await i18n.setLocale(this.preferredLanguage)
-            } else {
-              i18n.locale.value = this.preferredLanguage
-            }
-          }
-        } catch {
-          // Best-effort — if i18n isn't ready yet, the cookie/default will apply.
+      try {
+        // First, try reading if it's NOT HttpOnly (legacy or manual token setting)
+        const cookie = useCookie(authConfig.cookieName)
+        if (cookie.value) {
+          this.setToken(cookie.value as string)
         }
+        
+        // Always fetch /me to get full profile and re-validate session via HttpOnly cookie
+        await this.fetchMe()
+
+        // Sync UI locale from the user's stored preference (AC #3).
+        // Uses $i18n directly because Pinia actions don't have a composable context.
+        if (this.preferredLanguage) {
+          try {
+            const { $i18n } = useNuxtApp()
+            const i18n = $i18n as { locale: { value: string }, setLocale?: (l: string) => Promise<void> }
+            if (i18n.locale.value !== this.preferredLanguage) {
+              if (typeof i18n.setLocale === 'function') {
+                await i18n.setLocale(this.preferredLanguage)
+              } else {
+                i18n.locale.value = this.preferredLanguage
+              }
+            }
+          } catch {
+            // Best-effort — if i18n isn't ready yet, the cookie/default will apply.
+          }
+        }
+      } catch {
+        // initializeAuth failed — fetchMe or locale sync threw unexpectedly.
+        // Auth state is already cleared by fetchMe's own catch block.
       }
     },
 

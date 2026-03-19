@@ -280,12 +280,16 @@ public class ScreeningRepository extends BaseRepository {
      * @param checkedAt  the new checked_at timestamp
      */
     public void updateSnapshotCheckedAt(UUID snapshotId, UUID tenantId, OffsetDateTime checkedAt) {
-        dsl.update(COMPANY_SNAPSHOTS)
+        int rowsAffected = dsl.update(COMPANY_SNAPSHOTS)
                 .set(COMPANY_SNAPSHOTS.CHECKED_AT, checkedAt)
                 .set(COMPANY_SNAPSHOTS.UPDATED_AT, OffsetDateTime.now())
                 .where(COMPANY_SNAPSHOTS.ID.eq(snapshotId))
                 .and(COMPANY_SNAPSHOTS.TENANT_ID.eq(tenantId))
                 .execute();
+        if (rowsAffected == 0) {
+            log.warn("updateSnapshotCheckedAt: 0 rows affected — snapshot may have been deleted. "
+                    + "snapshotId={} tenantId={}", snapshotId, tenantId);
+        }
     }
 
     /**
@@ -317,7 +321,7 @@ public class ScreeningRepository extends BaseRepository {
                     : "{}";
             String sourceUrlsJson = JSON.writeValueAsString(sourceUrls != null ? sourceUrls : List.of());
 
-            dsl.update(COMPANY_SNAPSHOTS)
+            int rowsAffected = dsl.update(COMPANY_SNAPSHOTS)
                     .set(COMPANY_SNAPSHOTS.SNAPSHOT_DATA, JSONB.jsonb(snapshotDataJson))
                     .set(COMPANY_SNAPSHOTS.SOURCE_URLS, JSONB.jsonb(sourceUrlsJson))
                     .set(COMPANY_SNAPSHOTS.DOM_FINGERPRINT_HASH, domFingerprintHash)
@@ -327,6 +331,10 @@ public class ScreeningRepository extends BaseRepository {
                     .where(COMPANY_SNAPSHOTS.ID.eq(snapshotId))
                     .and(COMPANY_SNAPSHOTS.TENANT_ID.eq(tenantId))
                     .execute();
+            if (rowsAffected == 0) {
+                log.warn("updateSnapshotFromIngestor: 0 rows affected — snapshot may have been deleted. "
+                        + "snapshotId={} tenantId={}", snapshotId, tenantId);
+            }
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize ingestor snapshot data to JSON", e);
         }
@@ -352,6 +360,47 @@ public class ScreeningRepository extends BaseRepository {
                 .limit(1)
                 .fetchOptional(COMPANY_SNAPSHOTS.ID);
     }
+
+    /**
+     * Find the latest verdict status for a given tenant and tax number.
+     * Used by the WatchlistMonitor (via ScreeningService facade) to read the most recent
+     * verdict for comparison against the watchlist entry's stored verdict status.
+     *
+     * <p>This method requires an explicit {@code tenantId} parameter because it is called
+     * from a background job that manually sets {@code TenantContext} per partner.
+     *
+     * @param tenantId  explicit tenant ID (background job context)
+     * @param taxNumber normalized tax number
+     * @return the latest verdict status and metadata, or empty if no verdict exists
+     */
+    public Optional<LatestVerdictRecord> findLatestVerdictByTenantAndTaxNumber(UUID tenantId, String taxNumber) {
+        return dsl.select(
+                        VERDICTS.ID,
+                        VERDICTS.STATUS,
+                        VERDICTS.CREATED_AT
+                )
+                .from(VERDICTS)
+                .join(COMPANY_SNAPSHOTS).on(VERDICTS.SNAPSHOT_ID.eq(COMPANY_SNAPSHOTS.ID))
+                .where(COMPANY_SNAPSHOTS.TENANT_ID.eq(tenantId))
+                .and(COMPANY_SNAPSHOTS.TAX_NUMBER.eq(taxNumber))
+                .orderBy(VERDICTS.CREATED_AT.desc())
+                .limit(1)
+                .fetchOptional(r -> new LatestVerdictRecord(
+                        r.get(VERDICTS.ID),
+                        r.get(VERDICTS.STATUS),
+                        r.get(VERDICTS.CREATED_AT)
+                ));
+    }
+
+    /**
+     * Internal record for returning latest verdict query results.
+     * Used by the WatchlistMonitor to read current verdict status.
+     */
+    public record LatestVerdictRecord(
+            UUID verdictId,
+            VerdictStatus status,
+            OffsetDateTime createdAt
+    ) {}
 
     private UUID requireTenantId() {
         UUID tenantId = TenantContext.getCurrentTenant();

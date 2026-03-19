@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import { useToast } from 'primevue/usetoast'
 import type { VerdictResponse } from '~/types/api'
+import { useWatchlistStore } from '~/stores/watchlist'
 
 const { t } = useI18n()
+const toast = useToast()
+const watchlistStore = useWatchlistStore()
 
 const props = defineProps<{
   verdict: VerdictResponse
@@ -112,6 +116,46 @@ async function copyHash() {
   // but this guard ensures safety if copyHash() is ever called programmatically.
   if (isRealHash.value) {
     await navigator.clipboard.writeText(props.verdict.sha256Hash!)
+  }
+}
+
+// ─── Add to Watchlist ────────────────────────────────────────────────────
+const isOnWatchlist = computed(() =>
+  watchlistStore.isOnWatchlist(props.verdict.taxNumber)
+)
+
+const isAddingToWatchlist = ref(false)
+
+async function addToWatchlist() {
+  if (isOnWatchlist.value || isAddingToWatchlist.value) return
+
+  isAddingToWatchlist.value = true
+  try {
+    const result = await watchlistStore.addEntry(props.verdict.taxNumber, props.verdict.companyName, props.verdict.status)
+    if (result.duplicate) {
+      toast.add({
+        severity: 'warn',
+        summary: t('notification.watchlist.duplicateToast'),
+        life: 3000,
+      })
+    }
+    else {
+      toast.add({
+        severity: 'success',
+        summary: t('notification.watchlist.addedToast'),
+        life: 3000,
+      })
+    }
+  }
+  catch {
+    toast.add({
+      severity: 'error',
+      summary: t('common.states.error'),
+      life: 3000,
+    })
+  }
+  finally {
+    isAddingToWatchlist.value = false
   }
 }
 
@@ -287,12 +331,13 @@ async function copyHash() {
         data-testid="export-pdf-button"
       />
       <Button
-        :label="t('screening.actions.addToWatchlist')"
+        :label="isOnWatchlist ? t('notification.watchlist.onWatchlist') : t('screening.actions.addToWatchlist')"
         icon="pi pi-bookmark"
         severity="secondary"
-        disabled
-        :title="t('screening.actions.addToWatchlistTooltip')"
+        :disabled="isOnWatchlist || isAddingToWatchlist"
+        :loading="isAddingToWatchlist"
         data-testid="add-watchlist-button"
+        @click="addToWatchlist"
       />
     </div>
   </div>

@@ -85,7 +85,7 @@ describe('LandingSearchBar', () => {
     expect(wrapper.text()).toContain('landing.search.invalidTaxNumber')
   })
 
-  it('navigates to login with redirect on valid 8-digit submit', async () => {
+  it('navigates to screening on valid 8-digit submit', async () => {
     const wrapper = mountComponent()
     const input = wrapper.find('input')
 
@@ -93,10 +93,10 @@ describe('LandingSearchBar', () => {
     await input.trigger('input')
     await wrapper.find('form').trigger('submit')
 
-    expect(mockNavigateTo).toHaveBeenCalledWith('/auth/login?redirect=/screening/12345678')
+    expect(mockNavigateTo).toHaveBeenCalledWith('/screening/12345678')
   })
 
-  it('navigates to login with redirect on valid 11-digit submit', async () => {
+  it('navigates to screening on valid 11-digit submit', async () => {
     const wrapper = mountComponent()
     const input = wrapper.find('input')
 
@@ -104,7 +104,7 @@ describe('LandingSearchBar', () => {
     await input.trigger('input')
     await wrapper.find('form').trigger('submit')
 
-    expect(mockNavigateTo).toHaveBeenCalledWith('/auth/login?redirect=/screening/12345678901')
+    expect(mockNavigateTo).toHaveBeenCalledWith('/screening/12345678901')
   })
 
   it('does NOT navigate on invalid input', async () => {

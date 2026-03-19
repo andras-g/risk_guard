@@ -10,7 +10,7 @@ import hu.riskguard.datasource.domain.DataSourceService;
 import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.domain.ScreeningService;
 import hu.riskguard.screening.domain.ScreeningService.SearchResult;
-import hu.riskguard.screening.domain.events.PartnerStatusChanged;
+import hu.riskguard.core.events.PartnerStatusChanged;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import org.junit.jupiter.api.AfterEach;

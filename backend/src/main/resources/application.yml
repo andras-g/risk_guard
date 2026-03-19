@@ -15,6 +15,7 @@ spring:
     basename: messages
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
+    ignore-migration-patterns: "*:missing"
   devtools:
     restart:
       enabled: ${SPRING_DEVTOOLS_RESTART_ENABLED:false}
@@ -87,10 +88,10 @@ resilience4j:
 
 risk-guard:
    security:
-     jwt-secret: ${JWT_SECRET:local-dev-secret-32-chars-long-at-least-123456}
-     jwt-expiration-ms: 3600000
-     frontend-base-url: ${FRONTEND_URL:http://localhost:3000}
-     cookie-secure: ${COOKIE_SECURE:false}
+      jwt-secret: ${JWT_SECRET:local-dev-secret-32-chars-long-at-least-123456}
+      jwt-expiration-ms: 86400000  # 24 hours — re-login once a day, not hourly
+      frontend-base-url: ${FRONTEND_URL:http://localhost:3000}
+      cookie-secure: ${COOKIE_SECURE:false}
    identity:
      default-user-role: SME_ADMIN
    freshness:
@@ -117,3 +118,6 @@ risk-guard:
       cron: "${ASYNC_INGESTOR_CRON:0 0 2 * * ?}"    # 02:00 UTC daily (04:00 Budapest)
       delay-between-requests-ms: ${ASYNC_INGESTOR_DELAY_MS:500}
       # thread-pool-size removed — ingestor runs sequentially on scheduler thread (see RiskGuardProperties TODO)
+   watchlist-monitor:
+      cron: "${WATCHLIST_MONITOR_CRON:0 0 4 * * ?}"    # 04:00 UTC daily (after AsyncIngestor at 02:00)
+      delay-between-evaluations-ms: ${WATCHLIST_MONITOR_DELAY_MS:200}

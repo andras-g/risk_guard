@@ -8,11 +8,23 @@ export default defineNuxtConfig({
     compatibilityVersion: 4
   },
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    // Speed up dev startup: skip full-bundle optimisation on cold start
+    optimizeDeps: {
+      include: [
+        'primevue/datatable', 'primevue/column', 'primevue/button',
+        'primevue/dialog', 'primevue/inputtext', 'primevue/tag',
+        'primevue/skeleton', 'primevue/badge', 'primevue/confirmdialog',
+        'primevue/usetoast', 'primevue/useconfirm',
+        '@primevue/core/api',
+        'pinia', 'vue-router', 'jwt-decode', 'zod',
+      ],
+    },
   },
 
-  // Nuxt Hybrid Rendering — SEO stubs for /company/[taxNumber] use ISR (AC: 3)
-  // All other routes use SPA/client-side rendering.
+  // SPA by default — prevents flash-of-wrong-page on hard refresh.
+  // SSR/ISR only for specific SEO pages.
+  ssr: false,
   routeRules: {
     '/': { ssr: true },              // Landing page: SSR for SEO (Story 3.0b AC4)
     '/company/**': { isr: true },   // ISR: cached on CDN, revalidates in background
@@ -34,12 +46,12 @@ export default defineNuxtConfig({
       { 
         code: 'hu', 
         name: 'Magyar',
-        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json']
+        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json', 'hu/notification.json']
       },
       { 
         code: 'en', 
         name: 'English',
-        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/landing.json', 'en/screening.json']
+        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/landing.json', 'en/screening.json', 'en/notification.json']
       }
     ],
     langDir: 'app/i18n',

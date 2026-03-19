@@ -19,6 +19,7 @@ const { t: $t } = useI18n()
         :aria-label="$t('common.a11y.headerNav')"
         class="flex items-center gap-4"
       >
+        <CommonLocaleSwitcher variant="light" />
         <NuxtLink
           to="/auth/login"
           class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"

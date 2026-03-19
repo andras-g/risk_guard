@@ -34,6 +34,9 @@ vi.mock('~/stores/layout', () => ({
 vi.mock('~/stores/auth', () => ({
   useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false })
 }))
+vi.mock('~/stores/watchlist', () => ({
+  useWatchlistStore: () => ({ count: 0, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })
+}))
 
 describe('Authenticated shell — axe-core a11y scan', () => {
   it('AppSidebar passes axe scan', async () => {
@@ -47,7 +50,8 @@ describe('Authenticated shell — axe-core a11y scan', () => {
       global: {
         stubs: {
           NuxtLink: NuxtLinkStub,
-          Divider: { template: '<hr />' }
+          Divider: { template: '<hr />' },
+          Badge: { template: '<span class="badge-stub"><slot /></span>', props: ['value', 'severity'] }
         },
         directives: { tooltip: () => {} },
         mocks: { $t: (key: string) => key }

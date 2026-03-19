@@ -2,7 +2,7 @@
   "screening": {
     "actions": {
       "addToWatchlist": "Add to Watchlist",
-      "addToWatchlistTooltip": "Coming in a future release – Watchlist (Story 3)",
+      "addToWatchlistTooltip": "Add this partner to your Watchlist for monitoring",
       "backToDashboard": "Back to Dashboard",
       "copyHash": "Copy audit hash to clipboard",
       "exportPdf": "Export PDF",

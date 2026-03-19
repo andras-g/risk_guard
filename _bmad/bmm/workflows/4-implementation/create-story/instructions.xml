@@ -3,6 +3,12 @@
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
 
+  <critical>🛑 FILE WRITING RULE: NEVER attempt to Write large markdown files (100+ lines) in a single Write tool call — JSON serialization
+    WILL break on content with backticks, code fences, pipe tables, and curly braces. ALWAYS use skeleton+edit pattern:
+    (1) Write minimal skeleton with placeholder text per section,
+    (2) Read the skeleton back,
+    (3) Edit each section individually replacing placeholders with real content.
+    This applies to ALL template-output saves. See project-context.md "AI Agent Tool Usage Rules" for full details.</critical>
   <critical>🔥 CRITICAL MISSION: You are creating the ULTIMATE story context engine that prevents LLM developer mistakes, omissions or
     disasters! 🔥</critical>
   <critical>Your purpose is NOT to copy from epics - it's to create a comprehensive, optimized story file that gives the DEV agent

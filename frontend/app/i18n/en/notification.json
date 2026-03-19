@@ -1,0 +1,37 @@
+{
+  "notification": {
+    "watchlist": {
+      "addButton": "Add Partner",
+      "addDialog": {
+        "cancel": "Cancel",
+        "changePartner": "Change partner",
+        "notFound": "Partner not found. Try a different tax number or run a screening first.",
+        "submit": "Add to Watchlist",
+        "title": "Add Partner to Watchlist"
+      },
+      "addedToast": "Partner added to Watchlist",
+      "columns": {
+        "actions": "Actions",
+        "companyName": "Company Name",
+        "lastChecked": "Last Checked",
+        "taxNumber": "Tax Number",
+        "verdictStatus": "Verdict Status"
+      },
+      "confirmRemove": "Remove {companyName} from Watchlist?",
+      "confirmYes": "Remove",
+      "confirmNo": "Cancel",
+      "duplicateToast": "Partner already on Watchlist",
+      "emptyCta": "Search a partner to get started",
+      "emptyDescription": "Add partners from search results or use the Add Partner button above.",
+      "emptyTitle": "No partners on your Watchlist yet",
+      "lastMonitored": "Last monitored",
+      "monitoringActive": "Monitoring active",
+      "onWatchlist": "On Watchlist",
+      "removeButton": "Remove",
+      "removedToast": "Partner removed from Watchlist",
+      "searchPlaceholder": "Search by company name or tax number...",
+      "sidebarLabel": "Watchlist",
+      "title": "Watchlist"
+    }
+  }
+}

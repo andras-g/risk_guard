@@ -10,5 +10,17 @@
  *
  * <p>Cross-module access is restricted to {@code api/} and {@code domain/} packages only.
  * The {@code internal/} package is enforced as inaccessible by Spring Modulith verification.
+ *
+ * <p>Cross-module dependencies:
+ * <ul>
+ *   <li>{@code core.events.PartnerStatusChanged} — consumed by
+ *       {@code PartnerStatusChangedListener} to reactively update watchlist verdict columns</li>
+ *   <li>{@code screening.domain.ScreeningService} — called by
+ *       {@link hu.riskguard.screening.domain.WatchlistMonitor} (lives in screening to avoid
+ *       circular dependency) for latest snapshot/verdict data</li>
+ * </ul>
+ * Verdict enrichment uses denormalized columns ({@code last_verdict_status},
+ * {@code last_checked_at}) on {@code watchlist_entries}, populated by the
+ * {@code PartnerStatusChanged} event listener and the background monitoring cycle.
  */
 package hu.riskguard.notification;

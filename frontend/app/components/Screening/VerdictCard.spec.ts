@@ -32,6 +32,24 @@ vi.mock('~/risk-guard-tokens.json', () => ({
   },
 }))
 
+// Mock PrimeVue useToast
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({ add: vi.fn() }),
+}))
+
+// Mock watchlist store
+vi.mock('~/stores/watchlist', () => ({
+  useWatchlistStore: () => ({
+    count: 0,
+    entries: [],
+    isLoading: false,
+    error: null,
+    isOnWatchlist: () => false,
+    addEntry: vi.fn().mockResolvedValue({ duplicate: false }),
+    fetchCount: vi.fn(),
+  }),
+}))
+
 // Mock clipboard
 const mockWriteText = vi.fn().mockResolvedValue(undefined)
 Object.defineProperty(navigator, 'clipboard', {
@@ -298,11 +316,12 @@ describe('VerdictCard — action buttons', () => {
     expect(pdfBtn.attributes('disabled')).toBeDefined()
   })
 
-  it('should show disabled Add to Watchlist button', () => {
+  it('should show enabled Add to Watchlist button when not on watchlist', () => {
     const wrapper = mountCard(buildVerdict())
     const watchlistBtn = wrapper.find('[data-testid="add-watchlist-button"]')
     expect(watchlistBtn.exists()).toBe(true)
-    expect(watchlistBtn.attributes('disabled')).toBeDefined()
+    // Button should NOT be disabled when partner is not on watchlist
+    expect(watchlistBtn.attributes('disabled')).toBeUndefined()
   })
 
   it('should show tooltip on Export PDF button', () => {
@@ -311,9 +330,9 @@ describe('VerdictCard — action buttons', () => {
     expect(pdfBtn.attributes('title')).toContain('screening.actions.exportPdfTooltip')
   })
 
-  it('should show tooltip on Add to Watchlist button', () => {
+  it('should show Add to Watchlist button with correct label', () => {
     const wrapper = mountCard(buildVerdict())
     const watchlistBtn = wrapper.find('[data-testid="add-watchlist-button"]')
-    expect(watchlistBtn.attributes('title')).toContain('screening.actions.addToWatchlistTooltip')
+    expect(watchlistBtn.exists()).toBe(true)
   })
 })

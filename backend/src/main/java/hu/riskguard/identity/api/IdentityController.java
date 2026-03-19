@@ -38,6 +38,9 @@ public class IdentityController {
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
         String email = jwt.getSubject();
         User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -48,6 +51,9 @@ public class IdentityController {
     public ResponseEntity<Void> updateLanguage(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody UpdateLanguageRequest request) {
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
         String email = jwt.getSubject();
         User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
@@ -57,6 +63,9 @@ public class IdentityController {
 
     @GetMapping("/mandates")
     public List<TenantResponse> getMandates(@AuthenticationPrincipal Jwt jwt) {
+        if (jwt == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
         // Explicit role check — consistent with the pattern used in switchTenant.
         if (!"ACCOUNTANT".equals(jwt.getClaimAsString("role"))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only ACCOUNTANT role can access mandates");

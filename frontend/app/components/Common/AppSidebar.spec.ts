@@ -39,6 +39,9 @@ vi.mock('~/stores/layout', () => ({
 vi.mock('~/stores/auth', () => ({
   useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false })
 }))
+vi.mock('~/stores/watchlist', () => ({
+  useWatchlistStore: () => ({ count: 3, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })
+}))
 
 // Navigation items — same structure as component
 const mainNavItems = [
@@ -196,13 +199,16 @@ describe('AppSidebar — structure', () => {
   })
 })
 
+const BadgeStub = { template: '<span class="badge-stub"><slot /></span>', props: ['value', 'severity'] }
+
 describe('AppSidebar — component mount smoke test', () => {
   it('renders without error and contains expected testid elements', () => {
     const wrapper = mount(AppSidebar, {
       global: {
         stubs: {
           NuxtLink: NuxtLinkStub,
-          Divider: DividerStub
+          Divider: DividerStub,
+          Badge: BadgeStub
         },
         directives: {
           tooltip: () => {} // stub PrimeVue tooltip directive
@@ -230,7 +236,7 @@ describe('AppSidebar — accessibility (Story 3.0c)', () => {
   function mountSidebar() {
     return mount(AppSidebar, {
       global: {
-        stubs: { NuxtLink: NuxtLinkStub, Divider: DividerStub },
+        stubs: { NuxtLink: NuxtLinkStub, Divider: DividerStub, Badge: BadgeStub },
         directives: { tooltip: () => {} },
         mocks: { $t: (key: string) => key }
       }

@@ -35,7 +35,9 @@ function onSubmit() {
   if (props.serviceUnavailable) return
   if (!validate()) return
   const cleaned = taxNumberInput.value.replace(/[^\d]/g, '')
-  navigateTo(`/auth/login?redirect=/screening/${cleaned}`)
+  // Navigate to screening — the auth middleware will redirect to login if needed,
+  // preserving the target URL. Guest screening (without login) is planned for Story 3.12.
+  navigateTo(`/screening/${cleaned}`)
 }
 </script>
 
