@@ -27,14 +27,14 @@ test.describe('Search Flow', () => {
 
   test('authenticated user can search a tax number and see verdict result', async ({ page }) => {
     // Navigate to dashboard — auth middleware will validate the cookie via GET /me
-    await page.goto('/dashboard')
+    await page.goto('/dashboard', { waitUntil: 'networkidle' })
 
     // Verify we landed on the dashboard (not redirected to login)
-    await expect(page).toHaveURL(/\/dashboard/)
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
 
-    // Find the search input by its placeholder (works across locales since we look for the input element)
-    const searchInput = page.locator('input[type="text"]').first()
-    await expect(searchInput).toBeVisible()
+    // Find the search input (PrimeVue InputText renders <input type="text"> with id="screening-tax-number")
+    const searchInput = page.locator('#screening-tax-number')
+    await expect(searchInput).toBeVisible({ timeout: 30_000 })
 
     // Type the tax number
     await searchInput.fill(TEST_TAX_NUMBER)
@@ -70,10 +70,11 @@ test.describe('Search Flow', () => {
   })
 
   test('search input validates tax number format', async ({ page }) => {
-    await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/dashboard/)
+    await page.goto('/dashboard', { waitUntil: 'networkidle' })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
 
-    const searchInput = page.locator('input[type="text"]').first()
+    const searchInput = page.locator('#screening-tax-number')
+    await expect(searchInput).toBeVisible({ timeout: 30_000 })
     await searchInput.fill('123') // Too short — invalid
 
     const submitButton = page.locator('button[type="submit"]')

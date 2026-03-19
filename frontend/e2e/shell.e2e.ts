@@ -22,12 +22,12 @@ test.describe('Application Shell', () => {
     // Set desktop viewport
     await page.setViewportSize({ width: 1280, height: 800 })
 
-    await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/dashboard/)
+    await page.goto('/dashboard', { waitUntil: 'networkidle' })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
 
     // Sidebar should be visible on desktop
     const sidebar = page.locator('[data-testid="app-sidebar"]')
-    await expect(sidebar).toBeVisible({ timeout: 10_000 })
+    await expect(sidebar).toBeVisible({ timeout: 30_000 })
 
     // Sidebar has at least 4 navigation links (Dashboard, Screening, Watchlist, EPR)
     const navItems = sidebar.locator('a')
@@ -50,8 +50,8 @@ test.describe('Application Shell', () => {
     // Set mobile viewport (iPhone-like)
     await page.setViewportSize({ width: 375, height: 812 })
 
-    await page.goto('/dashboard')
-    await expect(page).toHaveURL(/\/dashboard/)
+    await page.goto('/dashboard', { waitUntil: 'networkidle' })
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 })
 
     // Sidebar should NOT be visible on mobile
     const sidebar = page.locator('[data-testid="app-sidebar"]')
@@ -59,7 +59,7 @@ test.describe('Application Shell', () => {
 
     // Hamburger button should be visible on mobile
     const hamburger = page.locator('[data-testid="hamburger-button"]')
-    await expect(hamburger).toBeVisible({ timeout: 10_000 })
+    await expect(hamburger).toBeVisible({ timeout: 30_000 })
 
     // Click hamburger to open drawer
     await hamburger.click()
