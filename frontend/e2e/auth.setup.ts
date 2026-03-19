@@ -48,4 +48,15 @@ export async function loginAsTestUser(page: Page): Promise<void> {
       `Is the backend running with SPRING_PROFILES_ACTIVE=test?`
     )
   }
+
+  // Verify the auth cookie was stored in the browser context
+  const cookies = await page.context().cookies()
+  const authCookie = cookies.find(c => c.name === 'auth_token')
+  if (!authCookie) {
+    const cookieNames = cookies.map(c => c.name).join(', ')
+    throw new Error(
+      `Auth cookie 'auth_token' not found after login. ` +
+      `Available cookies: [${cookieNames}]. Login response was ${result.status}.`
+    )
+  }
 }
