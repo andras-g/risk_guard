@@ -7,6 +7,7 @@ import hu.riskguard.core.security.TenantFilter;
 import hu.riskguard.core.security.TokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import javax.crypto.SecretKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -169,10 +170,16 @@ public class SecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         // Use TokenProvider's cached signing key — single source of truth for both signing and verification.
-        // Must specify HS512 to match the algorithm selected by jjwt's Keys.hmacShaKeyFor() in TokenProvider.
-        // NimbusJwtDecoder defaults to HS256 which causes silent 401s on token verification.
-        return NimbusJwtDecoder.withSecretKey(tokenProvider.getSigningKey())
-                .macAlgorithm(MacAlgorithm.HS512)
+        // The MAC algorithm must match what jjwt's Keys.hmacShaKeyFor() selects based on key length:
+        //   ≥64 bytes → HS512, ≥48 bytes → HS384, ≥32 bytes → HS256
+        // NimbusJwtDecoder defaults to HS256 which causes silent 401s if the key is longer.
+        SecretKey key = tokenProvider.getSigningKey();
+        int keyBits = key.getEncoded().length * 8;
+        MacAlgorithm algorithm = keyBits >= 512 ? MacAlgorithm.HS512
+                : keyBits >= 384 ? MacAlgorithm.HS384
+                : MacAlgorithm.HS256;
+        return NimbusJwtDecoder.withSecretKey(key)
+                .macAlgorithm(algorithm)
                 .build();
     }
 

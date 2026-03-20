@@ -19,18 +19,14 @@ export const E2E_USER = {
  * on the Playwright page context. The backend must be running with
  * SPRING_PROFILES_ACTIVE=test for this endpoint to exist.
  *
- * Strategy: call the login endpoint through the Nuxt dev proxy (same-origin)
- * so the browser stores the cookie for the frontend origin. With apiBase=''
- * and Nitro devProxy, all API calls go through localhost:3000, eliminating
- * cross-origin cookie issues entirely.
+ * Playwright's {@code page.request} shares cookies with the browser context.
+ * The backend sets an HttpOnly {@code auth_token} cookie on the response,
+ * which Playwright stores and includes in subsequent same-site requests.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
+  const apiBase = process.env.PLAYWRIGHT_API_BASE ?? 'http://localhost:8080'
 
-  // Call the login endpoint via the Nuxt dev proxy (same-origin request).
-  // The proxy forwards to localhost:8080, and the Set-Cookie from the
-  // backend response is stored for localhost:3000 (same origin as the SPA).
-  const response = await page.request.post(`${baseURL}/api/test/auth/login`, {
+  const response = await page.request.post(`${apiBase}/api/test/auth/login`, {
     data: {
       email: E2E_USER.email,
       role: E2E_USER.role,
@@ -45,29 +41,7 @@ export async function loginAsTestUser(page: Page): Promise<void> {
     )
   }
 
-  // Verify the cookie was stored — Playwright's API context should process Set-Cookie.
-  const cookies = await page.context().cookies()
-  const authCookie = cookies.find(c => c.name === 'auth_token')
-  if (!authCookie) {
-    // Fallback: extract token from response headers and inject manually
-    const allHeaders = await response.headersArray()
-    const setCookieHeaders = allHeaders.filter(h => h.name.toLowerCase() === 'set-cookie')
-    const tokenHeader = setCookieHeaders.find(h => h.value.includes('auth_token='))
-    const tokenMatch = tokenHeader?.value.match(/auth_token=([^;]+)/)
-    if (!tokenMatch) {
-      throw new Error(
-        `auth_token not in cookies and not in Set-Cookie headers. ` +
-        `Response headers: ${JSON.stringify(allHeaders.map(h => `${h.name}: ${h.value.substring(0, 50)}`))}`
-      )
-    }
-    // Manually inject the cookie for the frontend origin
-    await page.context().addCookies([{
-      name: 'auth_token',
-      value: tokenMatch[1],
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      sameSite: 'Lax',
-    }])
-  }
+  // The response contains a Set-Cookie header with the auth_token HttpOnly cookie.
+  // Playwright automatically stores cookies from API responses in the browser context,
+  // so subsequent page.goto() calls will include the cookie.
 }

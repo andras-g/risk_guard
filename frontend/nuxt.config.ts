@@ -68,23 +68,10 @@ export default defineNuxtConfig({
   css: ['primeicons/primeicons.css', '~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      // Default for local dev: empty string = same-origin (proxied via Nitro devProxy below).
-      // Overridden at build time via NUXT_PUBLIC_API_BASE env var for staging/production
-      // (e.g. NUXT_PUBLIC_API_BASE=https://risk-guard-backend-staging-xxx.run.app in deploy.yml).
-      apiBase: ''
+      // Default for local dev. Overridden at build time via NUXT_PUBLIC_API_BASE env var
+      // (e.g. NUXT_PUBLIC_API_BASE=https://risk-guard-backend-staging-xxx.run.app in CI/deploy.yml).
+      // Nuxt automatically maps NUXT_PUBLIC_<KEY> → runtimeConfig.public.<key>.
+      apiBase: 'http://localhost:8080'
     }
-  },
-
-  // Dev proxy: route API calls through the Nuxt dev server to the backend.
-  // This makes all API requests same-origin (localhost:3000), which eliminates
-  // cross-origin cookie issues (SameSite=Lax works perfectly same-origin).
-  // In production, NUXT_PUBLIC_API_BASE points to the backend URL directly.
-  nitro: {
-    devProxy: {
-      '/api/': { target: 'http://localhost:8080/api/', changeOrigin: true },
-      '/actuator/': { target: 'http://localhost:8080/actuator/', changeOrigin: true },
-      '/oauth2/': { target: 'http://localhost:8080/oauth2/', changeOrigin: true },
-      '/login/': { target: 'http://localhost:8080/login/', changeOrigin: true },
-    },
-  },
+  }
 })
