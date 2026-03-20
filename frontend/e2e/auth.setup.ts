@@ -45,8 +45,29 @@ export async function loginAsTestUser(page: Page): Promise<void> {
     )
   }
 
-  // The Set-Cookie header from the proxied response is stored in Playwright's
-  // API request context which shares cookies with the browser context.
-  // Subsequent page.goto() calls to localhost:3000 will include the cookie,
-  // and all $fetch calls go through the proxy (same-origin) so the cookie is sent.
+  // Verify the cookie was stored — Playwright's API context should process Set-Cookie.
+  const cookies = await page.context().cookies()
+  const authCookie = cookies.find(c => c.name === 'auth_token')
+  if (!authCookie) {
+    // Fallback: extract token from response headers and inject manually
+    const allHeaders = await response.headersArray()
+    const setCookieHeaders = allHeaders.filter(h => h.name.toLowerCase() === 'set-cookie')
+    const tokenHeader = setCookieHeaders.find(h => h.value.includes('auth_token='))
+    const tokenMatch = tokenHeader?.value.match(/auth_token=([^;]+)/)
+    if (!tokenMatch) {
+      throw new Error(
+        `auth_token not in cookies and not in Set-Cookie headers. ` +
+        `Response headers: ${JSON.stringify(allHeaders.map(h => `${h.name}: ${h.value.substring(0, 50)}`))}`
+      )
+    }
+    // Manually inject the cookie for the frontend origin
+    await page.context().addCookies([{
+      name: 'auth_token',
+      value: tokenMatch[1],
+      domain: 'localhost',
+      path: '/',
+      httpOnly: true,
+      sameSite: 'Lax',
+    }])
+  }
 }
