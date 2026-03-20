@@ -90,6 +90,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Fast-Gate Hook:** Pre-commit hooks MUST run ArchUnit and ESLint raw-text checks.
 - **Migration Naming:** Use `V{YYYYMMDD}_{NNN}__description.sql`.
 - **Severity-Gated Reviews:** Only CRITICAL/HIGH findings trigger a mandatory re-review round. MEDIUM/LOW are advisory.
+- **ALWAYS reproduce CI failures locally before attempting fixes.** Never iterate blind on CI — each push-and-wait cycle takes 15+ minutes. Run the exact same commands locally (same profile, same env vars, same seed data) to get instant feedback. For E2E: start backend with `SPRING_PROFILES_ACTIVE=test`, seed via `./gradlew flywayMigrate -PflywayExtraLocations=...`, start frontend, then `npx playwright test`.
 
 ### Critical Don't-Miss Rules
 
@@ -98,6 +99,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **Strict Module Isolation:** SQL queries are scoped to the module's own tables. Use facades for cross-module data.
 - **Legal Proof Integrity:** SHA-256 in `search_audit_log` is the legal truth. Includes exact disclaimer text.
 - **PII Zero-Tolerance:** Never log raw tax numbers, names, or emails. All log arguments must be `@LogSafe`.
+- **JWT Algorithm Consistency:** `JwtDecoder` MUST derive its `MacAlgorithm` from the signing key length (matching jjwt's `Keys.hmacShaKeyFor()` logic: ≥64B→HS512, ≥48B→HS384, ≥32B→HS256). Hardcoding the algorithm causes silent 401s when the JWT secret length changes between environments.
 
 ---
 
@@ -117,4 +119,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review quarterly for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-03-06
+Last Updated: 2026-03-20
