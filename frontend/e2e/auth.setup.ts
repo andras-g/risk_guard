@@ -19,18 +19,18 @@ export const E2E_USER = {
  * on the Playwright page context. The backend must be running with
  * SPRING_PROFILES_ACTIVE=test for this endpoint to exist.
  *
- * Strategy: call the backend directly via Playwright's API context, extract
- * the auth_token from the Set-Cookie response header, then inject it into
- * the browser context for the frontend origin. This avoids all cross-origin
- * and proxy cookie forwarding issues.
+ * Strategy: call the login endpoint through the Nuxt dev proxy (same-origin)
+ * so the browser stores the cookie for the frontend origin. With apiBase=''
+ * and Nitro devProxy, all API calls go through localhost:3000, eliminating
+ * cross-origin cookie issues entirely.
  */
 export async function loginAsTestUser(page: Page): Promise<void> {
-  const apiBase = process.env.PLAYWRIGHT_API_BASE ?? 'http://localhost:8080'
-  const frontendBase = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
-  const frontendUrl = new URL(frontendBase)
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000'
 
-  // Call the backend directly via Playwright's API context
-  const response = await page.request.post(`${apiBase}/api/test/auth/login`, {
+  // Call the login endpoint via the Nuxt dev proxy (same-origin request).
+  // The proxy forwards to localhost:8080, and the Set-Cookie from the
+  // backend response is stored for localhost:3000 (same origin as the SPA).
+  const response = await page.request.post(`${baseURL}/api/test/auth/login`, {
     data: {
       email: E2E_USER.email,
       role: E2E_USER.role,
@@ -45,29 +45,8 @@ export async function loginAsTestUser(page: Page): Promise<void> {
     )
   }
 
-  // Extract the auth_token value from the Set-Cookie response header.
-  // Playwright's page.request stores the cookie in the API context but NOT in the
-  // browser's cookie jar. We extract and inject it manually for both origins.
-  const allHeaders = await response.headersArray()
-  const setCookieHeader = allHeaders.find(h => h.name.toLowerCase() === 'set-cookie')
-  const setCookieValue = setCookieHeader?.value ?? ''
-  const tokenMatch = setCookieValue.match(/auth_token=([^;]+)/)
-  if (!tokenMatch) {
-    throw new Error(
-      `No auth_token cookie in login response. Headers: ${JSON.stringify(allHeaders.map(h => h.name))}`
-    )
-  }
-
-  // Inject the cookie into the browser context for BOTH origins:
-  // - localhost (covers both :3000 and :8080 since cookies are not port-scoped)
-  // This ensures the cookie is sent on both same-origin and cross-origin requests.
-  await page.context().addCookies([{
-    name: 'auth_token',
-    value: tokenMatch[1],
-    domain: 'localhost',
-    path: '/',
-    httpOnly: true,
-    sameSite: 'None',
-    secure: false,
-  }])
+  // The Set-Cookie header from the proxied response is stored in Playwright's
+  // API request context which shares cookies with the browser context.
+  // Subsequent page.goto() calls to localhost:3000 will include the cookie,
+  // and all $fetch calls go through the proxy (same-origin) so the cookie is sent.
 }
