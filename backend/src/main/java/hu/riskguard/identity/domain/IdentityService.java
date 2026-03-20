@@ -32,6 +32,7 @@ public class IdentityService {
     private final IdentityRepository identityRepository;
     private final PasswordEncoder passwordEncoder;
     private final RiskGuardProperties properties;
+    private final GuestSessionService guestSessionService;
 
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
@@ -150,5 +151,42 @@ public class IdentityService {
     public String getUserPreferredLanguage(UUID userId) {
         return identityRepository.findPreferredLanguageById(userId)
                 .orElse(properties.getIdentity().getDefaultLanguage());
+    }
+
+    // ─── Guest Session Facade (Story 3.12) ──────────────────────────────────────
+
+    /**
+     * Find or create a guest session by fingerprint. Delegates to GuestSessionService.
+     */
+    @Transactional
+    public GuestSession findOrCreateGuestSession(String sessionFingerprint) {
+        return guestSessionService.findOrCreateSession(sessionFingerprint);
+    }
+
+    /**
+     * Check guest session rate limits. Delegates to GuestSessionService.
+     */
+    @Transactional(readOnly = true)
+    public GuestLimitStatus checkGuestLimits(GuestSession session) {
+        return guestSessionService.checkLimits(session);
+    }
+
+    /**
+     * Increment guest session counters after a successful search.
+     */
+    @Transactional
+    public void incrementGuestCounters(UUID sessionId, boolean isNewCompany) {
+        guestSessionService.incrementCounters(sessionId, isNewCompany);
+    }
+
+    /**
+     * Get guest limit configuration values.
+     */
+    public int getGuestMaxCompanies() {
+        return guestSessionService.getMaxCompanies();
+    }
+
+    public int getGuestMaxDailyChecks() {
+        return guestSessionService.getMaxDailyChecks();
     }
 }

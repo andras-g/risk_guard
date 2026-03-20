@@ -20,6 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import static hu.riskguard.jooq.Tables.GUEST_SESSIONS;
 import static hu.riskguard.jooq.Tables.TENANTS;
 import static hu.riskguard.jooq.Tables.USERS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -95,6 +96,45 @@ class TenantIsolationIntegrationTest {
         assertEquals(1, countA, "Tenant A should see exactly 1 user (auto-filtered)");
         assertEquals(1, countB, "Tenant B should see exactly 1 user (auto-filtered)");
         
+        TenantContext.clear();
+    }
+
+    @Test
+    void authenticatedUserShouldNeverSeeGuestSessionData() {
+        // Given — create a guest session with a synthetic tenant ID
+        UUID guestSessionId = UUID.randomUUID();
+        UUID syntheticTenantId = UUID.nameUUIDFromBytes(("guest-" + guestSessionId).getBytes());
+        OffsetDateTime now = OffsetDateTime.now();
+
+        dsl.insertInto(GUEST_SESSIONS)
+                .set(GUEST_SESSIONS.ID, guestSessionId)
+                .set(GUEST_SESSIONS.TENANT_ID, syntheticTenantId)
+                .set(GUEST_SESSIONS.SESSION_FINGERPRINT, "test-fingerprint")
+                .set(GUEST_SESSIONS.COMPANIES_CHECKED, 3)
+                .set(GUEST_SESSIONS.DAILY_CHECKS, 1)
+                .set(GUEST_SESSIONS.CREATED_AT, now)
+                .set(GUEST_SESSIONS.EXPIRES_AT, now.plusHours(24))
+                .execute();
+
+        // Given — create a real tenant and authenticated user
+        UUID realTenantId = UUID.randomUUID();
+        dsl.insertInto(TENANTS)
+                .set(TENANTS.ID, realTenantId)
+                .set(TENANTS.NAME, "Real Tenant")
+                .set(TENANTS.TIER, "ALAP")
+                .set(TENANTS.CREATED_AT, now)
+                .execute();
+
+        // When — acting as the real tenant, query guest_sessions
+        TenantContext.setCurrentTenant(realTenantId);
+        int guestSessionCount = dsl.fetchCount(GUEST_SESSIONS);
+
+        // Then — authenticated user should NOT see the guest session
+        // (TenantJooqListener enforces tenant_id filtering on guest_sessions)
+        assertEquals(0, guestSessionCount,
+                "Authenticated user should never see guest session data " +
+                "(synthetic tenant ID should prevent cross-tenant access)");
+
         TenantContext.clear();
     }
 

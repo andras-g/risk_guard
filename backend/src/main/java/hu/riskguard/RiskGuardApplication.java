@@ -4,7 +4,11 @@ import hu.riskguard.core.config.RiskGuardProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+import java.time.Clock;
+import java.time.ZoneId;
 
 /**
  * Main application entry point for RiskGuard.
@@ -21,8 +25,25 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class RiskGuardApplication {
 
+	/**
+	 * Canonical timezone for all business-level time logic (daily reset, session expiry).
+	 * Hungarian company data + Hungarian users = Budapest timezone.
+	 */
+	public static final ZoneId BUSINESS_ZONE = ZoneId.of("Europe/Budapest");
+
 	public static void main(String[] args) {
 		SpringApplication.run(RiskGuardApplication.class, args);
+	}
+
+	/**
+	 * System clock bean for injectable time — allows tests to use fixed clocks
+	 * for deterministic time-dependent logic (e.g., guest session daily reset).
+	 * Uses Budapest timezone for consistent daily boundary behavior across
+	 * environments (dev=CET, prod=UTC container).
+	 */
+	@Bean
+	Clock clock() {
+		return Clock.system(BUSINESS_ZONE);
 	}
 
 }

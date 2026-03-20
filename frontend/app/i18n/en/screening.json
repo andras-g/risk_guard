@@ -23,6 +23,13 @@
     "disclaimer": {
       "text": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
     },
+    "guest": {
+      "companyLimitReached": "Demo limit reached — sign up to monitor unlimited partners",
+      "dailyLimitReached": "Daily limit reached — sign up for unlimited checks",
+      "progressIndicator": "{used} of {limit} companies used",
+      "signUpCta": "Sign Up",
+      "signUpForUnlimited": "Sign up for unlimited access"
+    },
     "freshness": {
       "fresh": "Fresh",
       "label": "Data Freshness:",

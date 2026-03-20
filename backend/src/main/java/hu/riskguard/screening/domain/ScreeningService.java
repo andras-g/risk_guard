@@ -419,6 +419,19 @@ public class ScreeningService {
     }
 
     /**
+     * Check if a snapshot exists for a given tenant and tax number.
+     * Used by the guest search flow to determine if a tax number has been searched before
+     * in a guest session (the guest's synthetic tenant ID scopes the query).
+     *
+     * @param tenantId  the tenant ID (synthetic for guests)
+     * @param taxNumber normalized tax number
+     * @return true if a snapshot exists for this tenant + tax number
+     */
+    public boolean hasSnapshotForTenant(UUID tenantId, String taxNumber) {
+        return screeningRepository.existsSnapshotByTenantAndTaxNumber(tenantId, taxNumber);
+    }
+
+    /**
      * Domain result of a partner search.
      * Mapped to VerdictResponse by the controller layer.
      * Uses real enum types from the VerdictEngine state machine (Story 2.3).

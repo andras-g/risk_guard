@@ -23,6 +23,13 @@
     "disclaimer": {
       "text": "Ez a keresési eredmény kizárólag tájékoztató jellegű. Az adatok magyar kormányzati nyilvántartásokból származnak, és nem biztos, hogy valós idejű állapotot tükröznek."
     },
+    "guest": {
+      "companyLimitReached": "Demo limit elérve — regisztráljon a korlátlan partnerfelügyelethez",
+      "dailyLimitReached": "Napi limit elérve — regisztráljon a korlátlan átvilágításhoz",
+      "progressIndicator": "{used}/{limit} cég ellenőrizve",
+      "signUpCta": "Regisztráció",
+      "signUpForUnlimited": "Regisztráljon a korlátlan hozzáféréshez"
+    },
     "freshness": {
       "fresh": "Friss",
       "label": "Adatfrissesség:",

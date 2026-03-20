@@ -1,9 +1,11 @@
 package hu.riskguard.identity.internal;
 
 import hu.riskguard.core.repository.BaseRepository;
+import hu.riskguard.identity.domain.GuestSession;
 import hu.riskguard.identity.domain.Tenant;
 import hu.riskguard.identity.domain.TenantMandate;
 import hu.riskguard.identity.domain.User;
+import hu.riskguard.jooq.tables.records.GuestSessionsRecord;
 import hu.riskguard.jooq.tables.records.TenantMandatesRecord;
 import hu.riskguard.jooq.tables.records.TenantsRecord;
 import hu.riskguard.jooq.tables.records.UsersRecord;
@@ -11,11 +13,13 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static hu.riskguard.jooq.Tables.GUEST_SESSIONS;
 import static hu.riskguard.jooq.Tables.TENANTS;
 import static hu.riskguard.jooq.Tables.TENANT_MANDATES;
 import static hu.riskguard.jooq.Tables.USERS;
@@ -23,8 +27,11 @@ import static hu.riskguard.jooq.Tables.USERS;
 @Repository
 public class IdentityRepository extends BaseRepository {
 
-    public IdentityRepository(DSLContext dsl) {
+    private final Clock clock;
+
+    public IdentityRepository(DSLContext dsl, Clock clock) {
         super(dsl);
+        this.clock = clock;
     }
 
     /**
@@ -175,5 +182,96 @@ public class IdentityRepository extends BaseRepository {
         TenantMandatesRecord record = dsl.newRecord(TENANT_MANDATES);
         record.from(mandate);
         dsl.insertInto(TENANT_MANDATES).set(record).execute();
+    }
+
+    // ─── Guest Session CRUD (Story 3.12) ────────────────────────────────────────
+
+    /**
+     * Find a non-expired guest session by fingerprint — intentionally cross-tenant.
+     * Guest sessions use synthetic tenant IDs, so no TenantContext filtering applies.
+     *
+     * <p>Uses {@code FOR UPDATE} to acquire a row-level lock, preventing TOCTOU race
+     * conditions where concurrent requests for the same fingerprint could exceed
+     * company/daily limits. The lock is held until the enclosing transaction commits.
+     */
+    public Optional<GuestSession> findGuestSessionByFingerprintForUpdate(String sessionFingerprint) {
+        return dsl.select(
+                        GUEST_SESSIONS.ID,
+                        GUEST_SESSIONS.TENANT_ID,
+                        GUEST_SESSIONS.SESSION_FINGERPRINT,
+                        GUEST_SESSIONS.COMPANIES_CHECKED,
+                        GUEST_SESSIONS.DAILY_CHECKS,
+                        GUEST_SESSIONS.CREATED_AT,
+                        GUEST_SESSIONS.EXPIRES_AT
+                )
+                .from(GUEST_SESSIONS)
+                .where(GUEST_SESSIONS.SESSION_FINGERPRINT.eq(sessionFingerprint))
+                .and(GUEST_SESSIONS.EXPIRES_AT.gt(OffsetDateTime.now(clock)))
+                .forUpdate()
+                .fetchOptional(r -> new GuestSession(
+                        r.get(GUEST_SESSIONS.ID),
+                        r.get(GUEST_SESSIONS.TENANT_ID),
+                        r.get(GUEST_SESSIONS.SESSION_FINGERPRINT),
+                        r.get(GUEST_SESSIONS.COMPANIES_CHECKED),
+                        r.get(GUEST_SESSIONS.DAILY_CHECKS),
+                        r.get(GUEST_SESSIONS.CREATED_AT),
+                        r.get(GUEST_SESSIONS.EXPIRES_AT)
+                ));
+    }
+
+    /**
+     * Create a new guest session — intentionally cross-tenant (synthetic tenant ID).
+     */
+    public void createGuestSession(UUID sessionId, UUID syntheticTenantId,
+                                    String sessionFingerprint, OffsetDateTime createdAt,
+                                    OffsetDateTime expiresAt) {
+        dsl.insertInto(GUEST_SESSIONS)
+                .set(GUEST_SESSIONS.ID, sessionId)
+                .set(GUEST_SESSIONS.TENANT_ID, syntheticTenantId)
+                .set(GUEST_SESSIONS.SESSION_FINGERPRINT, sessionFingerprint)
+                .set(GUEST_SESSIONS.COMPANIES_CHECKED, 0)
+                .set(GUEST_SESSIONS.DAILY_CHECKS, 0)
+                .set(GUEST_SESSIONS.CREATED_AT, createdAt)
+                .set(GUEST_SESSIONS.EXPIRES_AT, expiresAt)
+                .execute();
+    }
+
+    /**
+     * Increment the daily_checks counter for a guest session.
+     */
+    public void incrementGuestDailyChecks(UUID sessionId) {
+        dsl.update(GUEST_SESSIONS)
+                .set(GUEST_SESSIONS.DAILY_CHECKS, GUEST_SESSIONS.DAILY_CHECKS.add(1))
+                .where(GUEST_SESSIONS.ID.eq(sessionId))
+                .execute();
+    }
+
+    /**
+     * Increment the companies_checked counter for a guest session.
+     */
+    public void incrementGuestCompaniesChecked(UUID sessionId) {
+        dsl.update(GUEST_SESSIONS)
+                .set(GUEST_SESSIONS.COMPANIES_CHECKED, GUEST_SESSIONS.COMPANIES_CHECKED.add(1))
+                .where(GUEST_SESSIONS.ID.eq(sessionId))
+                .execute();
+    }
+
+    /**
+     * Reset the daily_checks counter to 0 for a guest session (daily reset).
+     */
+    public void resetGuestDailyChecks(UUID sessionId) {
+        dsl.update(GUEST_SESSIONS)
+                .set(GUEST_SESSIONS.DAILY_CHECKS, 0)
+                .where(GUEST_SESSIONS.ID.eq(sessionId))
+                .execute();
+    }
+
+    /**
+     * Delete all expired guest sessions. Returns the count of deleted rows.
+     */
+    public int deleteExpiredGuestSessions() {
+        return dsl.deleteFrom(GUEST_SESSIONS)
+                .where(GUEST_SESSIONS.EXPIRES_AT.lt(OffsetDateTime.now(clock)))
+                .execute();
     }
 }

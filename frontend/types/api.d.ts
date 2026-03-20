@@ -38,6 +38,40 @@ export interface SnapshotProvenanceResponse {
   sources: SourceProvenanceEntry[]
 }
 
+// ─── Guest Search DTOs (Story 3.12) ─────────────────────────────────────────
+// TODO: Remove manual definitions below once CI OpenAPI pipeline generates these
+// from GuestSearchRequest.java / GuestSearchResponse.java / GuestLimitResponse.java.
+// See: npm run generate-types (requires backend running with OpenAPI spec enabled).
+
+export interface GuestSearchRequest {
+  taxNumber: string
+  sessionFingerprint: string
+}
+
+export interface GuestSearchResponse {
+  id: string
+  snapshotId: string
+  taxNumber: string
+  status: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE'
+  confidence: 'FRESH' | 'STALE' | 'UNAVAILABLE'
+  createdAt: string
+  riskSignals: string[]
+  cached: boolean
+  companyName: string | null
+  companiesUsed: number
+  companiesLimit: number
+  dailyChecksUsed: number
+  dailyChecksLimit: number
+}
+
+export interface GuestLimitResponse {
+  error: 'COMPANY_LIMIT_REACHED' | 'DAILY_LIMIT_REACHED'
+  companiesUsed: number | null
+  companiesLimit: number | null
+  dailyChecksUsed: number | null
+  dailyChecksLimit: number | null
+}
+
 // ─── Company Snapshot DTOs ──────────────────────────────────────────────────
 
 export interface CompanySnapshotResponse {

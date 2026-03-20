@@ -460,6 +460,27 @@ public class ScreeningRepository extends BaseRepository {
             OffsetDateTime checkedAt
     ) {}
 
+    /**
+     * Check if a snapshot exists for a given tenant and tax number.
+     * Used by the guest search flow to determine if a tax number is "new" for a guest session.
+     *
+     * <p>This method requires an explicit {@code tenantId} parameter because it is called
+     * from the guest search endpoint which manually sets {@code TenantContext} with the
+     * synthetic guest tenant ID.
+     *
+     * @param tenantId  the synthetic guest tenant ID
+     * @param taxNumber normalized tax number
+     * @return true if a snapshot exists for this tenant + tax number combination
+     */
+    public boolean existsSnapshotByTenantAndTaxNumber(UUID tenantId, String taxNumber) {
+        return dsl.fetchExists(
+                dsl.selectOne()
+                        .from(COMPANY_SNAPSHOTS)
+                        .where(COMPANY_SNAPSHOTS.TENANT_ID.eq(tenantId))
+                        .and(COMPANY_SNAPSHOTS.TAX_NUMBER.eq(taxNumber))
+        );
+    }
+
     private UUID requireTenantId() {
         UUID tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {

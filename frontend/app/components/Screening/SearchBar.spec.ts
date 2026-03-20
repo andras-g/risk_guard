@@ -8,7 +8,53 @@ import { z } from 'zod'
  * Tests validate using the same Zod schema as the component (AC1 compliance).
  * Formatting and search flow logic are tested via extracted function signatures.
  * Co-located with SearchBar.vue per architecture rules.
+ *
+ * vi.mock() calls are hoisted to file top by Vitest, so they must use inline
+ * factories that don't reference variables defined later in the file.
  */
+
+// ─── Shared mock state for guest session (mutable so tests can change it) ───
+// vi.mock is hoisted by Vitest, so we use a shared mutable object that
+// the mock factory reads from and individual tests can modify before mounting.
+const guestMockState = {
+  limitError: null as string | null,
+  companiesUsed: 7,
+  companiesLimit: 10,
+  dailyChecksUsed: 2,
+  dailyChecksLimit: 3,
+}
+
+// File-level mocks (hoisted by Vitest) — these run before any describe/it blocks
+vi.mock('~/stores/screening', () => ({
+  useScreeningStore: () => ({ isSearching: false, search: vi.fn() })
+}))
+vi.mock('~/stores/auth', () => ({
+  useAuthStore: () => ({ isAuthenticated: false, email: null })
+}))
+vi.mock('~/composables/auth/useGuestSession', () => ({
+  useGuestSession: () => ({
+    isSearching: ref(false),
+    searchError: ref(null),
+    limitError: ref(guestMockState.limitError),
+    currentVerdict: ref(null),
+    usageStats: ref({
+      companiesUsed: guestMockState.companiesUsed,
+      companiesLimit: guestMockState.companiesLimit,
+      dailyChecksUsed: guestMockState.dailyChecksUsed,
+      dailyChecksLimit: guestMockState.dailyChecksLimit,
+    }),
+    hasRemainingCompanies: ref(true),
+    hasRemainingDailyChecks: ref(true),
+    guestSearch: vi.fn().mockResolvedValue(undefined),
+    clearGuestSearch: vi.fn(),
+    getSessionFingerprint: () => 'test-fingerprint',
+  })
+}))
+vi.mock('~/utils/taxNumber', () => ({
+  formatTaxNumber: (v: string) => v,
+  taxNumberSchema: { safeParse: () => ({ success: true }) }
+}))
+
 describe('SearchBar — tax number validation (Zod)', () => {
   // Same schema used in SearchBar.vue
   const hungarianTaxNumberSchema = z.string().regex(
@@ -95,17 +141,9 @@ describe('SearchBar — auto-formatting', () => {
   })
 })
 
-describe('SearchBar — accessibility (Story 3.0c)', () => {
-  // These tests require mounting the actual component to verify real DOM attributes.
-  // We need mocks for the store and utility imports.
-
-  vi.mock('~/stores/screening', () => ({
-    useScreeningStore: () => ({ isSearching: false, search: vi.fn() })
-  }))
-  vi.mock('~/utils/taxNumber', () => ({
-    formatTaxNumber: (v: string) => v,
-    taxNumberSchema: { safeParse: () => ({ success: true }) }
-  }))
+describe('SearchBar — guest mode (Story 3.12)', () => {
+  // File-level vi.mock() calls (hoisted above) provide the default mocks.
+  // These tests mount the actual component and verify DOM output.
 
   const InputTextStub = {
     template: '<input :id="$attrs.id" :aria-describedby="$attrs[\'aria-describedby\']" :aria-invalid="$attrs[\'aria-invalid\']" />',
@@ -116,12 +154,93 @@ describe('SearchBar — accessibility (Story 3.0c)', () => {
     props: ['label', 'loading', 'disabled', 'icon']
   }
 
-  async function mountSearchBar() {
+  async function mountSearchBar(overrides?: Record<string, unknown>) {
     const { mount } = await import('@vue/test-utils')
+    const { createPinia } = await import('pinia')
     const SearchBar = (await import('./SearchBar.vue')).default
     return mount(SearchBar, {
       global: {
-        stubs: { InputText: InputTextStub, Button: ButtonStub }
+        plugins: [createPinia()],
+        stubs: {
+          InputText: InputTextStub,
+          Button: ButtonStub,
+          ProgressBar: { template: '<div data-testid="progress-bar" :data-value="value" />', props: ['value', 'showValue'] },
+          NuxtLink: { template: '<a :href="to" data-testid="register-cta"><slot /></a>', props: ['to'] },
+        },
+        ...overrides,
+      }
+    })
+  }
+
+  it('should render guest progress indicator element', async () => {
+    guestMockState.limitError = null
+    guestMockState.companiesUsed = 7
+    guestMockState.companiesLimit = 10
+    const wrapper = await mountSearchBar()
+    const progress = wrapper.find('[data-testid="guest-progress"]')
+    expect(progress.exists()).toBe(true)
+  })
+
+  it('should render ProgressBar with correct percentage value', async () => {
+    guestMockState.limitError = null
+    guestMockState.companiesUsed = 7
+    guestMockState.companiesLimit = 10
+    const wrapper = await mountSearchBar()
+    const progressBar = wrapper.find('[data-testid="progress-bar"]')
+    expect(progressBar.exists()).toBe(true)
+    // 7/10 = 70%
+    expect(progressBar.attributes('data-value')).toBe('70')
+  })
+
+  it('should show company limit message when COMPANY_LIMIT_REACHED', async () => {
+    guestMockState.limitError = 'COMPANY_LIMIT_REACHED'
+    guestMockState.companiesUsed = 10
+    guestMockState.companiesLimit = 10
+    const wrapper = await mountSearchBar()
+    const companyLimit = wrapper.find('[data-testid="company-limit-message"]')
+    expect(companyLimit.exists()).toBe(true)
+    // Should contain a registration CTA link
+    const ctaLink = companyLimit.find('[data-testid="register-cta"]')
+    expect(ctaLink.exists()).toBe(true)
+    expect(ctaLink.attributes('href')).toBe('/auth/register')
+  })
+
+  it('should show daily limit message when DAILY_LIMIT_REACHED', async () => {
+    guestMockState.limitError = 'DAILY_LIMIT_REACHED'
+    guestMockState.dailyChecksUsed = 3
+    guestMockState.dailyChecksLimit = 3
+    const wrapper = await mountSearchBar()
+    const dailyLimit = wrapper.find('[data-testid="daily-limit-message"]')
+    expect(dailyLimit.exists()).toBe(true)
+    const ctaLink = dailyLimit.find('[data-testid="register-cta"]')
+    expect(ctaLink.exists()).toBe(true)
+    expect(ctaLink.attributes('href')).toBe('/auth/register')
+  })
+})
+
+describe('SearchBar — accessibility (Story 3.0c)', () => {
+  // Mocks are shared from the guest mode describe block above (vi.mock is hoisted by Vitest).
+  // Reuse the same mount helper pattern.
+
+  async function mountSearchBar() {
+    const { mount } = await import('@vue/test-utils')
+    const { createPinia } = await import('pinia')
+    const SearchBar = (await import('./SearchBar.vue')).default
+    return mount(SearchBar, {
+      global: {
+        plugins: [createPinia()],
+        stubs: {
+          InputText: {
+            template: '<input :id="$attrs.id" :aria-describedby="$attrs[\'aria-describedby\']" :aria-invalid="$attrs[\'aria-invalid\']" />',
+            inheritAttrs: true
+          },
+          Button: {
+            template: '<button type="submit"><slot /></button>',
+            props: ['label', 'loading', 'disabled', 'icon']
+          },
+          ProgressBar: { template: '<div />', props: ['value', 'showValue'] },
+          NuxtLink: { template: '<a><slot /></a>', props: ['to'] },
+        }
       }
     })
   }
