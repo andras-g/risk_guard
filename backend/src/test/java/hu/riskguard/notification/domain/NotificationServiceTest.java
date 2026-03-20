@@ -2,9 +2,11 @@ package hu.riskguard.notification.domain;
 
 import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.identity.domain.IdentityService;
+import hu.riskguard.notification.domain.FlightControlTenantSummary;
 import hu.riskguard.notification.internal.NotificationRepository;
 import hu.riskguard.notification.internal.NotificationRepository.OutboxRecord;
 import hu.riskguard.notification.internal.NotificationRepository.PortfolioOutboxRecord;
+import hu.riskguard.notification.internal.NotificationRepository.WatchlistAggregateRow;
 import hu.riskguard.notification.internal.NotificationRepository.WatchlistEntryRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -350,6 +352,115 @@ class NotificationServiceTest {
         OffsetDateTime capturedSince = sinceCaptor.getValue();
         assertThat(capturedSince).isAfter(before);
         assertThat(capturedSince).isBefore(after);
+    }
+
+    // --- getFlightControlSummary (Story 3.10) ---
+
+    @Test
+    void getFlightControlSummary_aggregatesWatchlistByTenant() {
+        when(identityService.getActiveMandateTenantIds(eq(USER_ID)))
+                .thenReturn(List.of(TENANT_ID, TENANT_B));
+        when(notificationRepository.findTenantNamesByIds(eq(List.of(TENANT_ID, TENANT_B))))
+                .thenReturn(Map.of(TENANT_ID, "Tenant A", TENANT_B, "Tenant B"));
+
+        List<WatchlistAggregateRow> rows = List.of(
+                new WatchlistAggregateRow(TENANT_ID, "RELIABLE", 3, OffsetDateTime.now()),
+                new WatchlistAggregateRow(TENANT_ID, "AT_RISK", 2, OffsetDateTime.now()),
+                new WatchlistAggregateRow(TENANT_B, "RELIABLE", 5, OffsetDateTime.now()));
+        when(notificationRepository.aggregateWatchlistByTenant(eq(List.of(TENANT_ID, TENANT_B))))
+                .thenReturn(rows);
+
+        NotificationService.FlightControlResult result = service.getFlightControlSummary(USER_ID);
+
+        assertThat(result.tenants()).hasSize(2);
+        assertThat(result.totalClients()).isEqualTo(2);
+        assertThat(result.totalAtRisk()).isEqualTo(2);
+        assertThat(result.totalStale()).isEqualTo(0);
+        assertThat(result.totalPartners()).isEqualTo(10);
+    }
+
+    @Test
+    void getFlightControlSummary_sortsByAtRiskCountDesc() {
+        when(identityService.getActiveMandateTenantIds(eq(USER_ID)))
+                .thenReturn(List.of(TENANT_ID, TENANT_B));
+        when(notificationRepository.findTenantNamesByIds(any()))
+                .thenReturn(Map.of(TENANT_ID, "Low Risk", TENANT_B, "High Risk"));
+
+        List<WatchlistAggregateRow> rows = List.of(
+                new WatchlistAggregateRow(TENANT_ID, "AT_RISK", 1, null),
+                new WatchlistAggregateRow(TENANT_B, "AT_RISK", 5, null));
+        when(notificationRepository.aggregateWatchlistByTenant(any()))
+                .thenReturn(rows);
+
+        NotificationService.FlightControlResult result = service.getFlightControlSummary(USER_ID);
+
+        // TENANT_B has 5 at-risk, should come first
+        assertThat(result.tenants().get(0).tenantName()).isEqualTo("High Risk");
+        assertThat(result.tenants().get(0).atRiskCount()).isEqualTo(5);
+        assertThat(result.tenants().get(1).atRiskCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getFlightControlSummary_includesZeroEntryTenants() {
+        when(identityService.getActiveMandateTenantIds(eq(USER_ID)))
+                .thenReturn(List.of(TENANT_ID, TENANT_B));
+        when(notificationRepository.findTenantNamesByIds(any()))
+                .thenReturn(Map.of(TENANT_ID, "Active", TENANT_B, "Empty"));
+
+        // Only TENANT_ID has entries; TENANT_B has none
+        List<WatchlistAggregateRow> rows = List.of(
+                new WatchlistAggregateRow(TENANT_ID, "RELIABLE", 4, OffsetDateTime.now()));
+        when(notificationRepository.aggregateWatchlistByTenant(any()))
+                .thenReturn(rows);
+
+        NotificationService.FlightControlResult result = service.getFlightControlSummary(USER_ID);
+
+        assertThat(result.tenants()).hasSize(2);
+        // Find TENANT_B's summary — should have all-zero counts
+        FlightControlTenantSummary emptyTenant = result.tenants().stream()
+                .filter(t -> t.tenantId().equals(TENANT_B))
+                .findFirst()
+                .orElseThrow();
+        assertThat(emptyTenant.totalPartners()).isEqualTo(0);
+        assertThat(emptyTenant.atRiskCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getFlightControlSummary_computesTotals() {
+        when(identityService.getActiveMandateTenantIds(eq(USER_ID)))
+                .thenReturn(List.of(TENANT_ID, TENANT_B));
+        when(notificationRepository.findTenantNamesByIds(any()))
+                .thenReturn(Map.of(TENANT_ID, "Tenant A", TENANT_B, "Tenant B"));
+
+        List<WatchlistAggregateRow> rows = List.of(
+                new WatchlistAggregateRow(TENANT_ID, "AT_RISK", 3, null),
+                new WatchlistAggregateRow(TENANT_ID, "UNAVAILABLE", 2, null),
+                new WatchlistAggregateRow(TENANT_B, "RELIABLE", 5, null),
+                new WatchlistAggregateRow(TENANT_B, "AT_RISK", 1, null));
+        when(notificationRepository.aggregateWatchlistByTenant(any()))
+                .thenReturn(rows);
+
+        NotificationService.FlightControlResult result = service.getFlightControlSummary(USER_ID);
+
+        assertThat(result.totalAtRisk()).isEqualTo(4);    // 3 + 1
+        assertThat(result.totalStale()).isEqualTo(2);     // 2 UNAVAILABLE
+        assertThat(result.totalPartners()).isEqualTo(11); // 3+2+5+1
+    }
+
+    @Test
+    void getFlightControlSummary_respectsMandateFiltering() {
+        // Empty mandate list = no tenants
+        when(identityService.getActiveMandateTenantIds(eq(USER_ID)))
+                .thenReturn(List.of());
+        when(notificationRepository.findTenantNamesByIds(eq(List.of())))
+                .thenReturn(Map.of());
+
+        NotificationService.FlightControlResult result = service.getFlightControlSummary(USER_ID);
+
+        assertThat(result.tenants()).isEmpty();
+        assertThat(result.totalClients()).isEqualTo(0);
+        // No aggregation query needed for empty tenant list
+        verify(notificationRepository, never()).aggregateWatchlistByTenant(any());
     }
 
     // --- Helpers ---

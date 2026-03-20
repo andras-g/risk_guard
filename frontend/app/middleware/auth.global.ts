@@ -45,4 +45,15 @@ export default defineNuxtRouteMiddleware(async (to) => {
   if (!authStore.isAuthenticated) {
     return navigateTo('/auth/login')
   }
+
+  // Handle post-tenant-switch redirect: after switchTenant() reloads the page,
+  // navigate to the stored target instead of staying on the current URL.
+  // This is consumed once and removed from sessionStorage immediately.
+  if (import.meta.client) {
+    const redirect = sessionStorage.getItem('postSwitchRedirect')
+    if (redirect) {
+      sessionStorage.removeItem('postSwitchRedirect')
+      return navigateTo(redirect)
+    }
+  }
 })

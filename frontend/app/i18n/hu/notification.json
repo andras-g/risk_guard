@@ -1,5 +1,26 @@
 {
   "notification": {
+    "flightControl": {
+      "columnAtRisk": "Kockázatos",
+      "columnClient": "Ügyfél neve",
+      "columnLastCheck": "Utolsó ellenőrzés",
+      "columnReliable": "Megbízható",
+      "columnStale": "Elavult",
+      "columnTotal": "Összes partner",
+      "emptyAction": "Meghívó küldése",
+      "emptyBody": "Még nincs hozzárendelt ügyfele. Hívjon meg egy ügyfelet a kezdéshez.",
+      "emptyTitle": "Még nincsenek ügyfelek",
+      "filterAll": "Összes ügyfél",
+      "filterAtRisk": "Kockázatos partnerekkel",
+      "filterPlaceholder": "Szűrés ügyfélnév szerint...",
+      "filterStale": "Elavult partnerekkel",
+      "navLabel": "Repülésvezérlés",
+      "pageTitle": "Repülésvezérlés",
+      "recentAlerts": "Legutóbbi riasztások",
+      "summaryAtRisk": "Kockázatos",
+      "summaryStale": "Elavult",
+      "summaryTotalClients": "Összes ügyfél"
+    },
     "watchlist": {
       "addButton": "Partner hozzáadása",
       "addDialog": {

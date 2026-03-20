@@ -29,8 +29,10 @@
           v-for="item in mainNavItems"
           :key="item.to"
         >
+          <!-- Conditionally render: accountantOnly items are ONLY shown to ACCOUNTANTs (AC8) -->
           <NuxtLink
-            v-tooltip.right="!sidebarExpanded ? $t(`common.nav.${item.key}`) : undefined"
+            v-if="!item.accountantOnly || isAccountant"
+            v-tooltip.right="!sidebarExpanded ? navLabel(item) : undefined"
             :to="item.to"
             :class="[
               'flex items-center h-10 rounded-md transition-colors',
@@ -46,7 +48,7 @@
             <span
               v-if="sidebarExpanded"
               class="text-sm font-medium flex-1"
-            >{{ $t(`common.nav.${item.key}`) }}</span>
+            >{{ navLabel(item) }}</span>
             <Badge
               v-if="item.showBadge && watchlistCount > 0 && sidebarExpanded"
               :value="watchlistCount"
@@ -112,6 +114,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import Badge from 'primevue/badge'
+import Divider from 'primevue/divider'
 import { useLayoutStore } from '~/stores/layout'
 import { useAuthStore } from '~/stores/auth'
 import { useWatchlistStore } from '~/stores/watchlist'
@@ -123,13 +126,14 @@ const authStore = useAuthStore()
 const watchlistStore = useWatchlistStore()
 
 const { sidebarExpanded } = storeToRefs(layoutStore)
-const { role } = storeToRefs(authStore)
+const { role, isAccountant } = storeToRefs(authStore)
 
 const isAdmin = computed(() => role.value === 'ADMIN')
 const watchlistCount = computed(() => watchlistStore.count)
 
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
+  { key: 'flightControl', to: '/flight-control', icon: 'pi-objects-column', accountantOnly: true },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
   { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
   { key: 'epr', to: '/epr', icon: 'pi-file-export' }
@@ -139,6 +143,14 @@ const mainNavItems = [
 onMounted(async () => {
   await watchlistStore.fetchCount()
 })
+
+/** Resolve the display label for a nav item — accountantOnly items use notification namespace. */
+function navLabel(item: { key: string, accountantOnly?: boolean }): string {
+  if (item.accountantOnly) {
+    return $t('notification.flightControl.navLabel')
+  }
+  return $t(`common.nav.${item.key}`)
+}
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')

@@ -107,3 +107,30 @@ export interface PortfolioAlertResponse {
   sha256Hash: string | null
   verdictId: string | null
 }
+
+// ─── Flight Control DTOs (Story 3.10) ───────────────────────────────────────
+// NOTE: These are temporary placeholders until CI auto-regenerates api.d.ts from OpenAPI spec.
+// Once regenerated, remove these manual additions and verify `tsc --noEmit` passes.
+
+export interface FlightControlTenantSummaryResponse {
+  tenantId: string
+  tenantName: string
+  reliableCount: number
+  atRiskCount: number
+  staleCount: number
+  incompleteCount: number
+  totalPartners: number
+  lastCheckedAt: string | null
+}
+
+export interface FlightControlTotals {
+  totalClients: number
+  totalAtRisk: number
+  totalStale: number
+  totalPartners: number
+}
+
+export interface FlightControlResponse {
+  totals: FlightControlTotals
+  tenants: FlightControlTenantSummaryResponse[]
+}

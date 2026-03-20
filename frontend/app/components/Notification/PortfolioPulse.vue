@@ -119,10 +119,13 @@ async function handleAlertClick(alert: PortfolioAlertResponse) {
       <li
         v-for="alert in alerts.slice(0, 20)"
         :key="alert.alertId"
+        role="button"
+        tabindex="0"
         class="flex items-start gap-3 p-3 rounded-md border-l-4 cursor-pointer hover:bg-slate-50 transition-colors"
         :class="statusColorClass(alert.newStatus)"
         data-testid="portfolio-pulse-item"
         @click="handleAlertClick(alert)"
+        @keydown.enter="handleAlertClick(alert)"
       >
         <i
           :class="statusIconClass(alert.newStatus)"

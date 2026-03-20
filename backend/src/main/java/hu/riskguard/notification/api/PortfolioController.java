@@ -1,5 +1,6 @@
 package hu.riskguard.notification.api;
 
+import hu.riskguard.notification.api.dto.FlightControlResponse;
 import hu.riskguard.notification.api.dto.PortfolioAlertResponse;
 import hu.riskguard.notification.domain.NotificationService;
 import hu.riskguard.notification.domain.PortfolioAlert;
@@ -56,6 +57,25 @@ public class PortfolioController {
     }
 
     /**
+     * Get the accountant's cross-tenant Flight Control dashboard summary.
+     *
+     * <p>Returns per-client verdict status counts and portfolio-wide totals.
+     * Tenants are ordered by atRiskCount DESC, then staleCount DESC.
+     * Only users with the {@code ACCOUNTANT} role may access this endpoint.
+     *
+     * @param jwt the authenticated user's JWT
+     * @return flight control response with totals and per-tenant summaries
+     */
+    @GetMapping("/flight-control")
+    public FlightControlResponse getFlightControl(@AuthenticationPrincipal Jwt jwt) {
+        requireAccountantRole(jwt);
+        UUID userId = resolveUserId(jwt);
+
+        NotificationService.FlightControlResult result = notificationService.getFlightControlSummary(userId);
+        return FlightControlResponse.from(result);
+    }
+
+    /**
      * Verify the JWT holder has the ACCOUNTANT role.
      * Non-accountants are rejected with 403 FORBIDDEN.
      */
@@ -63,7 +83,7 @@ public class PortfolioController {
         String role = jwt.getClaimAsString("role");
         if (!"ACCOUNTANT".equals(role)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Portfolio alerts are only available to ACCOUNTANT users");
+                    "This endpoint is only available to ACCOUNTANT users");
         }
     }
 

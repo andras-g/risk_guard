@@ -84,6 +84,106 @@ public class NotificationService {
         return notificationRepository.findAllMonitoredPartners();
     }
 
+    // --- Flight Control (Story 3.10) ---
+
+    /**
+     * Get the accountant's cross-tenant Flight Control summary.
+     *
+     * <p>Aggregates watchlist entries across ALL tenants the accountant has active mandates for.
+     * Returns per-tenant verdict status counts and portfolio-wide totals, sorted by
+     * atRiskCount DESC, then staleCount DESC (most critical clients first).
+     *
+     * <p><b>PRIVILEGED CROSS-TENANT READ — accountant mandate-scoped:</b>
+     * Authorization is enforced via mandate check; does NOT use TenantFilter context.
+     *
+     * @param userId the accountant's user ID (resolved from JWT sub claim by controller)
+     * @return domain object with per-tenant summaries and portfolio totals
+     */
+    @Transactional(readOnly = true)
+    public FlightControlResult getFlightControlSummary(UUID userId) {
+        // Step 1: Resolve all mandated tenant IDs (mandate validity enforced by identityService)
+        List<UUID> tenantIds = identityService.getActiveMandateTenantIds(userId);
+
+        // Step 2: Resolve tenant names by querying the tenants table directly
+        // (avoids importing identity module DTOs from identity.api.dto)
+        Map<UUID, String> tenantNames = notificationRepository.findTenantNamesByIds(tenantIds);
+
+        // Build zero-entry summaries for every mandated tenant (tenants with no watchlist still appear)
+        Map<UUID, FlightControlTenantSummary.Builder> builders = new java.util.LinkedHashMap<>();
+        for (UUID tenantId : tenantIds) {
+            builders.put(tenantId, new FlightControlTenantSummary.Builder(
+                    tenantId, tenantNames.getOrDefault(tenantId, "Unknown")));
+        }
+
+        // Step 3: Aggregate watchlist entries by tenant and status (cross-tenant read)
+        if (!tenantIds.isEmpty()) {
+            List<NotificationRepository.WatchlistAggregateRow> rows =
+                    notificationRepository.aggregateWatchlistByTenant(tenantIds);
+
+            for (NotificationRepository.WatchlistAggregateRow row : rows) {
+                FlightControlTenantSummary.Builder builder = builders.get(row.tenantId());
+                if (builder == null) continue; // safety guard
+
+                // Map status to correct count bucket
+                // staleCount: UNAVAILABLE entries (no confidence column — treat UNAVAILABLE as stale)
+                // atRiskCount: AT_RISK + TAX_SUSPENDED entries
+                // incompleteCount: INCOMPLETE entries
+                // reliableCount: RELIABLE entries
+                String status = row.lastVerdictStatus();
+                if (status == null) {
+                    builder.addIncomplete(row.count());
+                } else {
+                    switch (status) {
+                        case "RELIABLE" -> builder.addReliable(row.count());
+                        case "AT_RISK", "TAX_SUSPENDED" -> builder.addAtRisk(row.count());
+                        case "UNAVAILABLE" -> builder.addStale(row.count());
+                        case "INCOMPLETE" -> builder.addIncomplete(row.count());
+                        default -> builder.addIncomplete(row.count());
+                    }
+                }
+
+                // Track MAX last_checked_at for this tenant
+                if (row.lastChecked() != null) {
+                    builder.updateLastChecked(row.lastChecked());
+                }
+            }
+        }
+
+        // Build sorted per-tenant summaries: atRiskCount DESC, then staleCount DESC
+        List<FlightControlTenantSummary> tenants = builders.values().stream()
+                .map(FlightControlTenantSummary.Builder::build)
+                .sorted((a, b) -> {
+                    if (b.atRiskCount() != a.atRiskCount()) return Integer.compare(b.atRiskCount(), a.atRiskCount());
+                    return Integer.compare(b.staleCount(), a.staleCount());
+                })
+                .collect(Collectors.toList());
+
+        // Compute portfolio-wide totals
+        int totalAtRisk = tenants.stream().mapToInt(FlightControlTenantSummary::atRiskCount).sum();
+        int totalStale = tenants.stream().mapToInt(FlightControlTenantSummary::staleCount).sum();
+        int totalPartners = tenants.stream().mapToInt(FlightControlTenantSummary::totalPartners).sum();
+
+        return new FlightControlResult(tenants, tenants.size(), totalAtRisk, totalStale, totalPartners);
+    }
+
+    /**
+     * Result container for the Flight Control summary.
+     * Separates domain list from the totals to avoid needing a separate domain class.
+     *
+     * @param tenants       per-tenant summaries sorted by risk
+     * @param totalClients  number of active mandate tenants
+     * @param totalAtRisk   sum of atRiskCount across all tenants
+     * @param totalStale    sum of staleCount across all tenants
+     * @param totalPartners sum of totalPartners across all tenants
+     */
+    public record FlightControlResult(
+            List<FlightControlTenantSummary> tenants,
+            int totalClients,
+            int totalAtRisk,
+            int totalStale,
+            int totalPartners
+    ) {}
+
     // --- Portfolio Alerts (Story 3.9) ---
 
     /**

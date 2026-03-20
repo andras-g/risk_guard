@@ -303,6 +303,76 @@ public class NotificationRepository {
                         r.get(field("tm.accountant_user_id", UUID.class))));
     }
 
+    // ─── Flight Control Aggregation (Story 3.10) ────────────────────────────
+
+    /**
+     * Raw aggregated row returned from the flight control watchlist query.
+     * The service pivots multiple rows (one per status per tenant) into
+     * {@link hu.riskguard.notification.domain.FlightControlTenantSummary} objects.
+     */
+    public record WatchlistAggregateRow(
+            UUID tenantId,
+            String lastVerdictStatus,
+            int count,
+            OffsetDateTime lastChecked
+    ) {}
+
+    /**
+     * Resolve tenant names for a list of tenant IDs.
+     * Used by the Flight Control aggregation service to merge tenant names without
+     * importing identity module DTOs.
+     *
+     * <p>Queries the {@code tenants} table directly (same approach as
+     * {@link #findPortfolioAlerts} which also JOINs {@code tenants}).
+     *
+     * @param tenantIds list of tenant UUIDs to resolve names for
+     * @return map of tenantId → tenant name
+     */
+    public java.util.Map<UUID, String> findTenantNamesByIds(List<UUID> tenantIds) {
+        if (tenantIds.isEmpty()) return java.util.Map.of();
+        return dsl.select(
+                        field("id", UUID.class),
+                        field("name", String.class))
+                .from(table("tenants"))
+                .where(field("id", UUID.class).in(tenantIds))
+                .fetch()
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        r -> r.get(field("id", UUID.class)),
+                        r -> r.get(field("name", String.class))));
+    }
+
+    /**
+     * Aggregate watchlist entries by tenant and verdict status for the Flight Control dashboard.
+     *
+     * <p><b>⚠️ PRIVILEGED CROSS-TENANT READ — accountant mandate-scoped:</b>
+     * This method explicitly uses {@code WHERE tenant_id IN (:tenantIds)} instead of
+     * {@code TenantFilter} context. Authorization is enforced by the caller
+     * ({@link hu.riskguard.notification.domain.NotificationService#getFlightControlSummary}).
+     *
+     * <p>Returns one row per (tenant_id, last_verdict_status) pair, plus the
+     * MAX(last_checked_at) and COUNT(*) for each group. The service pivots these
+     * into per-tenant summaries and merges with the full tenant name list.
+     *
+     * @param tenantIds list of tenant UUIDs from active accountant mandates
+     * @return grouped aggregate rows — one per (tenant, status) combination
+     */
+    public List<WatchlistAggregateRow> aggregateWatchlistByTenant(List<UUID> tenantIds) {
+        return dsl.select(
+                        field("tenant_id", UUID.class),
+                        field("last_verdict_status", String.class),
+                        count().as("cnt"),
+                        max(field("last_checked_at", OffsetDateTime.class)).as("last_checked"))
+                .from(table("watchlist_entries"))
+                .where(field("tenant_id", UUID.class).in(tenantIds))
+                .groupBy(field("tenant_id", UUID.class), field("last_verdict_status", String.class))
+                .fetch(r -> new WatchlistAggregateRow(
+                        r.get(field("tenant_id", UUID.class)),
+                        r.get(field("last_verdict_status", String.class)),
+                        r.get(field("cnt", Integer.class)),
+                        r.get(field("last_checked", OffsetDateTime.class))));
+    }
+
     // ─── Portfolio Alerts (Story 3.9) ──────────────────────────────────────
 
     /**

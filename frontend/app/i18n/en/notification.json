@@ -1,5 +1,26 @@
 {
   "notification": {
+    "flightControl": {
+      "columnAtRisk": "At-Risk",
+      "columnClient": "Client Name",
+      "columnLastCheck": "Last Check",
+      "columnReliable": "Reliable",
+      "columnStale": "Stale",
+      "columnTotal": "Total Partners",
+      "emptyAction": "Send invitation",
+      "emptyBody": "No clients are assigned to your account yet. Start by inviting a client to join.",
+      "emptyTitle": "No clients assigned yet",
+      "filterAll": "All clients",
+      "filterAtRisk": "With At-Risk partners",
+      "filterPlaceholder": "Filter by client name...",
+      "filterStale": "With Stale partners",
+      "navLabel": "Flight Control",
+      "pageTitle": "Flight Control",
+      "recentAlerts": "Recent Alerts",
+      "summaryAtRisk": "At-Risk",
+      "summaryStale": "Stale",
+      "summaryTotalClients": "Total Clients"
+    },
     "watchlist": {
       "addButton": "Add Partner",
       "addDialog": {
