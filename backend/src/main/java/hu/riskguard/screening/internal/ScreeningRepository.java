@@ -421,6 +421,45 @@ public class ScreeningRepository extends BaseRepository {
                 .fetchOptional(SEARCH_AUDIT_LOG.SHA256_HASH);
     }
 
+    /**
+     * Find the most recent snapshot for a given tax number across ALL tenants.
+     * Intentionally cross-tenant — public data only (name, address from snapshot JSONB).
+     *
+     * <p>Used by the unauthenticated public company endpoint to serve SEO gateway stubs.
+     * This method MUST NOT call {@code requireTenantId()} — it is the first intentionally
+     * cross-tenant query in the repository.
+     *
+     * @param taxNumber normalized tax number
+     * @return the most recent snapshot's tax number, snapshot data, and checked_at; or empty
+     */
+    public Optional<PublicSnapshotRecord> findMostRecentPublicSnapshot(String taxNumber) {
+        // Intentionally cross-tenant — public data only
+        return dsl.select(
+                        COMPANY_SNAPSHOTS.TAX_NUMBER,
+                        COMPANY_SNAPSHOTS.SNAPSHOT_DATA,
+                        COMPANY_SNAPSHOTS.CHECKED_AT
+                )
+                .from(COMPANY_SNAPSHOTS)
+                .where(COMPANY_SNAPSHOTS.TAX_NUMBER.eq(taxNumber))
+                .orderBy(COMPANY_SNAPSHOTS.CHECKED_AT.desc().nullsLast())
+                .limit(1)
+                .fetchOptional(r -> new PublicSnapshotRecord(
+                        r.get(COMPANY_SNAPSHOTS.TAX_NUMBER),
+                        r.get(COMPANY_SNAPSHOTS.SNAPSHOT_DATA),
+                        r.get(COMPANY_SNAPSHOTS.CHECKED_AT)
+                ));
+    }
+
+    /**
+     * Internal record for returning public snapshot query results.
+     * Contains only public-safe fields — NO verdict, NO audit hash, NO tenant data.
+     */
+    public record PublicSnapshotRecord(
+            String taxNumber,
+            org.jooq.JSONB snapshotData,
+            OffsetDateTime checkedAt
+    ) {}
+
     private UUID requireTenantId() {
         UUID tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {

@@ -9,6 +9,7 @@ import hu.riskguard.jooq.enums.VerdictStatus;
 import hu.riskguard.datasource.api.dto.CompanyData;
 import hu.riskguard.datasource.domain.DataSourceService;
 import hu.riskguard.screening.api.dto.ProvenanceResponse;
+// PublicCompanyData domain record — returned by getPublicCompanyData(), mapped to DTO by controller
 import hu.riskguard.screening.domain.events.PartnerSearchCompleted;
 import hu.riskguard.core.events.PartnerStatusChanged;
 import hu.riskguard.screening.internal.ScreeningRepository;
@@ -298,6 +299,68 @@ public class ScreeningService {
             return null;
         }
         return screeningRepository.findAuditHashByVerdictId(verdictId).orElse(null);
+    }
+
+    /**
+     * Public-safe company data for the SEO gateway stub page.
+     * Domain record returned by {@link #getPublicCompanyData} — mapped to
+     * {@code PublicCompanyResponse} DTO by the controller layer.
+     *
+     * @param taxNumber   normalized tax number
+     * @param companyName company display name (nullable)
+     * @param address     company address (nullable)
+     */
+    public record PublicCompanyData(String taxNumber, String companyName, String address) {}
+
+    /**
+     * Retrieve public-safe company data for the SEO gateway stub page.
+     * This method is intentionally unauthenticated and cross-tenant — it returns
+     * only the company name, tax number, and address from the most recent snapshot.
+     *
+     * <p>NO verdict, NO audit hash, NO tenant data is included.
+     *
+     * @param taxNumber normalized tax number
+     * @return public company data, or empty if no snapshot exists
+     */
+    public Optional<PublicCompanyData> getPublicCompanyData(String taxNumber) {
+        String normalizedTaxNumber = taxNumber.replaceAll("[\\s-]", "");
+
+        return screeningRepository.findMostRecentPublicSnapshot(normalizedTaxNumber)
+                .map(snapshot -> {
+                    Map<String, Object> jsonbMap = parseJsonbToMap(snapshot.snapshotData());
+                    SnapshotData parsed = SnapshotDataParser.parse(jsonbMap);
+
+                    // Extract address from raw JSONB — not in SnapshotData domain model
+                    String address = extractAddress(jsonbMap);
+
+                    return new PublicCompanyData(
+                            normalizedTaxNumber,
+                            parsed.companyName(),
+                            address
+                    );
+                });
+    }
+
+    /**
+     * Extract address from raw snapshot JSONB by checking each adapter's data.
+     * Returns the first non-blank address found, or null if none available.
+     *
+     * <p>Uses safe instanceof checks to avoid ClassCastException on malformed JSONB
+     * with non-String keys (review finding: unsafe cast on public unauthenticated endpoint).
+     */
+    private String extractAddress(Map<String, Object> jsonbMap) {
+        if (jsonbMap == null || jsonbMap.isEmpty()) {
+            return null;
+        }
+        for (Object value : jsonbMap.values()) {
+            if (value instanceof Map<?, ?> adapterData) {
+                Object address = adapterData.get("address");
+                if (address instanceof String addr && !addr.isBlank()) {
+                    return addr;
+                }
+            }
+        }
+        return null;
     }
 
     /**

@@ -38,6 +38,8 @@ export interface SnapshotProvenanceResponse {
   sources: SourceProvenanceEntry[]
 }
 
+// ─── Company Snapshot DTOs ──────────────────────────────────────────────────
+
 export interface CompanySnapshotResponse {
   id: string
   taxNumber: string
@@ -45,6 +47,16 @@ export interface CompanySnapshotResponse {
   createdAt: string
   updatedAt: string
 }
+
+// ─── Public Company DTOs (Story 3.11) ───────────────────────────────────────
+
+export interface PublicCompanyResponse {
+  taxNumber: string
+  companyName: string | null
+  address: string | null
+}
+
+// ─── Identity DTOs ──────────────────────────────────────────────────────────
 
 export interface UserResponse {
   id: string

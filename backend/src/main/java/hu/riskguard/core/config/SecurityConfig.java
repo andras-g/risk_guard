@@ -58,7 +58,7 @@ public class SecurityConfig {
     // The /actuator/** paths remain permitAll() in authorizeHttpRequests so unauthenticated
     // requests are never blocked.
     private static final String[] PUBLIC_PATH_PREFIXES = {
-        "/oauth2/", "/login/", "/api/public/", "/v3/api-docs", "/swagger-ui", "/error"
+        "/oauth2/", "/login/", "/api/public/", "/api/v1/public/", "/v3/api-docs", "/swagger-ui", "/error"
     };
 
     @Bean
@@ -76,7 +76,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/public/**", "/actuator/**", "/v3/api-docs/**",
+                    "/api/public/**", "/api/v1/public/**", "/actuator/**", "/v3/api-docs/**",
                     "/swagger-ui/**", "/login/**", "/oauth2/**", "/error"
                 ).permitAll()
                 .anyRequest().authenticated()

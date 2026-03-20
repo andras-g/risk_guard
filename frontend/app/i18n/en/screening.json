@@ -6,7 +6,19 @@
       "backToDashboard": "Back to Dashboard",
       "copyHash": "Copy audit hash to clipboard",
       "exportPdf": "Export PDF",
-      "exportPdfTooltip": "Coming in a future release – PDF Export (Story 5.1)"
+      "exportPdfTooltip": "Coming in a future release – PDF Export (Story 5.1)",
+      "searchNow": "Search now"
+    },
+    "company": {
+      "address": "Address",
+      "cta": "Check this company's live risk status",
+      "ctaHeading": "Interested in this company's risk status?",
+      "description": "{companyName} — tax number: {taxNumber}. Check the company's risk status on the RiskGuard platform.",
+      "genericIndicator": "Data verified by RiskGuard",
+      "notFound": "Company not found",
+      "notFoundDescription": "We couldn't find a company with this tax number. Search for the tax number in our database.",
+      "taxNumber": "Tax Number",
+      "title": "{companyName} — RiskGuard"
     },
     "disclaimer": {
       "text": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."

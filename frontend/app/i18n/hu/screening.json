@@ -6,7 +6,19 @@
       "backToDashboard": "Vissza a vezérlőpulthoz",
       "copyHash": "Audit hash másolása vágólapra",
       "exportPdf": "PDF exportálás",
-      "exportPdfTooltip": "Hamarosan elérhető – PDF export (5.1 sztori)"
+      "exportPdfTooltip": "Hamarosan elérhető – PDF export (5.1 sztori)",
+      "searchNow": "Keresés most"
+    },
+    "company": {
+      "address": "Székhely",
+      "cta": "Ellenőrizze a cég élő kockázati állapotát",
+      "ctaHeading": "Érdekli a cég kockázati állapota?",
+      "description": "{companyName} — adószám: {taxNumber}. Ellenőrizze a cég kockázati állapotát a RiskGuard platformon.",
+      "genericIndicator": "Adatok ellenőrizve a RiskGuard által",
+      "notFound": "Cég nem található",
+      "notFoundDescription": "Nem találtunk ilyen adószámmal céget. Keressen rá az adószámra az adatbázisunkban.",
+      "taxNumber": "Adószám",
+      "title": "{companyName} — RiskGuard"
     },
     "disclaimer": {
       "text": "Ez a keresési eredmény kizárólag tájékoztató jellegű. Az adatok magyar kormányzati nyilvántartásokból származnak, és nem biztos, hogy valós idejű állapotot tükröznek."
