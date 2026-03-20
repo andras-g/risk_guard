@@ -113,4 +113,42 @@ public class IdentityService {
                 .map(TenantResponse::from)
                 .toList();
     }
+
+    /**
+     * Get all tenant IDs where a user has currently active mandates.
+     * Used by notification module's PortfolioController to aggregate alerts across all
+     * mandated tenants for an accountant's Portfolio Pulse feed.
+     *
+     * @param userId the accountant's user ID
+     * @return list of tenant UUIDs with active mandates (may be empty)
+     */
+    @Transactional(readOnly = true)
+    public List<UUID> getActiveMandateTenantIds(UUID userId) {
+        return identityRepository.findActiveMandateTenantIds(userId, OffsetDateTime.now());
+    }
+
+    /**
+     * Get a user's email address by user ID — used by OutboxProcessor for recipient resolution.
+     * Returns null if user not found.
+     *
+     * @param userId the user ID
+     * @return the user's email address, or null if not found
+     */
+    @Transactional(readOnly = true)
+    public String getUserEmail(UUID userId) {
+        return identityRepository.findEmailById(userId).orElse(null);
+    }
+
+    /**
+     * Get a user's preferred language by user ID — used by EmailTemplateRenderer for localization.
+     * Returns the default language from configuration if user not found.
+     *
+     * @param userId the user ID
+     * @return the user's preferred language code (e.g., "hu", "en")
+     */
+    @Transactional(readOnly = true)
+    public String getUserPreferredLanguage(UUID userId) {
+        return identityRepository.findPreferredLanguageById(userId)
+                .orElse(properties.getIdentity().getDefaultLanguage());
+    }
 }

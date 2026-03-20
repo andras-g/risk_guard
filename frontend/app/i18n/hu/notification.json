@@ -32,6 +32,18 @@
       "searchPlaceholder": "Keresés cégnév vagy adószám alapján...",
       "sidebarLabel": "Figyelőlista",
       "title": "Figyelőlista"
+    },
+    "email": {
+      "alertsEnabled": "E-mail értesítések engedélyezve",
+      "digestMode": "Összefoglaló mód aktív"
+    },
+    "emailNotifications": "E-mail értesítések",
+    "portfolio": {
+      "emptyBody": "Minden ügyfelének partnerei stabilak. Azonnal értesítjük, ha bármi változik.",
+      "emptyTitle": "Nincs friss riasztás",
+      "statusChange": "{previous} → {new}",
+      "title": "Portfólió riasztások",
+      "viewDetails": "Részletek"
     }
   }
 }

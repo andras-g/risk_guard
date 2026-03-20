@@ -120,9 +120,10 @@ public class WatchlistMonitor {
                     log.info("Verdict changed tax_number={} tenant={} previous={} new={}",
                             PiiUtil.maskTaxNumber(partner.taxNumber()), partner.tenantId(),
                             oldStatus, newStatus);
+                    String sha256Hash = screeningService.getAuditHashByVerdictId(current.verdictId());
                     eventPublisher.publishEvent(PartnerStatusChanged.of(
                             current.verdictId(), partner.tenantId(), partner.taxNumber(),
-                            oldStatus, newStatus));
+                            oldStatus, newStatus, sha256Hash));
                     // PartnerStatusChangedListener handles the verdict status + timestamp update
                     // for status changes. Calling updateVerdictStatus here would cause a double-write.
                 } else {

@@ -121,3 +121,13 @@ risk-guard:
    watchlist-monitor:
       cron: "${WATCHLIST_MONITOR_CRON:0 0 4 * * ?}"    # 04:00 UTC daily (after AsyncIngestor at 02:00)
       delay-between-evaluations-ms: ${WATCHLIST_MONITOR_DELAY_MS:200}
+   email:
+      enabled: ${EMAIL_ENABLED:true}
+      from: ${EMAIL_FROM:alerts@riskguard.hu}
+      resend-api-key: ${RESEND_API_KEY:}
+      max-retries-count: 5
+      base-backoff-seconds: 30
+      max-backoff-seconds: 3600
+   outbox:
+      cron: "${OUTBOX_CRON:0 */1 * * * ?}"    # Every 60 seconds
+      batch-size: ${OUTBOX_BATCH_SIZE:50}

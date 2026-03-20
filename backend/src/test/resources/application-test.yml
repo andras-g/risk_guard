@@ -103,3 +103,9 @@ risk-guard:
   watchlist-monitor:
     cron: "-"                          # Disabled in test profile (scheduling also disabled above)
     delay-between-evaluations-ms: 0    # No delay in tests
+  email:
+    enabled: false                     # No actual email delivery in tests
+    resend-api-key: ""
+  outbox:
+    cron: "-"                          # Disabled in test profile (scheduling also disabled above)
+    batch-size: 10

@@ -1,13 +1,17 @@
 package hu.riskguard.notification.domain;
 
-import hu.riskguard.notification.internal.NotificationRepository;
 import hu.riskguard.core.events.PartnerStatusChanged;
+import hu.riskguard.core.util.PiiUtil;
+import hu.riskguard.notification.internal.NotificationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Listens for {@link PartnerStatusChanged} application events and updates the denormalized
@@ -33,9 +37,12 @@ public class PartnerStatusChangedListener {
     private static final Logger log = LoggerFactory.getLogger(PartnerStatusChangedListener.class);
 
     private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
 
-    public PartnerStatusChangedListener(NotificationRepository notificationRepository) {
+    public PartnerStatusChangedListener(NotificationRepository notificationRepository,
+                                         NotificationService notificationService) {
         this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -71,5 +78,38 @@ public class PartnerStatusChangedListener {
 
         log.debug("PartnerStatusChanged: updated {} watchlist entries with new status={}",
                 watchlistEntries.size(), event.newStatus());
+
+        // Story 3.8: Create outbox records for email notification if status actually changed
+        if (event.previousStatus() != null && !event.previousStatus().equals(event.newStatus())) {
+            createOutboxRecords(event, watchlistEntries);
+        }
+    }
+
+    /**
+     * Create outbox records for each affected tenant's watchlist entry.
+     * One outbox record per tenant (a tax number may be on multiple tenants' watchlists).
+     * Delegates to NotificationService for digest-mode gating.
+     */
+    private void createOutboxRecords(PartnerStatusChanged event, List<WatchlistPartner> watchlistEntries) {
+        // Look up user_id for each watchlist entry so the OutboxProcessor can resolve their email
+        List<NotificationRepository.WatchlistEntryWithUser> entriesWithUsers =
+                notificationRepository.findWatchlistEntriesWithUserByTaxNumber(event.taxNumber());
+
+        for (NotificationRepository.WatchlistEntryWithUser entry : entriesWithUsers) {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("tenantId", entry.tenantId().toString());
+            payload.put("taxNumber", event.taxNumber());
+            payload.put("companyName", entry.companyName());
+            payload.put("previousStatus", event.previousStatus());
+            payload.put("newStatus", event.newStatus());
+            payload.put("verdictId", event.verdictId() != null ? event.verdictId().toString() : null);
+            payload.put("changedAt", event.timestamp() != null ? event.timestamp().toString() : null);
+            payload.put("sha256Hash", event.sha256Hash());
+
+            notificationService.createAlertNotification(entry.tenantId(), entry.userId(), payload);
+        }
+
+        log.debug("PartnerStatusChanged: created outbox records for {} watchlist entries, tax_number={}",
+                entriesWithUsers.size(), PiiUtil.maskTaxNumber(event.taxNumber()));
     }
 }

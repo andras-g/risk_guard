@@ -102,6 +102,26 @@ public class IdentityRepository extends BaseRepository {
     }
 
     /**
+     * Find all tenant IDs where a user has currently active mandates — intentionally cross-tenant.
+     * Used by notification module's PortfolioController to aggregate alerts across all
+     * mandated tenants for an accountant's Portfolio Pulse feed.
+     *
+     * <p>A mandate is active when: {@code valid_from <= now} AND ({@code valid_to IS NULL} OR {@code valid_to >= now}).
+     *
+     * @param userId the accountant's user ID
+     * @param now    current timestamp for mandate validity check
+     * @return list of tenant UUIDs with active mandates
+     */
+    public List<UUID> findActiveMandateTenantIds(UUID userId, OffsetDateTime now) {
+        return dsl.select(TENANT_MANDATES.TENANT_ID)
+                .from(TENANT_MANDATES)
+                .where(TENANT_MANDATES.ACCOUNTANT_USER_ID.eq(userId))
+                .and(TENANT_MANDATES.VALID_FROM.le(now))
+                .and(TENANT_MANDATES.VALID_TO.isNull().or(TENANT_MANDATES.VALID_TO.ge(now)))
+                .fetch(TENANT_MANDATES.TENANT_ID);
+    }
+
+    /**
      * Lightweight query returning only the tier column for a tenant.
      * Used by TierGateInterceptor via IdentityService facade.
      */
@@ -110,6 +130,28 @@ public class IdentityRepository extends BaseRepository {
                 .from(TENANTS)
                 .where(TENANTS.ID.eq(tenantId))
                 .fetchOptional(TENANTS.TIER);
+    }
+
+    /**
+     * Find a user's email address by user ID — intentionally cross-tenant.
+     * Used by notification module's OutboxProcessor to resolve recipient email.
+     */
+    public Optional<String> findEmailById(UUID userId) {
+        return dsl.select(USERS.EMAIL)
+                .from(USERS)
+                .where(USERS.ID.eq(userId))
+                .fetchOptional(USERS.EMAIL);
+    }
+
+    /**
+     * Find a user's preferred language by user ID — intentionally cross-tenant.
+     * Used by notification module's EmailTemplateRenderer for localization.
+     */
+    public Optional<String> findPreferredLanguageById(UUID userId) {
+        return dsl.select(USERS.PREFERRED_LANGUAGE)
+                .from(USERS)
+                .where(USERS.ID.eq(userId))
+                .fetchOptional(USERS.PREFERRED_LANGUAGE);
     }
 
     @Transactional

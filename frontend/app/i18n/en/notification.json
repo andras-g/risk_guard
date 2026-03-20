@@ -32,6 +32,18 @@
       "searchPlaceholder": "Search by company name or tax number...",
       "sidebarLabel": "Watchlist",
       "title": "Watchlist"
+    },
+    "email": {
+      "alertsEnabled": "Email alerts enabled",
+      "digestMode": "Digest mode active"
+    },
+    "emailNotifications": "Email Notifications",
+    "portfolio": {
+      "emptyBody": "All your clients' partners are stable. We'll notify you instantly when anything changes.",
+      "emptyTitle": "No recent alerts",
+      "statusChange": "{previous} → {new}",
+      "title": "Portfolio Alerts",
+      "viewDetails": "Details"
     }
   }
 }

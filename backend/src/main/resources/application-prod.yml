@@ -119,6 +119,13 @@ risk-guard:
   rate-limits:
     searches-per-minute-per-tenant: 30
     max-alerts-per-day-per-tenant: 10
+  email:
+    enabled: ${EMAIL_ENABLED:true}
+    from: ${EMAIL_FROM:alerts@riskguard.hu}
+    resend-api-key: ${RESEND_API_KEY}
+  outbox:
+    cron: "${OUTBOX_CRON:0 */1 * * * ?}"
+    batch-size: 50
 
 # ── Logging — structured JSON for GCP Cloud Logging ──
 # Uses Logback default structured output; configure logback-spring.xml for full JSON if needed.

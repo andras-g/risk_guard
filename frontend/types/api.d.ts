@@ -92,3 +92,18 @@ export interface AddWatchlistEntryResponse {
 export interface WatchlistCountResponse {
   count: number
 }
+
+// ─── Portfolio Alerts DTOs (Story 3.9) ──────────────────────────────────────
+
+export interface PortfolioAlertResponse {
+  alertId: string
+  tenantId: string
+  tenantName: string
+  taxNumber: string
+  companyName: string | null
+  previousStatus: string | null
+  newStatus: string | null
+  changedAt: string
+  sha256Hash: string | null
+  verdictId: string | null
+}

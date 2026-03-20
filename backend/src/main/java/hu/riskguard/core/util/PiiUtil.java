@@ -29,4 +29,22 @@ public final class PiiUtil {
         }
         return taxNumber.substring(0, 4) + "****";
     }
+
+    /**
+     * Mask an email address for logging — hides the local part, keeps the domain.
+     * "user@example.com" becomes "u***@example.com".
+     *
+     * @param email the raw email address (may be null)
+     * @return masked representation safe for logging
+     */
+    public static String maskEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return "****";
+        }
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 0) {
+            return "****";
+        }
+        return email.charAt(0) + "***" + email.substring(atIndex);
+    }
 }

@@ -640,6 +640,35 @@ So that I can provide court-ready evidence of my due diligence to banks or audit
 **And** on mobile devices, the `AuditDispatcher` uses `navigator.share` to allow instant dispatching to email, Slack, or WhatsApp.
 **And** the `AuditDispatcher` component follows the mobile-first "Decision Context" pattern: optimized for one-handed thumb interaction with the share action as the primary CTA (UX Spec §6.1, §8.1).
 
+### Story 5.1a: My Audit History — Due Diligence Timeline
+As a User,
+I want to view my complete search audit trail — including both manual searches AND nightly monitoring checks — filtered by date range and partner,
+So that I can prove continuous due diligence to NAV or auditors at any time, without exporting a PDF or asking an admin.
+
+**Acceptance Criteria:**
+
+**Given** the authenticated user navigates to the "Audit History" page
+**When** the page loads
+**Then** it displays a paginated, sortable table of the tenant's `search_audit_log` entries (filtered by `tenant_id`)
+**And** each row shows: Partner Name, Tax Number, Verdict Status (color-coded badge), Search Timestamp, SHA-256 Hash (truncated, expandable on click), Data Source Mode (DEMO/LIVE), and Check Source (badge: "Manual" for user-initiated / "Automated" for nightly monitoring).
+**And** the user can filter by date range (date picker), by partner (tax number or company name search), and by check source (Manual / Automated / All).
+**And** clicking a row expands to show: full SHA-256 hash, source URLs used, verdict confidence (FRESH/STALE/UNAVAILABLE), and the disclaimer text that was included in the hash.
+**And** a "Verify Hash" button re-computes SHA-256 from the stored snapshot + verdict + disclaimer and visually confirms match (green checkmark) or mismatch (red warning).
+**And** the page is accessible only to authenticated users (not guests) and shows only the current tenant's records.
+**And** if no records exist, the UI displays a helpful empty state: "No audit records yet. Search a partner or add one to your watchlist to start building your due diligence trail."
+
+**Given** the nightly `AsyncIngestor` refreshes snapshot data for a watchlisted partner
+**When** the refresh completes successfully (data source available, snapshot updated)
+**Then** a `search_audit_log` record is created with: `user_id = watchlist_entry.user_id` (the watchlist owner), `tenant_id` from the watchlist entry, the updated snapshot data, the re-evaluated verdict, the SHA-256 hash, and source URLs.
+**And** the audit record is marked with `check_source = 'AUTOMATED'` (new column) to distinguish from manual user searches which use `check_source = 'MANUAL'`.
+**And** if the data source is unavailable for a partner, NO audit record is created (the previous snapshot is retained unchanged, per existing AsyncIngestor behavior).
+
+**Given** the `search_audit_log` table
+**When** the Flyway migration for this story runs
+**Then** a new column `check_source VARCHAR(20) NOT NULL DEFAULT 'MANUAL'` is added to `search_audit_log`
+**And** all existing records are backfilled with `check_source = 'MANUAL'` (all historical records are from user-initiated searches).
+**And** a composite B-tree index `idx_audit_tenant_tax_searched (tenant_id, tax_number, searched_at DESC)` is created to support efficient per-tenant, per-partner, date-range queries on the Audit History page. (At scale — 1,000 tenants × 30 partners × 365 days = ~11M rows/year — the existing BRIN index on `searched_at` alone is insufficient for filtered queries; this composite index ensures sub-millisecond lookups.)
+
 ### Story 5.2: Quarterly EPR Filing Workflow
 As a User,
 I want to enter the quantities sold for my "Verified" material templates,

@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import org.jooq.JSONB;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -260,6 +262,287 @@ public class NotificationRepository {
                 .from(table("watchlist_entries"))
                 .where(field("tenant_id", UUID.class).eq(tenantId))
                 .fetchOne(0, int.class);
+    }
+
+    /**
+     * Record returned from watchlist entry queries that includes the tenant owner's user_id.
+     * Used by PartnerStatusChangedListener to create outbox records with the correct recipient.
+     */
+    public record WatchlistEntryWithUser(UUID tenantId, String taxNumber, String companyName, UUID userId) {}
+
+    /**
+     * Find all watchlist entries across ALL tenants for a given tax number, including the
+     * tenant owner's user_id (resolved via tenant_mandates).
+     *
+     * <p>Since {@code watchlist_entries} doesn't have a {@code user_id} column, we JOIN
+     * with {@code tenant_mandates} to find the first active mandated user for each tenant.
+     * This user receives the email notification.
+     *
+     * <p><b>⚠️ PRIVILEGED CROSS-TENANT READ:</b> Returns entries from all tenants.
+     * Only call from event listeners.
+     *
+     * @param taxNumber the tax number to search for
+     * @return list of entries with tenantId, taxNumber, companyName, and resolved userId
+     */
+    public List<WatchlistEntryWithUser> findWatchlistEntriesWithUserByTaxNumber(String taxNumber) {
+        return dsl.select(
+                        field("we.tenant_id", UUID.class),
+                        field("we.tax_number", String.class),
+                        field("we.company_name", String.class),
+                        field("tm.accountant_user_id", UUID.class))
+                .from(table("watchlist_entries").as("we"))
+                .join(table("tenant_mandates").as("tm"))
+                    .on(field("tm.tenant_id", UUID.class).eq(field("we.tenant_id", UUID.class)))
+                .where(field("we.tax_number", String.class).eq(taxNumber))
+                .and(field("tm.valid_to").isNull()
+                        .or(field("tm.valid_to", OffsetDateTime.class).gt(OffsetDateTime.now())))
+                .fetch(r -> new WatchlistEntryWithUser(
+                        r.get(field("we.tenant_id", UUID.class)),
+                        r.get(field("we.tax_number", String.class)),
+                        r.get(field("we.company_name", String.class)),
+                        r.get(field("tm.accountant_user_id", UUID.class))));
+    }
+
+    // ─── Portfolio Alerts (Story 3.9) ──────────────────────────────────────
+
+    /**
+     * Internal record for raw outbox data with tenant name — returned by portfolio alerts query.
+     * The service layer parses the JSONB payload and converts to domain {@code PortfolioAlert} records.
+     */
+    public record PortfolioOutboxRecord(
+            UUID id,
+            UUID tenantId,
+            String tenantName,
+            String type,
+            String payload,
+            OffsetDateTime createdAt
+    ) {}
+
+    /**
+     * Find SENT outbox records (ALERT and DIGEST) across multiple tenants for the portfolio feed.
+     * JOINs {@code tenants} to resolve human-readable tenant name for display.
+     *
+     * <p><b>⚠️ PRIVILEGED CROSS-TENANT READ:</b> This method reads outbox records across
+     * multiple tenants for an accountant's portfolio view. Authorization is enforced by the
+     * caller (mandate check in NotificationService), not by TenantFilter.
+     *
+     * @param tenantIds list of tenant UUIDs the accountant has active mandates for
+     * @param since     earliest created_at timestamp to include (e.g., 7 days ago)
+     * @return raw outbox records with tenant name, ordered by created_at DESC, limited to 100
+     */
+    public List<PortfolioOutboxRecord> findPortfolioAlerts(List<UUID> tenantIds, OffsetDateTime since) {
+        return dsl.select(
+                        field("o.id", UUID.class),
+                        field("o.tenant_id", UUID.class),
+                        field("t.name", String.class),
+                        field("o.type", String.class),
+                        field("o.payload", String.class),
+                        field("o.created_at", OffsetDateTime.class))
+                .from(table("notification_outbox").as("o"))
+                .join(table("tenants").as("t"))
+                    .on(field("t.id", UUID.class).eq(field("o.tenant_id", UUID.class)))
+                .where(field("o.tenant_id", UUID.class).in(tenantIds))
+                .and(field("o.type", String.class).in("ALERT", "DIGEST"))
+                .and(field("o.status", String.class).eq("SENT"))
+                .and(field("o.created_at", OffsetDateTime.class).ge(since))
+                .orderBy(field("o.created_at", OffsetDateTime.class).desc())
+                .limit(100)
+                .fetch(r -> new PortfolioOutboxRecord(
+                        r.get(field("o.id", UUID.class)),
+                        r.get(field("o.tenant_id", UUID.class)),
+                        r.get(field("t.name", String.class)),
+                        r.get(field("o.type", String.class)),
+                        r.get(field("o.payload", String.class)),
+                        r.get(field("o.created_at", OffsetDateTime.class))));
+    }
+
+    // ─── Outbox CRUD (Story 3.8) ────────────────────────────────────────────
+
+    /**
+     * Outbox record returned from queries.
+     * TODO: Replace with jOOQ generated record once codegen includes notification_outbox.
+     */
+    public record OutboxRecord(
+            UUID id,
+            UUID tenantId,
+            UUID userId,
+            String type,
+            String payload,
+            String status,
+            int retryCount,
+            OffsetDateTime nextRetryAt,
+            OffsetDateTime createdAt,
+            OffsetDateTime sentAt
+    ) {}
+
+    /**
+     * Insert a new outbox record for email notification delivery.
+     */
+    public void insertOutboxRecord(UUID id, UUID tenantId, UUID userId, String type,
+                                    String payload, String status) {
+        dsl.insertInto(table("notification_outbox"))
+                .set(field("id", UUID.class), id)
+                .set(field("tenant_id", UUID.class), tenantId)
+                .set(field("user_id", UUID.class), userId)
+                .set(field("type", String.class), type)
+                .set(field("payload", JSONB.class), JSONB.valueOf(payload))
+                .set(field("status", String.class), status)
+                .set(field("retry_count", Integer.class), 0)
+                .set(field("created_at", OffsetDateTime.class), OffsetDateTime.now())
+                .execute();
+    }
+
+    /**
+     * Find pending outbox records ready for processing.
+     * Returns records where status=PENDING and (next_retry_at <= now OR next_retry_at IS NULL),
+     * ordered by created_at ASC, limited to batch size.
+     */
+    public List<OutboxRecord> findPendingOutboxRecords(int limit) {
+        return dsl.select(
+                        field("id", UUID.class),
+                        field("tenant_id", UUID.class),
+                        field("user_id", UUID.class),
+                        field("type", String.class),
+                        field("payload", String.class),
+                        field("status", String.class),
+                        field("retry_count", Integer.class),
+                        field("next_retry_at", OffsetDateTime.class),
+                        field("created_at", OffsetDateTime.class),
+                        field("sent_at", OffsetDateTime.class))
+                .from(table("notification_outbox"))
+                .where(field("status", String.class).eq("PENDING"))
+                .and(field("next_retry_at", OffsetDateTime.class).le(OffsetDateTime.now())
+                        .or(field("next_retry_at").isNull()))
+                .orderBy(field("created_at", OffsetDateTime.class).asc())
+                .limit(limit)
+                .fetch(r -> new OutboxRecord(
+                        r.get(field("id", UUID.class)),
+                        r.get(field("tenant_id", UUID.class)),
+                        r.get(field("user_id", UUID.class)),
+                        r.get(field("type", String.class)),
+                        r.get(field("payload", String.class)),
+                        r.get(field("status", String.class)),
+                        r.get(field("retry_count", Integer.class)),
+                        r.get(field("next_retry_at", OffsetDateTime.class)),
+                        r.get(field("created_at", OffsetDateTime.class)),
+                        r.get(field("sent_at", OffsetDateTime.class))));
+    }
+
+    /**
+     * Mark an outbox record as SENT with current timestamp.
+     */
+    public void updateOutboxSent(UUID id) {
+        dsl.update(table("notification_outbox"))
+                .set(field("status", String.class), "SENT")
+                .set(field("sent_at", OffsetDateTime.class), OffsetDateTime.now())
+                .where(field("id", UUID.class).eq(id))
+                .execute();
+    }
+
+    /**
+     * Update outbox record retry state — incremented retry count and next retry timestamp.
+     */
+    public void updateOutboxRetry(UUID id, int retryCount, OffsetDateTime nextRetryAt) {
+        dsl.update(table("notification_outbox"))
+                .set(field("retry_count", Integer.class), retryCount)
+                .set(field("next_retry_at", OffsetDateTime.class), nextRetryAt)
+                .where(field("id", UUID.class).eq(id))
+                .execute();
+    }
+
+    /**
+     * Mark an outbox record as permanently FAILED after max retries exceeded.
+     */
+    public void updateOutboxFailed(UUID id) {
+        dsl.update(table("notification_outbox"))
+                .set(field("status", String.class), "FAILED")
+                .where(field("id", UUID.class).eq(id))
+                .execute();
+    }
+
+    /**
+     * Count today's ALERT records for a tenant with PENDING or SENT status —
+     * used for digest mode gating (AC6).
+     *
+     * <p>Per AC6: the daily limit applies to PENDING+SENT combined. FAILED records
+     * are excluded because permanently failed deliveries should not prevent new alert
+     * attempts from being created individually.
+     *
+     * @param tenantId   the tenant to count for
+     * @param startOfDay start of the current day (truncated to midnight)
+     * @return count of PENDING+SENT ALERT records created today
+     */
+    public int countTodayAlertsByTenant(UUID tenantId, OffsetDateTime startOfDay) {
+        return dsl.selectCount()
+                .from(table("notification_outbox"))
+                .where(field("tenant_id", UUID.class).eq(tenantId))
+                .and(field("type", String.class).eq("ALERT"))
+                .and(field("status", String.class).in("PENDING", "SENT"))
+                .and(field("created_at", OffsetDateTime.class).ge(startOfDay))
+                .fetchOne(0, int.class);
+    }
+
+    /**
+     * Count all PENDING outbox records — used by health indicator.
+     */
+    public int countPendingTotal() {
+        return dsl.selectCount()
+                .from(table("notification_outbox"))
+                .where(field("status", String.class).eq("PENDING"))
+                .fetchOne(0, int.class);
+    }
+
+    /**
+     * Count all FAILED outbox records — used by health indicator.
+     */
+    public int countFailedTotal() {
+        return dsl.selectCount()
+                .from(table("notification_outbox"))
+                .where(field("status", String.class).eq("FAILED"))
+                .fetchOne(0, int.class);
+    }
+
+    /**
+     * Find existing PENDING DIGEST record for a tenant today — for digest mode aggregation.
+     */
+    public Optional<OutboxRecord> findPendingDigestForTenantToday(UUID tenantId, OffsetDateTime startOfDay) {
+        return dsl.select(
+                        field("id", UUID.class),
+                        field("tenant_id", UUID.class),
+                        field("user_id", UUID.class),
+                        field("type", String.class),
+                        field("payload", String.class),
+                        field("status", String.class),
+                        field("retry_count", Integer.class),
+                        field("next_retry_at", OffsetDateTime.class),
+                        field("created_at", OffsetDateTime.class),
+                        field("sent_at", OffsetDateTime.class))
+                .from(table("notification_outbox"))
+                .where(field("tenant_id", UUID.class).eq(tenantId))
+                .and(field("type", String.class).eq("DIGEST"))
+                .and(field("status", String.class).eq("PENDING"))
+                .and(field("created_at", OffsetDateTime.class).ge(startOfDay))
+                .fetchOptional(r -> new OutboxRecord(
+                        r.get(field("id", UUID.class)),
+                        r.get(field("tenant_id", UUID.class)),
+                        r.get(field("user_id", UUID.class)),
+                        r.get(field("type", String.class)),
+                        r.get(field("payload", String.class)),
+                        r.get(field("status", String.class)),
+                        r.get(field("retry_count", Integer.class)),
+                        r.get(field("next_retry_at", OffsetDateTime.class)),
+                        r.get(field("created_at", OffsetDateTime.class)),
+                        r.get(field("sent_at", OffsetDateTime.class))));
+    }
+
+    /**
+     * Update the payload of an existing outbox record — used for digest mode aggregation.
+     */
+    public void updateOutboxPayload(UUID id, String payload) {
+        dsl.update(table("notification_outbox"))
+                .set(field("payload", JSONB.class), JSONB.valueOf(payload))
+                .where(field("id", UUID.class).eq(id))
+                .execute();
     }
 
     /**

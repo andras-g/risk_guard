@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { useScreeningStore } from '~/stores/screening'
+import { useIdentityStore } from '~/stores/identity'
 import { storeToRefs } from 'pinia'
 
 const { t } = useI18n()
 const router = useRouter()
 const screeningStore = useScreeningStore()
+const identityStore = useIdentityStore()
 const { currentVerdict, isSearching, searchError } = storeToRefs(screeningStore)
+const isAccountant = computed(() => identityStore.user?.role === 'ACCOUNTANT')
 
 // Clear any previous verdict when the dashboard mounts so the watcher below
 // does not immediately redirect back to the detail page if the user navigated here
@@ -34,6 +37,9 @@ watch(currentVerdict, (verdict) => {
 
     <!-- Search Bar -->
     <ScreeningSearchBar />
+
+    <!-- Portfolio Pulse — accountant-only cross-tenant alert feed (Story 3.9) -->
+    <NotificationPortfolioPulse v-if="isAccountant" />
 
     <!-- Skeleton Loading UI — shown while search is pending -->
     <ScreeningSkeletonVerdictCard :visible="isSearching" />

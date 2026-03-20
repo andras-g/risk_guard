@@ -216,7 +216,8 @@ public class ScreeningService {
             eventPublisher.publishEvent(PartnerStatusChanged.of(
                     verdictId, tenantId, normalizedTaxNumber,
                     previousStatus.get().getLiteral(),
-                    tx2.status().getLiteral()));
+                    tx2.status().getLiteral(),
+                    tx2.sha256Hash()));
         }
 
         // Publish event OUTSIDE the transaction to avoid dispatching events before commit succeeds.
@@ -280,6 +281,24 @@ public class ScreeningService {
             OffsetDateTime createdAt,
             boolean transientFailure
     ) {}
+
+    /**
+     * Retrieve the SHA-256 audit hash for a given verdict ID.
+     * Used by the notification module (via facade call) to include the audit proof hash
+     * in email notifications (AC4 — email content includes SHA-256 hash).
+     *
+     * <p>This method does NOT require TenantContext because the event listener that calls it
+     * runs in a background context without a user session. The verdict_id is globally unique.
+     *
+     * @param verdictId the verdict UUID
+     * @return the SHA-256 hash string, or {@code null} if no audit log entry exists
+     */
+    public String getAuditHashByVerdictId(UUID verdictId) {
+        if (verdictId == null) {
+            return null;
+        }
+        return screeningRepository.findAuditHashByVerdictId(verdictId).orElse(null);
+    }
 
     /**
      * Canonical public URLs for known government data source adapters.

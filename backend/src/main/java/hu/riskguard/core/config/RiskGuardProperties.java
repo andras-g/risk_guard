@@ -30,6 +30,8 @@ public class RiskGuardProperties {
     private Security security = new Security();
     private AsyncIngestor asyncIngestor = new AsyncIngestor();
     private WatchlistMonitor watchlistMonitor = new WatchlistMonitor();
+    private Email email = new Email();
+    private Outbox outbox = new Outbox();
 
     @PostConstruct
     public void init() {
@@ -139,5 +141,36 @@ public class RiskGuardProperties {
         private String cron = "0 0 4 * * ?";
         /** Delay in milliseconds between successive verdict evaluations (rate limiting). */
         private long delayBetweenEvaluationsMs = 200;
+    }
+
+    /**
+     * Configuration for email delivery via Resend API.
+     * Controls the ResendEmailSender and OutboxProcessor behavior.
+     */
+    @Data
+    public static class Email {
+        /** Master switch for email delivery. When false, emails are logged but not sent (demo/test mode). */
+        private boolean enabled = true;
+        /** Sender email address for outgoing notifications. */
+        private String from = "alerts@riskguard.hu";
+        /** Resend API key. If blank, email delivery is disabled gracefully. */
+        private String resendApiKey = "";
+        /** Maximum retry attempts before marking an outbox record as FAILED. */
+        private int maxRetriesCount = 5;
+        /** Base backoff delay in seconds for exponential retry calculation. */
+        private int baseBackoffSeconds = 30;
+        /** Maximum backoff delay in seconds (cap). */
+        private int maxBackoffSeconds = 3600;
+    }
+
+    /**
+     * Configuration for the outbox processor that polls and sends pending email notifications.
+     */
+    @Data
+    public static class Outbox {
+        /** Spring cron expression for outbox polling. Default: every 60 seconds. */
+        private String cron = "0 */1 * * * ?";
+        /** Maximum number of outbox records to process per polling cycle. */
+        private int batchSize = 50;
     }
 }

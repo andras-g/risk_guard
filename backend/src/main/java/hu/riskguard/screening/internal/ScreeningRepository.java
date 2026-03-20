@@ -402,6 +402,25 @@ public class ScreeningRepository extends BaseRepository {
             OffsetDateTime createdAt
     ) {}
 
+    /**
+     * Look up the SHA-256 audit hash for a given verdict ID.
+     * Used by the notification module (via ScreeningService facade) to include the audit hash
+     * in email notifications per AC4.
+     *
+     * <p>This is a cross-tenant read (no TenantContext filter) because the outbox record creation
+     * happens in an event listener context without a user session. The verdict_id is sufficient
+     * for a unique lookup.
+     *
+     * @param verdictId the verdict UUID
+     * @return the SHA-256 hash, or empty if no audit log entry exists for this verdict
+     */
+    public Optional<String> findAuditHashByVerdictId(UUID verdictId) {
+        return dsl.select(SEARCH_AUDIT_LOG.SHA256_HASH)
+                .from(SEARCH_AUDIT_LOG)
+                .where(SEARCH_AUDIT_LOG.VERDICT_ID.eq(verdictId))
+                .fetchOptional(SEARCH_AUDIT_LOG.SHA256_HASH);
+    }
+
     private UUID requireTenantId() {
         UUID tenantId = TenantContext.getCurrentTenant();
         if (tenantId == null) {

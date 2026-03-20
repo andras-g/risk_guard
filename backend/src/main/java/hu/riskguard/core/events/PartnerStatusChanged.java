@@ -26,6 +26,7 @@ import java.util.UUID;
  * @param taxNumber      the tax number of the partner (needed for watchlist entry lookup)
  * @param previousStatus the status before the change (may be null for first-time evaluations)
  * @param newStatus      the status after the change
+ * @param sha256Hash     the SHA-256 audit hash from search_audit_log (for email notification AC4); may be null
  * @param timestamp      when the change occurred
  */
 public record PartnerStatusChanged(
@@ -34,10 +35,13 @@ public record PartnerStatusChanged(
         String taxNumber,
         String previousStatus,
         String newStatus,
+        String sha256Hash,
         OffsetDateTime timestamp
 ) {
     public static PartnerStatusChanged of(UUID verdictId, UUID tenantId, String taxNumber,
-                                          String previousStatus, String newStatus) {
-        return new PartnerStatusChanged(verdictId, tenantId, taxNumber, previousStatus, newStatus, OffsetDateTime.now());
+                                          String previousStatus, String newStatus, String sha256Hash) {
+        return new PartnerStatusChanged(verdictId, tenantId, taxNumber, previousStatus, newStatus, sha256Hash, OffsetDateTime.now());
     }
+
+
 }
