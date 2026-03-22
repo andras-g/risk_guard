@@ -100,7 +100,8 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.Tenants",
                                 "hu.riskguard.jooq.tables.Users",
                                 "hu.riskguard.jooq.tables.TenantMandates",
-                                "hu.riskguard.jooq.tables.GuestSessions"
+                                "hu.riskguard.jooq.tables.GuestSessions",
+                                "hu.riskguard.jooq.tables.RefreshTokens"
                         );
                         private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
 

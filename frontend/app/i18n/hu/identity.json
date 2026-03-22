@@ -1,13 +1,18 @@
 {
   "identity": {
-    "tenantSwitcher": {
-      "placeholder": "Válasszon ügyfelet...",
-      "label": "Jelenlegi ügyfél"
-    },
     "contextGuard": {
-      "switching": "Váltás az ügyfél kontextusára...",
       "errorTitle": "Hiba történt a váltás során",
-      "switchFailed": "A váltás sikertelen. Kérjük, próbálja újra vagy jelentkezzen be."
+      "switchFailed": "A váltás sikertelen. Kérjük, próbálja újra vagy jelentkezzen be.",
+      "switching": "Váltás az ügyfél kontextusára..."
+    },
+    "session": {
+      "refreshFailed": "A munkamenet megújítása sikertelen. Kérjük, jelentkezzen be újra.",
+      "sessionCompromised": "A munkamenet biztonsága sérülhetett — kérjük, jelentkezzen be újra.",
+      "sessionExpired": "A munkamenet lejárt. Kérjük, jelentkezzen be újra."
+    },
+    "tenantSwitcher": {
+      "label": "Jelenlegi ügyfél",
+      "placeholder": "Válasszon ügyfelet..."
     }
   }
 }

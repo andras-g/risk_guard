@@ -1,19 +1,20 @@
 package hu.riskguard.identity.api;
 
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.AuthCookieHelper;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.LoginRequest;
 import hu.riskguard.identity.api.dto.RegisterRequest;
 import hu.riskguard.identity.api.dto.UserResponse;
 import hu.riskguard.identity.domain.IdentityService;
 import hu.riskguard.identity.domain.LoginAttemptService;
+import hu.riskguard.identity.domain.RefreshTokenService;
 import hu.riskguard.identity.domain.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
     private final RiskGuardProperties properties;
+    private final AuthCookieHelper authCookieHelper;
 
     /**
      * Dummy BCrypt hash used for timing-safe comparison when user is not found.
@@ -52,12 +54,13 @@ public class AuthController {
 
     public AuthController(IdentityService identityService, TokenProvider tokenProvider,
                           PasswordEncoder passwordEncoder, LoginAttemptService loginAttemptService,
-                          RiskGuardProperties properties) {
+                          RiskGuardProperties properties, AuthCookieHelper authCookieHelper) {
         this.identityService = identityService;
         this.tokenProvider = tokenProvider;
         this.passwordEncoder = passwordEncoder;
         this.loginAttemptService = loginAttemptService;
         this.properties = properties;
+        this.authCookieHelper = authCookieHelper;
         // Generate a valid BCrypt hash at construction time for timing-safe comparisons
         this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
@@ -93,12 +96,13 @@ public class AuthController {
         // Create user, tenant, and mandate
         User user = identityService.registerLocalUser(normalizedEmail, request.password(), request.name());
 
-        // Issue JWT HttpOnly cookie (same flow as SSO)
+        // Issue access token + refresh token (dual-cookie auth flow)
         String tier = identityService.findTenantTier(user.getTenantId());
         String token = tokenProvider.createToken(
                 user.getEmail(), user.getId(), user.getTenantId(), user.getTenantId(), user.getRole(),
                 tier != null ? tier : properties.getIdentity().getDefaultTier());
-        setAuthCookie(response, token);
+        String refreshToken = identityService.issueRefreshToken(user.getId(), user.getTenantId());
+        setAuthCookies(response, token, refreshToken);
 
         UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString());
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
@@ -143,17 +147,84 @@ public class AuthController {
             return invalidCredentialsResponse();
         }
 
-        // Success — reset failed attempts and issue token
+        // Success — reset failed attempts and issue access token + refresh token
         loginAttemptService.resetAttempts(normalizedEmail);
 
         String tier = identityService.findTenantTier(user.getTenantId());
         String token = tokenProvider.createToken(
                 user.getEmail(), user.getId(), user.getTenantId(), user.getTenantId(), user.getRole(),
                 tier != null ? tier : properties.getIdentity().getDefaultTier());
-        setAuthCookie(response, token);
+        String refreshToken = identityService.issueRefreshToken(user.getId(), user.getTenantId());
+        setAuthCookies(response, token, refreshToken);
 
         UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString());
         return ResponseEntity.ok(userResponse);
+    }
+
+    /**
+     * Silent refresh endpoint — exchanges a valid refresh token for a new access token
+     * and a rotated refresh token. Called by the frontend interceptor when a 401 is received.
+     *
+     * <p>This endpoint is in permitAll() paths because the caller's access token is EXPIRED.
+     * The refresh token cookie IS the authentication for this endpoint.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request, HttpServletResponse response) {
+        String rawRefreshToken = authCookieHelper.extractCookie(request, properties.getIdentity().getRefreshCookieName());
+
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+            problem.setType(URI.create("urn:riskguard:error:missing-refresh-token"));
+            problem.setTitle("Missing refresh token");
+            problem.setDetail("No refresh token cookie present.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+        }
+
+        RefreshTokenService.RotationResult result = identityService.rotateRefreshToken(rawRefreshToken);
+
+        return switch (result) {
+            case RefreshTokenService.RotationResult.Success success -> {
+                // Look up user to get current claims for the new access token
+                Optional<User> userOpt = identityService.findUserByEmail(
+                        identityService.getUserEmail(success.userId()));
+                if (userOpt.isEmpty()) {
+                    yield ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+                }
+                User user = userOpt.get();
+                String tier = identityService.findTenantTier(success.tenantId());
+                String accessToken = tokenProvider.createToken(
+                        user.getEmail(), user.getId(), user.getTenantId(), success.tenantId(),
+                        user.getRole(), tier != null ? tier : properties.getIdentity().getDefaultTier());
+                setAuthCookies(response, accessToken, success.rawToken());
+                yield ResponseEntity.noContent().build();
+            }
+            case RefreshTokenService.RotationResult.FamilyRevoked revoked -> {
+                // Reuse detected — clear both cookies and return 401 with specific error code
+                clearAuthCookies(response);
+                ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+                problem.setType(URI.create("urn:riskguard:error:token-family-revoked"));
+                problem.setTitle("Session compromised");
+                problem.setDetail("Token reuse detected. All sessions for this user have been revoked.");
+                problem.setProperty("errorCode", "TOKEN_FAMILY_REVOKED");
+                yield ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+            }
+            case RefreshTokenService.RotationResult.Expired ignored -> {
+                clearAuthCookies(response);
+                ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+                problem.setType(URI.create("urn:riskguard:error:refresh-token-expired"));
+                problem.setTitle("Session expired");
+                problem.setDetail("Refresh token has expired. Please log in again.");
+                problem.setProperty("errorCode", "REFRESH_TOKEN_EXPIRED");
+                yield ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+            }
+            case RefreshTokenService.RotationResult.Invalid ignored -> {
+                ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+                problem.setType(URI.create("urn:riskguard:error:invalid-refresh-token"));
+                problem.setTitle("Invalid refresh token");
+                problem.setDetail("The provided refresh token is not recognized.");
+                yield ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+            }
+        };
     }
 
     private ResponseEntity<ProblemDetail> invalidCredentialsResponse() {
@@ -164,14 +235,13 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
     }
 
-    private void setAuthCookie(HttpServletResponse response, String token) {
-        ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), token)
-                .path("/")
-                .maxAge(properties.getSecurity().getJwtExpirationMs() / 1000)
-                .secure(properties.getSecurity().isCookieSecure())
-                .httpOnly(true)
-                .sameSite("Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    private void setAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
+        authCookieHelper.setAuthCookies(response, accessToken, refreshToken);
     }
+
+    private void clearAuthCookies(HttpServletResponse response) {
+        authCookieHelper.clearAuthCookies(response);
+    }
+
+
 }

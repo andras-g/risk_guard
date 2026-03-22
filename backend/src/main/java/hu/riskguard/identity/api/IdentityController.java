@@ -1,6 +1,7 @@
 package hu.riskguard.identity.api;
 
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.AuthCookieHelper;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.api.dto.TenantSwitchRequest;
@@ -9,6 +10,7 @@ import hu.riskguard.identity.api.dto.UserResponse;
 import hu.riskguard.identity.domain.events.TenantContextSwitchedEvent;
 import hu.riskguard.identity.domain.IdentityService;
 import hu.riskguard.identity.domain.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class IdentityController {
     private final TokenProvider tokenProvider;
     private final RiskGuardProperties properties;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuthCookieHelper authCookieHelper;
 
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal Jwt jwt) {
@@ -77,18 +80,18 @@ public class IdentityController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
-        // Issue a Max-Age=0 deletion cookie to clear the HttpOnly auth_token.
+    public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        // Revoke the refresh token in the DB before clearing cookies.
+        // This prevents the refresh token from being replayed after logout.
+        String refreshTokenValue = authCookieHelper.extractCookie(request, properties.getIdentity().getRefreshCookieName());
+        if (refreshTokenValue != null && !refreshTokenValue.isBlank()) {
+            identityService.revokeRefreshToken(refreshTokenValue);
+        }
+
+        // Clear BOTH HttpOnly cookies via Max-Age=0 deletion cookies.
         // The frontend cannot clear HttpOnly cookies via JavaScript — this endpoint
         // is the only way to properly terminate the session.
-        ResponseCookie deletionCookie = ResponseCookie.from(properties.getIdentity().getCookieName(), "")
-                .path("/")
-                .maxAge(0)
-                .secure(properties.getSecurity().isCookieSecure())
-                .httpOnly(true)
-                .sameSite("Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, deletionCookie.toString());
+        authCookieHelper.clearAuthCookies(response);
         return ResponseEntity.noContent().build();
     }
 
@@ -141,4 +144,6 @@ public class IdentityController {
 
         return ResponseEntity.noContent().build();
     }
+
+
 }

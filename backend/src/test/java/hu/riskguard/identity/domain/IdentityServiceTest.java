@@ -35,6 +35,9 @@ class IdentityServiceTest {
     @Mock
     private GuestSessionService guestSessionService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private IdentityService service;
 
     private static final UUID USER_ID = UUID.randomUUID();
@@ -44,7 +47,7 @@ class IdentityServiceTest {
     @BeforeEach
     void setUp() {
         RiskGuardProperties properties = new RiskGuardProperties();
-        service = new IdentityService(identityRepository, passwordEncoder, properties, guestSessionService);
+        service = new IdentityService(identityRepository, passwordEncoder, properties, guestSessionService, refreshTokenService);
     }
 
     @Test

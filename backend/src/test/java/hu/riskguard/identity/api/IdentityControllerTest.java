@@ -1,12 +1,15 @@
 package hu.riskguard.identity.api;
 
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.AuthCookieHelper;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.api.dto.TenantSwitchRequest;
 import hu.riskguard.identity.domain.events.TenantContextSwitchedEvent;
 import hu.riskguard.identity.domain.IdentityService;
 import hu.riskguard.identity.domain.User;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,36 +43,51 @@ class IdentityControllerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
     @Mock
+    private HttpServletRequest servletRequest;
+    @Mock
     private HttpServletResponse servletResponse;
 
     private RiskGuardProperties properties;
+    private AuthCookieHelper authCookieHelper;
     private IdentityController controller;
 
     @BeforeEach
     void setUp() {
         properties = new RiskGuardProperties();
         properties.getIdentity().setCookieName("auth_token");
+        properties.getIdentity().setRefreshCookieName("refresh_token");
         properties.getSecurity().setJwtExpirationMs(3600000L);
         properties.getSecurity().setCookieSecure(false);
-        controller = new IdentityController(identityService, tokenProvider, properties, eventPublisher);
+        authCookieHelper = new AuthCookieHelper(properties);
+        controller = new IdentityController(identityService, tokenProvider, properties, eventPublisher, authCookieHelper);
     }
 
     @Test
-    void logoutShouldClearAuthCookieWithMaxAgeZero() {
-        // When
-        ResponseEntity<Void> result = controller.logout(servletResponse);
+    void logoutShouldRevokeRefreshTokenAndClearBothCookies() {
+        // Given — request carries a refresh_token cookie
+        String rawRefreshToken = "test-refresh-token-value";
+        Cookie refreshCookie = new Cookie("refresh_token", rawRefreshToken);
+        when(servletRequest.getCookies()).thenReturn(new Cookie[]{ refreshCookie });
 
-        // Then — 204 returned and deletion cookie set
+        // When
+        ResponseEntity<Void> result = controller.logout(servletRequest, servletResponse);
+
+        // Then — 204 returned
         assertThat(result.getStatusCode().value()).isEqualTo(204);
 
-        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
-        verify(servletResponse).addHeader(eq("Set-Cookie"), headerCaptor.capture());
+        // Critical: revokeRefreshToken MUST be called to invalidate the token in the DB
+        verify(identityService).revokeRefreshToken(rawRefreshToken);
 
-        String setCookie = headerCaptor.getValue();
-        assertThat(setCookie).contains("auth_token=");
-        assertThat(setCookie).contains("Max-Age=0");
-        assertThat(setCookie).contains("HttpOnly");
-        assertThat(setCookie).contains("SameSite=Lax");
+        // Both deletion cookies set (access + refresh)
+        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
+        verify(servletResponse, atLeast(2)).addHeader(eq("Set-Cookie"), headerCaptor.capture());
+
+        boolean hasAccessDeletion = headerCaptor.getAllValues().stream()
+                .anyMatch(c -> c.contains("auth_token=") && c.contains("Max-Age=0") && c.contains("HttpOnly"));
+        assertThat(hasAccessDeletion).as("Expected access token deletion cookie").isTrue();
+        boolean hasRefreshDeletion = headerCaptor.getAllValues().stream()
+                .anyMatch(c -> c.contains("refresh_token=") && c.contains("Max-Age=0") && c.contains("HttpOnly"));
+        assertThat(hasRefreshDeletion).as("Expected refresh token deletion cookie").isTrue();
     }
 
     @Test

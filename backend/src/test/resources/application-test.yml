@@ -79,9 +79,13 @@ resilience4j:
 risk-guard:
   security:
     jwt-secret: dummy_secret_for_testing_32_chars_long_long
+    jwt-expiration-ms: 3600000  # 1 hour — longer access token in test profile to prevent E2E test flakes
+    refresh-token-expiration-days: 30
+    refresh-token-cleanup-cron: "-"  # Disabled in test profile
     frontend-base-url: http://localhost:3000
   identity:
     cookie-name: auth_token
+    refresh-cookie-name: refresh_token
     default-tier: ALAP
     default-language: hu
     default-user-role: SME_ADMIN

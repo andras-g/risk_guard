@@ -98,11 +98,13 @@ server:
 risk-guard:
   security:
     jwt-secret: ${JWT_SECRET}
-    jwt-expiration-ms: 86400000  # 24h — until refresh token rotation is implemented
+    jwt-expiration-ms: 900000  # 15 minutes — short-lived access token; refresh token handles session continuity
+    refresh-token-expiration-days: 30
     frontend-base-url: ${FRONTEND_URL}
     cookie-secure: true
   identity:
     default-user-role: SME_ADMIN
+    refresh-cookie-name: refresh_token
   freshness:
     fresh-threshold-hours: 6
     stale-threshold-hours: 24

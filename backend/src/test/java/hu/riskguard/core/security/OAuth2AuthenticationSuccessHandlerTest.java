@@ -1,6 +1,7 @@
 package hu.riskguard.core.security;
 
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.identity.domain.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +29,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
     @Mock
     private TokenProvider tokenProvider;
     @Mock
+    private IdentityService identityService;
+    @Mock
     private Authentication authentication;
 
     private MockHttpServletRequest request;
@@ -43,8 +46,11 @@ class OAuth2AuthenticationSuccessHandlerTest {
         properties.getSecurity().setJwtExpirationMs(3600000L);
         properties.getSecurity().setCookieSecure(false);
         properties.getSecurity().setFrontendBaseUrl("http://localhost:3000");
+        properties.getSecurity().setRefreshTokenExpirationDays(30);
         properties.getIdentity().setCookieName("auth_token");
-        handler = new OAuth2AuthenticationSuccessHandler(tokenProvider, properties);
+        properties.getIdentity().setRefreshCookieName("refresh_token");
+        AuthCookieHelper authCookieHelper = new AuthCookieHelper(properties);
+        handler = new OAuth2AuthenticationSuccessHandler(tokenProvider, properties, identityService, authCookieHelper);
     }
 
     @Test
@@ -67,6 +73,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
         when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString(), anyString()))
                 .thenReturn("jwt-token");
+        when(identityService.issueRefreshToken(any(UUID.class), any(UUID.class)))
+                .thenReturn("refresh-token");
 
         // When
         handler.onAuthenticationSuccess(request, response, authentication);
@@ -108,6 +116,8 @@ class OAuth2AuthenticationSuccessHandlerTest {
         when(authentication.getPrincipal()).thenReturn(oAuth2User);
         when(tokenProvider.createToken(anyString(), any(UUID.class), any(UUID.class), any(UUID.class), anyString(), anyString()))
                 .thenReturn("jwt-token");
+        when(identityService.issueRefreshToken(any(UUID.class), any(UUID.class)))
+                .thenReturn("refresh-token");
 
         // When
         handler.onAuthenticationSuccess(request, response, authentication);

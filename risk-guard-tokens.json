@@ -5,6 +5,7 @@
     "me": "/api/v1/identity/me",
     "logout": "/api/v1/identity/logout",
     "mandates": "/api/v1/identity/mandates",
+    "refresh": "/api/public/auth/refresh",
     "switchTenant": "/api/v1/identity/tenants/switch"
   },
   "oauth2": {
@@ -33,5 +34,9 @@
   "screening": {
     "idempotencyGuardMinutes": 15,
     "disclaimerText": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
+  },
+  "security": {
+    "accessTokenMinutes": 15,
+    "refreshTokenDays": 30
   }
 }

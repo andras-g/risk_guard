@@ -3,6 +3,7 @@ package hu.riskguard.identity.api;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.AuthCookieHelper;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.LoginRequest;
 import hu.riskguard.identity.api.dto.RegisterRequest;
@@ -60,9 +61,12 @@ class AuthControllerTest {
         passwordEncoder = new BCryptPasswordEncoder(4); // Low strength for fast tests
         properties = new RiskGuardProperties();
         properties.getIdentity().setCookieName("auth_token");
+        properties.getIdentity().setRefreshCookieName("refresh_token");
         properties.getSecurity().setJwtExpirationMs(3600000L);
+        properties.getSecurity().setRefreshTokenExpirationDays(30);
         properties.getSecurity().setCookieSecure(false);
-        controller = new AuthController(identityService, tokenProvider, passwordEncoder, loginAttemptService, properties);
+        AuthCookieHelper authCookieHelper = new AuthCookieHelper(properties);
+        controller = new AuthController(identityService, tokenProvider, passwordEncoder, loginAttemptService, properties, authCookieHelper);
     }
 
     private User createTestUser(String email, String name, String ssoProvider, String passwordHash) {
@@ -93,6 +97,8 @@ class AuthControllerTest {
             when(tokenProvider.createToken(eq(TEST_EMAIL), eq(savedUser.getId()),
                     eq(savedUser.getTenantId()), eq(savedUser.getTenantId()), eq("SME_ADMIN"), eq("ALAP")))
                     .thenReturn("jwt-token");
+            when(identityService.issueRefreshToken(savedUser.getId(), savedUser.getTenantId()))
+                    .thenReturn("refresh-token-value");
 
             // When
             ResponseEntity<?> result = controller.register(request, servletResponse);
@@ -105,13 +111,15 @@ class AuthControllerTest {
             assertThat(body.email()).isEqualTo(TEST_EMAIL);
             assertThat(body.name()).isEqualTo(TEST_NAME);
 
-            // Verify HttpOnly cookie set
+            // Verify HttpOnly cookies set (access + refresh)
             ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
-            verify(servletResponse).addHeader(eq("Set-Cookie"), headerCaptor.capture());
-            String setCookie = headerCaptor.getValue();
-            assertThat(setCookie).contains("auth_token=jwt-token");
-            assertThat(setCookie).contains("HttpOnly");
-            assertThat(setCookie).contains("SameSite=Lax");
+            verify(servletResponse, atLeast(2)).addHeader(eq("Set-Cookie"), headerCaptor.capture());
+            boolean hasAccessCookie = headerCaptor.getAllValues().stream()
+                    .anyMatch(c -> c.contains("auth_token=jwt-token") && c.contains("HttpOnly") && c.contains("SameSite=Lax"));
+            assertThat(hasAccessCookie).as("Expected access token cookie").isTrue();
+            boolean hasRefreshCookie = headerCaptor.getAllValues().stream()
+                    .anyMatch(c -> c.contains("refresh_token=") && c.contains("HttpOnly"));
+            assertThat(hasRefreshCookie).as("Expected refresh token cookie").isTrue();
         }
 
         @Test
@@ -182,6 +190,7 @@ class AuthControllerTest {
             when(identityService.registerLocalUser(normalizedEmail, TEST_PASSWORD, TEST_NAME)).thenReturn(savedUser);
             when(identityService.findTenantTier(any())).thenReturn("ALAP");
             when(tokenProvider.createToken(any(), any(), any(), any(), any(), any())).thenReturn("jwt-token");
+            when(identityService.issueRefreshToken(any(), any())).thenReturn("refresh-token");
 
             // When
             ResponseEntity<?> result = controller.register(request, servletResponse);
@@ -210,6 +219,8 @@ class AuthControllerTest {
             when(tokenProvider.createToken(eq(TEST_EMAIL), eq(user.getId()),
                     eq(user.getTenantId()), eq(user.getTenantId()), eq("SME_ADMIN"), eq("ALAP")))
                     .thenReturn("jwt-token");
+            when(identityService.issueRefreshToken(user.getId(), user.getTenantId()))
+                    .thenReturn("refresh-token-value");
 
             // When
             ResponseEntity<?> result = controller.login(request, servletResponse);
@@ -220,10 +231,12 @@ class AuthControllerTest {
 
             verify(loginAttemptService).resetAttempts(TEST_EMAIL);
 
-            // Verify cookie set
+            // Verify both cookies set (access + refresh)
             ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
-            verify(servletResponse).addHeader(eq("Set-Cookie"), headerCaptor.capture());
-            assertThat(headerCaptor.getValue()).contains("auth_token=jwt-token");
+            verify(servletResponse, atLeast(2)).addHeader(eq("Set-Cookie"), headerCaptor.capture());
+            boolean hasAccessCookie = headerCaptor.getAllValues().stream()
+                    .anyMatch(c -> c.contains("auth_token=jwt-token"));
+            assertThat(hasAccessCookie).as("Expected access token cookie").isTrue();
         }
 
         @Test
@@ -316,6 +329,7 @@ class AuthControllerTest {
             when(identityService.findUserByEmail(TEST_EMAIL)).thenReturn(Optional.of(user));
             when(identityService.findTenantTier(any())).thenReturn("ALAP");
             when(tokenProvider.createToken(any(), any(), any(), any(), any(), any())).thenReturn("jwt-token");
+            when(identityService.issueRefreshToken(any(), any())).thenReturn("refresh-token");
 
             // When
             controller.login(request, servletResponse);
@@ -337,6 +351,7 @@ class AuthControllerTest {
             when(identityService.findUserByEmail(normalizedEmail)).thenReturn(Optional.of(user));
             when(identityService.findTenantTier(any())).thenReturn("ALAP");
             when(tokenProvider.createToken(any(), any(), any(), any(), any(), any())).thenReturn("jwt-token");
+            when(identityService.issueRefreshToken(any(), any())).thenReturn("refresh-token");
 
             // When
             ResponseEntity<?> result = controller.login(request, servletResponse);

@@ -89,11 +89,13 @@ resilience4j:
 risk-guard:
    security:
       jwt-secret: ${JWT_SECRET:local-dev-secret-32-chars-long-at-least-123456}
-      jwt-expiration-ms: 86400000  # 24 hours — re-login once a day, not hourly
+      jwt-expiration-ms: 900000  # 15 minutes — short-lived access token; refresh token handles session continuity
+      refresh-token-expiration-days: 30
       frontend-base-url: ${FRONTEND_URL:http://localhost:3000}
       cookie-secure: ${COOKIE_SECURE:false}
    identity:
      default-user-role: SME_ADMIN
+     refresh-cookie-name: refresh_token
    freshness:
      fresh-threshold-hours: 6
      stale-threshold-hours: 24

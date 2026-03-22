@@ -19,7 +19,7 @@ export function useTierGate(requiredTier: Tier) {
   const { t } = useI18n()
 
   const currentTier = computed<Tier | null>(() => {
-    // Auth store is populated by fetchMe() and setToken() — authoritative source for tier
+    // Auth store is populated by fetchMe() — authoritative source for tier
     const authStore = useAuthStore()
     return (authStore.tier as Tier | null) ?? null
   })

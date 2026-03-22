@@ -6,6 +6,7 @@ import hu.riskguard.identity.domain.Tenant;
 import hu.riskguard.identity.domain.TenantMandate;
 import hu.riskguard.identity.domain.User;
 import hu.riskguard.jooq.tables.records.GuestSessionsRecord;
+import hu.riskguard.jooq.tables.records.RefreshTokensRecord;
 import hu.riskguard.jooq.tables.records.TenantMandatesRecord;
 import hu.riskguard.jooq.tables.records.TenantsRecord;
 import hu.riskguard.jooq.tables.records.UsersRecord;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static hu.riskguard.jooq.Tables.GUEST_SESSIONS;
+import static hu.riskguard.jooq.Tables.REFRESH_TOKENS;
 import static hu.riskguard.jooq.Tables.TENANTS;
 import static hu.riskguard.jooq.Tables.TENANT_MANDATES;
 import static hu.riskguard.jooq.Tables.USERS;
@@ -272,6 +274,85 @@ public class IdentityRepository extends BaseRepository {
     public int deleteExpiredGuestSessions() {
         return dsl.deleteFrom(GUEST_SESSIONS)
                 .where(GUEST_SESSIONS.EXPIRES_AT.lt(OffsetDateTime.now(clock)))
+                .execute();
+    }
+
+    // ─── Refresh Token CRUD (Story 3.13) ────────────────────────────────────────
+
+    /**
+     * Insert a new refresh token record.
+     */
+    public void insertRefreshToken(UUID id, UUID userId, UUID tenantId, String tokenHash,
+                                    UUID familyId, OffsetDateTime expiresAt) {
+        dsl.insertInto(REFRESH_TOKENS)
+                .set(REFRESH_TOKENS.ID, id)
+                .set(REFRESH_TOKENS.USER_ID, userId)
+                .set(REFRESH_TOKENS.TENANT_ID, tenantId)
+                .set(REFRESH_TOKENS.TOKEN_HASH, tokenHash)
+                .set(REFRESH_TOKENS.FAMILY_ID, familyId)
+                .set(REFRESH_TOKENS.EXPIRES_AT, expiresAt)
+                .set(REFRESH_TOKENS.CREATED_AT, OffsetDateTime.now(clock))
+                .execute();
+    }
+
+    /**
+     * Find a refresh token by its SHA-256 hash — intentionally cross-tenant.
+     *
+     * <p>Uses {@code FOR UPDATE} to acquire a row-level lock, preventing TOCTOU race
+     * conditions where concurrent requests could both read the same valid token before
+     * either revokes it, bypassing token rotation. The lock is held until the enclosing
+     * transaction commits.
+     */
+    public Optional<RefreshTokensRecord> findByTokenHashForUpdate(String tokenHash) {
+        return dsl.selectFrom(REFRESH_TOKENS)
+                .where(REFRESH_TOKENS.TOKEN_HASH.eq(tokenHash))
+                .forUpdate()
+                .fetchOptional();
+    }
+
+    /**
+     * Revoke a single refresh token by hash — set revoked_at to NOW().
+     */
+    public int revokeByTokenHash(String tokenHash) {
+        return dsl.update(REFRESH_TOKENS)
+                .set(REFRESH_TOKENS.REVOKED_AT, OffsetDateTime.now(clock))
+                .where(REFRESH_TOKENS.TOKEN_HASH.eq(tokenHash))
+                .and(REFRESH_TOKENS.REVOKED_AT.isNull())
+                .execute();
+    }
+
+    /**
+     * Revoke ALL refresh tokens for a user — set revoked_at to NOW().
+     * Used when token reuse is detected or explicit user session revocation.
+     */
+    public int revokeAllByUserId(UUID userId) {
+        return dsl.update(REFRESH_TOKENS)
+                .set(REFRESH_TOKENS.REVOKED_AT, OffsetDateTime.now(clock))
+                .where(REFRESH_TOKENS.USER_ID.eq(userId))
+                .and(REFRESH_TOKENS.REVOKED_AT.isNull())
+                .execute();
+    }
+
+    /**
+     * Revoke ALL refresh tokens in a rotation family — OWASP-recommended family revocation.
+     * When a revoked token is replayed, the ENTIRE family (all descendants of the original
+     * login) is revoked. This forces both the attacker and the legitimate user to re-authenticate.
+     */
+    public int revokeByFamilyId(UUID familyId) {
+        return dsl.update(REFRESH_TOKENS)
+                .set(REFRESH_TOKENS.REVOKED_AT, OffsetDateTime.now(clock))
+                .where(REFRESH_TOKENS.FAMILY_ID.eq(familyId))
+                .and(REFRESH_TOKENS.REVOKED_AT.isNull())
+                .execute();
+    }
+
+    /**
+     * Delete all expired refresh tokens. Returns the count of deleted rows.
+     * Called by scheduled cleanup job.
+     */
+    public int deleteExpiredRefreshTokens() {
+        return dsl.deleteFrom(REFRESH_TOKENS)
+                .where(REFRESH_TOKENS.EXPIRES_AT.lt(OffsetDateTime.now(clock)))
                 .execute();
     }
 }

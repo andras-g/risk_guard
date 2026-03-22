@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { jwtDecode } from 'jwt-decode'
 import authConfig from '../risk-guard-tokens.json'
 
 interface AuthState {
@@ -18,15 +17,6 @@ interface AuthState {
   switchError: string | null
   /** The target tenant ID of the last failed switch — used by ContextGuard retry */
   switchTargetTenantId: string | null
-}
-
-interface DecodedToken {
-  sub: string
-  home_tenant_id: string
-  active_tenant_id: string
-  role: string
-  tier: string
-  exp: number
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -54,23 +44,6 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    setToken(token: string) {
-      this.token = token
-      try {
-        const decoded = jwtDecode<DecodedToken>(token)
-        this.email = decoded.sub
-        this.role = decoded.role
-        this.tier = (decoded.tier as AuthState['tier']) ?? null
-        this.homeTenantId = decoded.home_tenant_id
-        this.activeTenantId = decoded.active_tenant_id
-      } catch (e) {
-        // Clear stale token to prevent zombie auth state where token is set but
-        // claims are empty (isAuthenticated would return true due to non-null token)
-        this.clearAuth()
-        console.error('Failed to decode token', e)
-      }
-    },
-
     async fetchMe() {
       try {
         const config = useRuntimeConfig()
@@ -93,7 +66,9 @@ export const useAuthStore = defineStore('auth', {
           await this.fetchMandates()
         }
       } catch (e) {
-        this.clearAuth()
+        // /me failed — session is invalid. Skip the logout POST since the server
+        // already rejected our auth. This prevents a wasteful network call.
+        this.clearAuth(/* skipLogoutCall */ true)
       }
     },
 
@@ -110,7 +85,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async clearAuth() {
+    /**
+     * Clear all auth state. Optionally skip the server-side logout POST
+     * when the session is already known to be invalid (e.g., after a failed
+     * silent refresh on 401). This avoids a wasted network call and prevents
+     * the logout POST from itself triggering another silent-refresh cycle.
+     *
+     * @param skipLogoutCall - If true, only clears local state without calling the logout endpoint.
+     */
+    async clearAuth(skipLogoutCall = false) {
       this.token = null
       this.email = null
       this.name = null
@@ -121,8 +104,16 @@ export const useAuthStore = defineStore('auth', {
       this.activeTenantId = null
       this.mandates = []
 
-      // Call backend logout to clear the HttpOnly auth_token cookie.
-      // useCookie().value = null has no effect on HttpOnly cookies.
+      if (skipLogoutCall) {
+        // Session is already invalid (e.g., 401 + failed refresh) — no point
+        // calling the logout endpoint. The refresh token will expire naturally
+        // or be cleaned up by the scheduled job.
+        return
+      }
+
+      // Call backend logout to clear the HttpOnly auth_token cookie and revoke
+      // the refresh token in the DB. useCookie().value = null has no effect on
+      // HttpOnly cookies — this endpoint is the only way to properly clear them.
       try {
         const config = useRuntimeConfig()
         await $fetch(authConfig.endpoints.logout, {
@@ -138,13 +129,9 @@ export const useAuthStore = defineStore('auth', {
 
     async initializeAuth() {
       try {
-        // First, try reading if it's NOT HttpOnly (legacy or manual token setting)
-        const cookie = useCookie(authConfig.cookieName)
-        if (cookie.value) {
-          this.setToken(cookie.value as string)
-        }
-        
-        // Always fetch /me to get full profile and re-validate session via HttpOnly cookie
+        // Fetch /me to get full profile and validate session via HttpOnly cookie.
+        // With HttpOnly cookies, the frontend NEVER reads JWT contents directly.
+        // Auth state comes exclusively from GET /api/v1/identity/me.
         await this.fetchMe()
 
         // Sync UI locale from the user's stored preference (AC #3).

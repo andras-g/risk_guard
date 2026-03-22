@@ -1,11 +1,10 @@
 package hu.riskguard.core.security;
 
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.identity.domain.IdentityService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
@@ -18,6 +17,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final TokenProvider tokenProvider;
     private final RiskGuardProperties properties;
+    private final IdentityService identityService;
+    private final AuthCookieHelper authCookieHelper;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
@@ -30,14 +31,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // This prevents stale tenant contexts from persisting across sessions.
         String token = tokenProvider.createToken(email, oAuth2User.getUserId(), oAuth2User.getTenantId(), oAuth2User.getTenantId(), oAuth2User.getRole(), oAuth2User.getTier());
 
-        ResponseCookie cookie = ResponseCookie.from(properties.getIdentity().getCookieName(), token)
-                .path("/")
-                .maxAge(properties.getSecurity().getJwtExpirationMs() / 1000)
-                .secure(properties.getSecurity().isCookieSecure())
-                .httpOnly(true)
-                .sameSite("Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        // Issue refresh token (new login → new family) and set both cookies via shared helper
+        String refreshToken = identityService.issueRefreshToken(oAuth2User.getUserId(), oAuth2User.getTenantId());
+        authCookieHelper.setAuthCookies(response, token, refreshToken);
 
         // Redirect WITHOUT token in query param — the HttpOnly cookie set above is sufficient.
         // Previously, the token was appended as ?token=... which leaked it via browser history,

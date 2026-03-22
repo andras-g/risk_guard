@@ -77,6 +77,7 @@ public class RiskGuardProperties {
         private String defaultLanguage = "hu";
         private String defaultUserRole = "SME_ADMIN";
         private String cookieName = "auth_token";
+        private String refreshCookieName = "refresh_token";
     }
 
     @Data
@@ -113,6 +114,10 @@ public class RiskGuardProperties {
         private long jwtExpirationMs = 3600000; // 1 hour
         private String frontendBaseUrl = "http://localhost:3000";
         private boolean cookieSecure = false; // Set to true behind TLS-terminating reverse proxy
+        /** Refresh token validity in days. Default: 30 days. */
+        private long refreshTokenExpirationDays = 30;
+        /** Cron expression for refresh token cleanup job. Default: 3:15 AM daily. */
+        private String refreshTokenCleanupCron = "0 15 3 * * *";
     }
 
     /**

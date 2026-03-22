@@ -33,6 +33,7 @@ public class IdentityService {
     private final PasswordEncoder passwordEncoder;
     private final RiskGuardProperties properties;
     private final GuestSessionService guestSessionService;
+    private final RefreshTokenService refreshTokenService;
 
     @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
@@ -151,6 +152,42 @@ public class IdentityService {
     public String getUserPreferredLanguage(UUID userId) {
         return identityRepository.findPreferredLanguageById(userId)
                 .orElse(properties.getIdentity().getDefaultLanguage());
+    }
+
+    // ─── Refresh Token Facade (Story 3.13) ─────────────────────────────────────
+
+    /**
+     * Issue a new refresh token for a user (new login session → new family).
+     * @return the raw opaque token to set as HttpOnly cookie
+     */
+    @Transactional
+    public String issueRefreshToken(UUID userId, UUID tenantId) {
+        return refreshTokenService.issueRefreshToken(userId, tenantId);
+    }
+
+    /**
+     * Validate and rotate a refresh token. Handles reuse detection and family revocation.
+     * Uses SERIALIZABLE-equivalent protection via SELECT ... FOR UPDATE in the repository.
+     */
+    @Transactional
+    public RefreshTokenService.RotationResult rotateRefreshToken(String rawToken) {
+        return refreshTokenService.validateAndRotate(rawToken);
+    }
+
+    /**
+     * Revoke a single refresh token (e.g., on logout).
+     */
+    @Transactional
+    public void revokeRefreshToken(String rawToken) {
+        refreshTokenService.revokeToken(rawToken);
+    }
+
+    /**
+     * Revoke ALL refresh tokens for a user (e.g., admin session termination).
+     */
+    @Transactional
+    public void revokeAllUserSessions(UUID userId) {
+        refreshTokenService.revokeAllForUser(userId);
     }
 
     // ─── Guest Session Facade (Story 3.12) ──────────────────────────────────────
