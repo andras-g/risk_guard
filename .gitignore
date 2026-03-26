@@ -37,6 +37,12 @@ infra/.terraform/
 *.tfstate.backup
 *.tfplan
 
+# Research / Legislation PDFs (not tracked)
+*.pdf
+
+# Research files
+risk_epr.md
+
 # Other
 _bmad-output/temp/
 session_recovery_temp.json

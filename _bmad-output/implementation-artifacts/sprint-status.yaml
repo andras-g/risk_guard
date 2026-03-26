@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Mon Mar 16 2026 — Epic 2 CLOSED. Stories 2.6/2.7 moved to Epic 3 as 3.11/3.12 (owner decision: growth features belong in later epic).
+# updated: Thu Mar 26 2026 — Story 5.1 (Watchlist Bulk PDF Export & Mobile Dispatcher) created as ready-for-dev; Epic 5 started.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -48,7 +48,7 @@
 #   Real data via accountant's NAV M2M credentials in 1-2 months.
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
-generated: Mon Mar 16 2026
+generated: Mon Mar 23 2026
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -76,7 +76,7 @@ development_status:
   2-5-sha-256-audit-logging-legal-proof: done  # DONE (2026-03-14) — Code review: 6 issues fixed. Status → done.
   epic-2-retrospective: done  # DONE (2026-03-15) — Retrospective completed. Saved to epic-2-retro-2026-03-15.md
 
-  epic-3: in-progress
+  epic-3: done  # CLOSED (2026-03-23) — All 16 stories complete, retrospective done. Epic 3 delivered: design system, i18n, auth, tier gating, watchlist CRUD, 24h monitoring, email alerts, accountant dashboards, SEO stubs, guest rate limiting, refresh tokens.
   3-0a-design-system-tokens-and-application-shell: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-16; done 2026-03-16
   3-0b-public-landing-page: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-16; done 2026-03-16
   3-0c-wcag-2-1-aa-accessibility-foundation: done  # Story file created 2026-03-16; dev started 2026-03-16; review 2026-03-17; done 2026-03-17
@@ -93,19 +93,21 @@ development_status:
   3-11-seo-gateway-stubs-public-company-pages: done  # Moved from Epic 2 (was 2.6) on 2026-03-16; dev started 2026-03-20; review 2026-03-20; code-review R1 2026-03-20 — 4H/4M/2L findings; 10 action items resolved 2026-03-20; code-review R2 2026-03-20 — 3H/3M/2L findings; all auto-fixed; status → done 2026-03-20
   3-12-demo-mode-and-guest-rate-limiting: done  # Moved from Epic 2 (was 2.7) on 2026-03-16; dev started 2026-03-20; review 2026-03-20; code-review R1 2026-03-20 — 3H/3M/2L findings; 8 action items resolved; code-review R2 2026-03-20 — 3H/3M/1L findings; 7 items auto-fixed; status → done 2026-03-20
   3-13-refresh-token-rotation-silent-renewal: done  # Story file created 2026-03-20; dev started 2026-03-20; review 2026-03-22; code-review R1 2026-03-22 — 3H/2M/2L findings; 7 items resolved; code-review R2 2026-03-22 — 1H/2M/2L findings; 5 items auto-fixed; status → done 2026-03-22
-  epic-3-retrospective: optional
+  epic-3-retrospective: done  # DONE (2026-03-23) — Retrospective completed. Saved to epic-3-retro-2026-03-23.md. 10 action items: 4 process (immediate), 4 technical (Epic 4 foundation story), 2 opportunities.
 
-  epic-4: backlog
-  4-1-epr-material-library-and-seasonal-templates: backlog
-  4-2-smart-material-wizard-dag-questionnaire: backlog
-  4-3-manual-override-and-confidence-score: backlog
-  4-4-material-template-with-kf-code-mapping: backlog
-  epic-4-retrospective: optional
+  epic-4: in-progress  # STARTED (2026-03-23) — First story (4.0) created, epic transitioned backlog → in-progress
+  4-0-epr-module-foundation: done  # Story file created 2026-03-23; dev started 2026-03-23; code-review R1 2026-03-23 — 3H/3M/2L findings; 8 action items resolved 2026-03-23; code-review R2 2026-03-23 — 1H/3M/2L findings; 6 items auto-fixed; status → done 2026-03-23
+  4-1-epr-material-library-and-seasonal-templates: done  # Story file created 2026-03-24; dev started 2026-03-24; review 2026-03-24; code-review R1 2026-03-24 — 3H/4M/3L findings resolved; code-review R2 2026-03-24 — 3H/3M/2L findings; 7 items auto-fixed (1L advisory); status → done 2026-03-24
+  4-2-smart-material-wizard-dag-questionnaire: done  # Story file created 2026-03-24; validation: 4 critical issues fixed; dev started 2026-03-24; review 2026-03-24; code-review R1 2026-03-24 — 4H/5M/2L findings; 11 action items resolved in Task 13; code-review R2 2026-03-24 — 1H/4M/2L findings auto-fixed; code-review R3 2026-03-24 — 1H/4M/2L findings auto-fixed (success toast race condition, Stepper optimizeDeps, WizardResolveRequest DTO, isLoading recursion guard, file list completeness); status → done
+  4-3-manual-override-and-confidence-score: done  # Story file created 2026-03-24; dev started 2026-03-25; review 2026-03-25; 8 ACs, 13 tasks complete; code-review R1 2026-03-25 — 2H/5M/3L findings resolved; code-review R2 2026-03-25 — 1H/3M/2L findings; 4 auto-fixed, 2 LOW advisories; status → done 2026-03-25
+  4-4-material-template-with-kf-code-mapping: done  # Story file created 2026-03-25; dev 2026-03-25; code-review R1 2026-03-25 — 2H/4M/3L findings; 9 action items resolved; code-review R2 2026-03-25 — 1H/3M/2L findings; 6 items auto-fixed (mobile Filing-Ready badge, prop rename, isLoading race, dead i18n keys, file list); status → done 2026-03-25
+  epic-4-retrospective: done  # DONE (2026-03-26) — Retrospective completed. Saved to epic-4-retro-2026-03-26.md. Key decisions: smaller epic scope preferred; manual testing is the integration quality gate; task checkboxes deprioritized. 2 action items: T1 requireUuidClaim extraction (Story 5.0), T2 ScopedValue hard deadline before Epic 6.
 
-  epic-5: backlog
-  5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: backlog
+  epic-5: in-progress  # STARTED (2026-03-26) — Story 5.1 created, epic transitioned backlog → in-progress
+  5-0-rename-seasonal-to-recurring: done  # Story file created 2026-03-26; dev completed 2026-03-26; UX clarity rename: seasonal→recurring with logic inversion; 13 tasks done, all tests green; code-review R1 2026-03-26 — 2 patch items fixed (SidePanelStub prop name, wizard mock lastCloseReason); 9 deferred, 11 dismissed; status → done
+  5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: done  # Story file created 2026-03-26; dev 2026-03-26; SHA-256 denormalization onto watchlist_entries, jsPDF client-side export, AuditDispatcher mobile share (navigator.share), WatchlistTable multi-select; OOM fixed (-Xmx1g); code-review R1 2026-03-26 — 9 patch items resolved; code-review R2 2026-03-26 — 2 patch items fixed (detached anchor Firefox download, lastCheckedAt ISO-8601 full string); 6 deferred; all tests green (570 frontend, BUILD SUCCESSFUL backend); status → done
   5-1a-my-audit-history-due-diligence-timeline: backlog  # Added 2026-03-20 — user-facing audit trail viewer + nightly monitoring writes to search_audit_log (owner request)
-  5-2-quarterly-epr-filing-workflow: backlog
+  5-2-quarterly-epr-filing-workflow: backlog  # NOTE (2026-03-26): Story must include test fixtures with backdated created_at (e.g. '2025-11-15') to simulate prior-quarter templates for copy-from-quarter and filing workflow tests — do NOT depend on calendar date
   5-3-mohu-ready-csv-export: backlog
   5-4-export-locale-enforcement-and-ux-notice: backlog
   epic-5-retrospective: optional
