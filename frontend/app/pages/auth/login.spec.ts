@@ -155,7 +155,7 @@ describe('Login Page — email/password login', () => {
       })
     )
     expect(mockInitializeAuth).toHaveBeenCalled()
-    expect(mockNavigateTo).toHaveBeenCalledWith('/')
+    expect(mockNavigateTo).toHaveBeenCalledWith('/dashboard')
   })
 
   it('shows generic error on login failure (401)', async () => {

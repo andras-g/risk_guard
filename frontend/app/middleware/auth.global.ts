@@ -25,9 +25,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Public routes — no auth check needed
   if (isPublic(to.path)) {
-    // If already authenticated and going to login, redirect to dashboard
-    if (authStore.isAuthenticated && to.path === '/auth/login') {
-      return navigateTo('/')
+    // If already authenticated, redirect away from landing/login to dashboard
+    if (authStore.isAuthenticated && (to.path === '/' || to.path === '/auth/login')) {
+      return navigateTo('/dashboard')
     }
     return
   }

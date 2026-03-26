@@ -10,9 +10,10 @@ public record UserResponse(
         String role,
         String preferredLanguage,
         UUID homeTenantId,
-        UUID activeTenantId
+        UUID activeTenantId,
+        String tier
 ) {
-    public static UserResponse from(User user, String activeTenantId) {
+    public static UserResponse from(User user, String activeTenantId, String tier) {
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
@@ -20,7 +21,8 @@ public record UserResponse(
                 user.getRole(),
                 user.getPreferredLanguage(),
                 user.getTenantId(),
-                activeTenantId != null ? UUID.fromString(activeTenantId) : user.getTenantId()
+                activeTenantId != null ? UUID.fromString(activeTenantId) : user.getTenantId(),
+                tier
         );
     }
 }

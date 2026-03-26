@@ -47,7 +47,7 @@ async function handleEmailLogin() {
 
     // Login successful — cookie is set by backend
     await authStore.initializeAuth()
-    navigateTo('/')
+    navigateTo('/dashboard')
   } catch (error: any) {
     const errorType = error?.data?.type || ''
     const i18nKey = loginErrorMap[errorType] || 'auth.login.error.generic'
@@ -82,9 +82,9 @@ onMounted(async () => {
     })
   }
 
-  // 3. If authenticated, redirect to home
+  // 3. If authenticated, redirect to dashboard
   if (authStore.isAuthenticated) {
-    navigateTo('/')
+    navigateTo('/dashboard')
   }
 })
 </script>

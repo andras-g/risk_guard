@@ -64,7 +64,7 @@ async function handleRegister() {
 
     // Registration successful — cookie is set by backend
     await authStore.initializeAuth()
-    navigateTo('/')
+    navigateTo('/dashboard')
   } catch (error: any) {
     const errorType = error?.data?.type || ''
     const i18nKey = errorTypeMap[errorType] || 'auth.register.error.generic'

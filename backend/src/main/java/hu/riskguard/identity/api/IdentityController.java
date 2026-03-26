@@ -47,7 +47,7 @@ public class IdentityController {
         String email = jwt.getSubject();
         User user = identityService.findUserByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        return UserResponse.from(user, jwt.getClaimAsString("active_tenant_id"));
+        return UserResponse.from(user, jwt.getClaimAsString("active_tenant_id"), jwt.getClaimAsString("tier"));
     }
 
     @PatchMapping("/me/language")

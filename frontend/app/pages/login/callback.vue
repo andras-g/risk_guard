@@ -11,7 +11,7 @@ onMounted(async () => {
   await authStore.initializeAuth()
   
   if (authStore.isAuthenticated) {
-    router.push('/')
+    router.push('/dashboard')
   } else {
     // Auth cookie may not have been set — redirect to login with error
     console.error('Authentication failed: no valid session after OAuth2 callback')

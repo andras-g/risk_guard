@@ -1,0 +1,378 @@
+package hu.riskguard.epr.domain;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import hu.riskguard.epr.api.dto.*;
+import hu.riskguard.epr.internal.EprRepository;
+import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
+import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jooq.JSONB;
+import org.jooq.Record;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.Objects.requireNonNull;
+
+/**
+ * Domain service facade for EPR (KGyfR) operations.
+ * This is the ONLY public entry point into the epr module's business logic.
+ *
+ * <p>Follows the module facade pattern: Controller → EprService → EprRepository.
+ * External modules must use this facade (or application events) — never the repository directly.
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class EprService {
+
+    private final EprRepository eprRepository;
+    private final DagEngine dagEngine;
+
+    /**
+     * ObjectMapper for JSON serialization of traversal paths and config parsing.
+     * Not injected from Spring context to avoid dependency on JacksonAutoConfiguration
+     * (some integration test contexts may not load it).
+     */
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+    /**
+     * Config cache: version → parsed JsonNode. Config versions are immutable once activated.
+     */
+    private final ConcurrentHashMap<Integer, JsonNode> configCache = new ConcurrentHashMap<>();
+
+    /**
+     * KF-code list cache: "kfcodes-{version}-{locale}" → list. Config data is immutable per version.
+     */
+    private final ConcurrentHashMap<String, java.util.List<DagEngine.KfCodeEntry>> kfCodeCache = new ConcurrentHashMap<>();
+
+    /**
+     * Health-check method to verify the module is wired correctly.
+     */
+    public boolean isHealthy() {
+        return true;
+    }
+
+    /**
+     * Create a new material template.
+     * Null recurring defaults to true (recurring by default).
+     *
+     * @return the newly generated template UUID
+     */
+    public UUID createTemplate(UUID tenantId, String name, BigDecimal baseWeightGrams, Boolean recurring) {
+        boolean isRecurring = recurring == null || recurring;
+        return eprRepository.insertTemplate(tenantId, name, baseWeightGrams, isRecurring);
+    }
+
+    /**
+     * List all material templates for a tenant with override metadata from the latest linked calculation.
+     */
+    public List<MaterialTemplateResponse> listTemplatesWithOverride(UUID tenantId) {
+        return eprRepository.findAllByTenantWithOverride(tenantId).stream()
+                .map(two -> MaterialTemplateResponse.from(
+                        two.template(), two.overrideKfCode(), two.overrideReason(), two.confidence(), two.feeRate()))
+                .toList();
+    }
+
+    /**
+     * Update a material template's name, base weight, and recurring flag.
+     * Null recurring defaults to true (recurring by default).
+     *
+     * @return true if the template was found and updated
+     */
+    public boolean updateTemplate(UUID id, UUID tenantId, String name, BigDecimal baseWeightGrams, Boolean recurring) {
+        boolean isRecurring = recurring == null || recurring;
+        return eprRepository.updateTemplate(id, tenantId, name, baseWeightGrams, isRecurring);
+    }
+
+    /**
+     * Delete a material template. ON DELETE SET NULL handles linked calculations.
+     *
+     * @return true if the template was found and deleted
+     */
+    public boolean deleteTemplate(UUID id, UUID tenantId) {
+        return eprRepository.deleteTemplate(id, tenantId);
+    }
+
+    /**
+     * Toggle the recurring flag on a material template.
+     *
+     * @return true if the template was found and updated
+     */
+    public boolean toggleRecurring(UUID id, UUID tenantId, boolean recurring) {
+        return eprRepository.updateRecurring(id, tenantId, recurring);
+    }
+
+    /**
+     * Copy templates from a previous quarter into the current quarter.
+     * Copied templates get new UUIDs, verified=false, kf_code=null, created_at=now().
+     *
+     * @param tenantId            the tenant
+     * @param sourceYear          the source year
+     * @param sourceQuarter       the source quarter (1-4)
+     * @param includeNonRecurring whether to include non-recurring (one-time) templates
+     * @return list of newly created template UUIDs
+     */
+    @Transactional
+    public List<UUID> copyFromQuarter(UUID tenantId, int sourceYear, int sourceQuarter, boolean includeNonRecurring) {
+        List<EprMaterialTemplatesRecord> sourceTemplates =
+                eprRepository.findByTenantAndQuarter(tenantId, sourceYear, sourceQuarter);
+
+        List<TemplateCopyData> toCopy = sourceTemplates.stream()
+                .filter(t -> includeNonRecurring || t.getRecurring())
+                .map(t -> new TemplateCopyData(t.getName(), t.getBaseWeightGrams(), t.getRecurring()))
+                .toList();
+
+        return eprRepository.bulkInsertTemplates(tenantId, toCopy);
+    }
+
+    /**
+     * Find a single template by ID and tenant — used for ownership verification.
+     */
+    public Optional<EprMaterialTemplatesRecord> findTemplate(UUID id, UUID tenantId) {
+        return eprRepository.findByIdAndTenant(id, tenantId);
+    }
+
+    /**
+     * Find multiple templates by their IDs, scoped to a tenant.
+     * Used to efficiently fetch only the newly copied templates after bulk insert.
+     */
+    public List<EprMaterialTemplatesRecord> findTemplatesByIds(List<UUID> ids, UUID tenantId) {
+        return eprRepository.findByIdsAndTenant(ids, tenantId);
+    }
+
+    // ─── Wizard methods ──────────────────────────────────────────────────────
+
+    /**
+     * Start the wizard: returns root-level product stream options.
+     */
+    public WizardStartResponse startWizard(int configVersion, String locale) {
+        JsonNode configData = loadConfig(configVersion);
+        List<DagEngine.WizardOption> options = dagEngine.getProductStreams(configData, locale);
+        return WizardStartResponse.from(configVersion, options);
+    }
+
+    /**
+     * Process a wizard step: validates the selection and returns next-level options.
+     */
+    public WizardStepResponse processStep(WizardStepRequest request, String locale) {
+        JsonNode configData = loadConfig(request.configVersion());
+        WizardSelection selection = request.selection();
+        List<WizardSelection> fullPath = new java.util.ArrayList<>(request.traversalPath());
+        fullPath.add(selection);
+
+        String nextLevel;
+        DagEngine.WizardStepResult stepResult;
+
+        switch (selection.level()) {
+            case "product_stream" -> {
+                nextLevel = "material_stream";
+                stepResult = dagEngine.getMaterialStreams(configData, selection.code(), locale);
+            }
+            case "material_stream" -> {
+                nextLevel = "group";
+                String productStream = findSelectionCode(request.traversalPath(), "product_stream");
+                stepResult = dagEngine.getGroups(configData, productStream, selection.code(), locale);
+            }
+            case "group" -> {
+                nextLevel = "subgroup";
+                String productStream = findSelectionCode(request.traversalPath(), "product_stream");
+                String materialStream = findSelectionCode(fullPath, "material_stream");
+                stepResult = dagEngine.getSubgroups(configData, productStream, materialStream,
+                        selection.code(), locale);
+            }
+            default -> throw new IllegalArgumentException("Invalid wizard level: " + selection.level());
+        }
+
+        return WizardStepResponse.from(request.configVersion(), selection.level(), nextLevel, stepResult, fullPath);
+    }
+
+    /**
+     * Resolve the final KF-code from a complete traversal.
+     *
+     * @param locale user locale for localized classification label (e.g., "hu", "en")
+     */
+    public WizardResolveResponse resolveKfCode(List<WizardSelection> traversalPath, int configVersion, String locale) {
+        JsonNode configData = loadConfig(configVersion);
+        String productStream = findSelectionCode(traversalPath, "product_stream");
+        String materialStream = findSelectionCode(traversalPath, "material_stream");
+        String group = findSelectionCode(traversalPath, "group");
+        String subgroup = findSelectionCode(traversalPath, "subgroup");
+
+        DagEngine.KfCodeResolution resolution = dagEngine.resolveKfCode(
+                configData, productStream, materialStream, group, subgroup, locale);
+
+        return WizardResolveResponse.from(resolution, traversalPath);
+    }
+
+    /**
+     * Convenience overload that defaults locale to Hungarian.
+     */
+    public WizardResolveResponse resolveKfCode(List<WizardSelection> traversalPath, int configVersion) {
+        return resolveKfCode(traversalPath, configVersion, "hu");
+    }
+
+    /**
+     * Enumerate all valid KF-codes from the config hierarchy.
+     * Results are cached per version+locale since config data is immutable.
+     */
+    public KfCodeListResponse getAllKfCodes(int configVersion, String locale) {
+        String cacheKey = "kfcodes-" + configVersion + "-" + locale;
+        java.util.List<DagEngine.KfCodeEntry> entries = kfCodeCache.computeIfAbsent(cacheKey, k -> {
+            JsonNode configData = loadConfig(configVersion);
+            return dagEngine.enumerateAllKfCodes(configData, locale);
+        });
+        return KfCodeListResponse.from(configVersion, entries);
+    }
+
+    /**
+     * Confirm the wizard result: persist calculation and optionally link to template.
+     * Handles manual override: if overrideKfCode is present, validates it and uses it for the template update.
+     * Uses @Transactional for atomicity (insert calculation + update template).
+     */
+    @Transactional
+    public WizardConfirmResponse confirmWizard(WizardConfirmRequest request, UUID tenantId) {
+        // Validate confidence score
+        try {
+            DagEngine.Confidence.valueOf(request.confidenceScore());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid confidence score: " + request.confidenceScore()
+                    + ". Must be HIGH, MEDIUM, or LOW.");
+        }
+
+        // Validate override KF-code exists in config if provided
+        String effectiveKfCode = request.kfCode();
+        if (request.overrideKfCode() != null && !request.overrideKfCode().isBlank()) {
+            // Use cached KF-code list (via getAllKfCodes) instead of calling DagEngine directly
+            java.util.List<hu.riskguard.epr.api.dto.KfCodeEntry> allCodes =
+                    getAllKfCodes(request.configVersion(), "hu").entries();
+            boolean valid = allCodes.stream().anyMatch(e -> e.kfCode().equals(request.overrideKfCode()));
+            if (!valid) {
+                throw new IllegalArgumentException("Override KF-code not found in active config: " + request.overrideKfCode());
+            }
+            effectiveKfCode = request.overrideKfCode();
+        }
+
+        // Serialize traversal path to JSONB
+        JSONB traversalPathJsonb;
+        try {
+            String json = OBJECT_MAPPER.writeValueAsString(request.traversalPath());
+            traversalPathJsonb = JSONB.jsonb(json);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to serialize traversal path", e);
+        }
+
+        // Insert calculation record with confidence and override fields
+        UUID calculationId = eprRepository.insertCalculation(
+                tenantId,
+                request.configVersion(),
+                traversalPathJsonb,
+                request.materialClassification(),
+                request.kfCode(),
+                request.feeRate(),
+                request.templateId(),
+                request.confidenceScore(),
+                request.overrideKfCode(),
+                request.overrideReason()
+        );
+
+        // Optionally update the linked template with the effective KF-code
+        boolean templateUpdated = false;
+        if (request.templateId() != null) {
+            try {
+                templateUpdated = eprRepository.updateTemplateKfCode(
+                        request.templateId(), tenantId, effectiveKfCode);
+                if (!templateUpdated) {
+                    log.warn("Template {} not found for tenant {} — calculation {} saved without link",
+                            request.templateId(), tenantId, calculationId);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to update template {} — calculation {} saved without link",
+                        request.templateId(), calculationId, e);
+                templateUpdated = false;
+            }
+        }
+
+        return WizardConfirmResponse.from(calculationId, effectiveKfCode, templateUpdated);
+    }
+
+    /**
+     * Retry linking a saved calculation's KF-code to a material template.
+     * Loads the calculation (tenant-scoped), extracts the effective KF-code
+     * (override takes precedence), and retries the template update.
+     *
+     * @param calculationId the UUID of an existing epr_calculations record
+     * @param templateId    the UUID of the template to link
+     * @param tenantId      the tenant from the JWT (security: must own the calculation)
+     * @return result indicating whether the template was updated
+     */
+    @Transactional
+    public RetryLinkResponse retryLink(UUID calculationId, UUID templateId, UUID tenantId) {
+        var calc = eprRepository.findCalculationById(calculationId, tenantId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Calculation not found"));
+
+        // Validate that the provided templateId matches the calculation's linked template
+        UUID calcTemplateId = calc.get("template_id", UUID.class);
+        if (calcTemplateId != null && !calcTemplateId.equals(templateId)) {
+            log.warn("retryLink templateId mismatch: calculation {} linked to template {}, but request specifies {}",
+                    calculationId, calcTemplateId, templateId);
+        }
+
+        String overrideKfCode = calc.get("override_kf_code", String.class);
+        String originalKfCode = calc.get("kf_code", String.class);
+        String effectiveKfCode = (overrideKfCode != null && !overrideKfCode.isBlank())
+                ? overrideKfCode : originalKfCode;
+
+        if (effectiveKfCode == null || effectiveKfCode.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Calculation has no KF-code to link");
+        }
+
+        boolean updated = eprRepository.updateTemplateKfCode(templateId, tenantId, effectiveKfCode);
+
+        return RetryLinkResponse.from(updated, effectiveKfCode);
+    }
+
+    /**
+     * Get the latest activated config version.
+     */
+    public int getActiveConfigVersion() {
+        return eprRepository.findActiveConfig()
+                .map(r -> r.get("version", Integer.class))
+                .orElseThrow(() -> new IllegalStateException("No active EPR config found"));
+    }
+
+    // ─── Config loading ──────────────────────────────────────────────────────
+
+    private JsonNode loadConfig(int version) {
+        return configCache.computeIfAbsent(version, v -> {
+            Record record = eprRepository.findConfigByVersion(v)
+                    .orElseThrow(() -> new IllegalArgumentException("Config version not found: " + v));
+            Object configDataObj = record.get("config_data");
+            try {
+                if (configDataObj instanceof JSONB jsonb) {
+                    return OBJECT_MAPPER.readTree(jsonb.data());
+                }
+                return OBJECT_MAPPER.readTree(configDataObj.toString());
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to parse config_data for version " + v, e);
+            }
+        });
+    }
+
+    private String findSelectionCode(List<WizardSelection> path, String level) {
+        return path.stream()
+                .filter(s -> level.equals(s.level()))
+                .findFirst()
+                .map(WizardSelection::code)
+                .orElseThrow(() -> new IllegalArgumentException("Missing " + level + " in traversal path"));
+    }
+}

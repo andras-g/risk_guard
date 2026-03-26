@@ -5,6 +5,7 @@ import hu.riskguard.core.security.AuthCookieHelper;
 import hu.riskguard.core.security.TokenProvider;
 import hu.riskguard.identity.api.dto.TenantResponse;
 import hu.riskguard.identity.api.dto.TenantSwitchRequest;
+import hu.riskguard.identity.api.dto.UserResponse;
 import hu.riskguard.identity.domain.events.TenantContextSwitchedEvent;
 import hu.riskguard.identity.domain.IdentityService;
 import hu.riskguard.identity.domain.User;
@@ -60,6 +61,69 @@ class IdentityControllerTest {
         properties.getSecurity().setCookieSecure(false);
         authCookieHelper = new AuthCookieHelper(properties);
         controller = new IdentityController(identityService, tokenProvider, properties, eventPublisher, authCookieHelper);
+    }
+
+    @Test
+    void meShouldReturnTierFromJwtClaim() {
+        // Given — JWT has tier=PRO_EPR claim
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        String email = "user@test.com";
+
+        User user = new User();
+        user.setId(userId);
+        user.setTenantId(tenantId);
+        user.setEmail(email);
+        user.setName("Test User");
+        user.setRole("SME_ADMIN");
+        user.setPreferredLanguage("hu");
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject(email)
+                .claim("active_tenant_id", tenantId.toString())
+                .claim("tier", "PRO_EPR")
+                .build();
+
+        when(identityService.findUserByEmail(email)).thenReturn(Optional.of(user));
+
+        // When
+        UserResponse result = controller.me(jwt);
+
+        // Then — tier from JWT is included in response
+        assertThat(result.tier()).isEqualTo("PRO_EPR");
+        assertThat(result.email()).isEqualTo(email);
+        assertThat(result.activeTenantId()).isEqualTo(tenantId);
+    }
+
+    @Test
+    void meShouldReturnNullTierWhenJwtHasNoTierClaim() {
+        // Given — JWT without tier claim (e.g., tokens issued before tier feature)
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        String email = "user@test.com";
+
+        User user = new User();
+        user.setId(userId);
+        user.setTenantId(tenantId);
+        user.setEmail(email);
+        user.setName("Test User");
+        user.setRole("SME_ADMIN");
+        user.setPreferredLanguage("hu");
+
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject(email)
+                .claim("active_tenant_id", tenantId.toString())
+                .build();
+
+        when(identityService.findUserByEmail(email)).thenReturn(Optional.of(user));
+
+        // When
+        UserResponse result = controller.me(jwt);
+
+        // Then — tier is null (frontend handles this gracefully)
+        assertThat(result.tier()).isNull();
     }
 
     @Test

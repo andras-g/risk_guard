@@ -1,0 +1,133 @@
+{
+  "epr": {
+    "config": {
+      "title": "EPR Konfiguráció",
+      "version": "Verzió"
+    },
+    "export": {
+      "title": "MOHU Export"
+    },
+    "materialLibrary": {
+      "addButton": "Anyag hozzáadása",
+      "columns": {
+        "actions": "Műveletek",
+        "baseWeight": "Alapsúly (g)",
+        "created": "Létrehozva",
+        "kfCode": "KF Kód",
+        "name": "Név",
+        "recurring": "Visszatérő",
+        "verified": "Ellenőrzött"
+      },
+      "confirmDelete": "Biztosan törölni szeretné a(z) \"{name}\" sablont?",
+      "copyButton": "Másolás előző negyedévből",
+      "copyDialog": {
+        "copyButton": "Másolás",
+        "description": "Sablonok másolása a jelenlegi negyedévbe ({quarter})",
+        "includeNonRecurring": "Egyszeri sablonok befoglalása",
+        "selectQuarter": "Válasszon negyedévet",
+        "sourceLabel": "Forrás negyedév",
+        "title": "Másolás előző negyedévből"
+      },
+      "deleteButton": "Törlés",
+      "dialog": {
+        "addTitle": "Új anyagsablon",
+        "editTitle": "Anyagsablon szerkesztése",
+        "nameLabel": "Név",
+        "namePlaceholder": "pl. Standard kartondoboz",
+        "recurringLabel": "Visszatérő anyag",
+        "recurringTooltip": "A visszatérő anyagok automatikusan bekerülnek az új negyedévbe másoláskor. Törölje a jelölést egyszeri vagy kampányspecifikus csomagolásnál.",
+        "weightLabel": "Alapsúly (gramm)",
+        "weightPlaceholder": "pl. 120.50"
+      },
+      "editButton": "Szerkesztés",
+      "empty": "Még nincs anyagsablon",
+      "emptyDescription": "Adja hozzá az első csomagolóanyag sablont a könyvtárhoz.",
+      "filingReady": "Bejelentésre kész",
+      "filingReadyTooltip": "Díjtétel: {feeRate} HUF/kg",
+      "filter": {
+        "all": "Összes",
+        "oneTimeOnly": "Csak egyszeri",
+        "recurringOnly": "Csak visszatérő"
+      },
+      "oneTimeBadge": "Egyszeri",
+      "searchPlaceholder": "Keresés név alapján...",
+      "sidePanel": {
+        "filingReady": "Bejelentésre kész",
+        "oneTime": "Egyszeri",
+        "title": "Összefoglaló",
+        "total": "Összes sablon"
+      },
+      "tierGate": {
+        "description": "Az anyagkönyvtár eléréséhez {tier} szintű előfizetés szükséges.",
+        "title": "Magasabb előfizetési szint szükséges"
+      },
+      "title": "Anyagkönyvtár",
+      "toast": {
+        "copied": "{count} sablon sikeresen másolva",
+        "copiedEmpty": "Nem található sablon a(z) Q{quarter} {year} negyedévben",
+        "created": "Anyagsablon sikeresen létrehozva",
+        "deleted": "Anyagsablon sikeresen törölve",
+        "updated": "Anyagsablon sikeresen frissítve"
+      },
+      "unverified": "Nincs ellenőrizve",
+      "validation": {
+        "nameRequired": "A név megadása kötelező",
+        "weightPositive": "A súlynak nagyobbnak kell lennie, mint 0"
+      }
+    },
+    "title": "EPR Kezelő",
+    "wizard": {
+      "back": "Vissza",
+      "breadcrumb": "Besorolási útvonal",
+      "cancel": "Mégse",
+      "classificationLabel": "Besorolás",
+      "classify": "Besorolás",
+      "closeUnlinkedToast": "Számítás mentve — később újrasorolhatja",
+      "closeWithoutLinking": "Bezárás hozzárendelés nélkül",
+      "confidence": {
+        "high": "Magas bizonyosság",
+        "low": "Alacsony bizonyosság — Manuális ellenőrzés szükséges",
+        "medium": "Ellenőrzés ajánlott",
+        "reason": {
+          "catchall_category": "Gyűjtőkategória — ellenőrizze, hogy a konkrét KF kód megfelel-e",
+          "composite_material": "Összetett anyag — ellenőrizze a domináns összetevőt",
+          "full_traversal": "Teljes besorolási útvonal explicit választásokkal",
+          "ref_only_section": "Korlátozott elágazás — kevesebb választási lehetőség",
+          "reusable_packaging": "Újrafelhasználható csomagolás — ritkább típus, ellenőrizze a besorolást"
+        }
+      },
+      "confirmAndLink": "Megerősítés és hozzárendelés",
+      "errorToast": "Hiba történt a besorolás során",
+      "feeRateLabel": "Díjtétel",
+      "hints": {
+        "step1": "Válassza ki a termék fő kategóriáját (pl. csomagolás, elektronika, gumiabroncs).",
+        "step2": "Milyen anyagból készül a bejelentendő tétel?",
+        "step3group": "Válassza ki a csomagolás felhasználási szintjét.",
+        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag \u201eFa\u201d, a tartály \u201ePET palack\u201d.",
+        "step3subgroup": "Válassza ki a pontos altípust a besorolás véglegesítéséhez."
+      },
+      "kfCodeLabel": "KF Kód",
+      "linkFailed": "KF-kód számítás mentve, de a sablon hozzárendelés sikertelen — próbálja újra vagy zárja be",
+      "override": {
+        "apply": "Felülírás alkalmazása",
+        "badge": "Felülírva",
+        "button": "Manuális felülírás",
+        "cancel": "Mégse",
+        "original": "Eredeti javaslat",
+        "reasonLabel": "Felülírás indoka (opcionális)",
+        "reasonPlaceholder": "Adja meg a felülírás okát...",
+        "searchPlaceholder": "KF kód keresése szám vagy anyagnév alapján...",
+        "title": "Manuális KF kód felülírás",
+        "tooltip": "Manuálisan felülírva"
+      },
+      "reclassify": "Újrasorolás",
+      "resultTitle": "Eredmény",
+      "retryLink": "Hozzárendelés újrapróbálása",
+      "step1Title": "Termékáram",
+      "step2Title": "Anyag és felhasználás",
+      "step3Title": "Altípus",
+      "successToast": "KF-kód hozzárendelve a sablonhoz — Bejelentésre kész",
+      "title": "Anyag besorolás"
+    }
+  }
+}

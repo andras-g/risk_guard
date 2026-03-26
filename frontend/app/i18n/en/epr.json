@@ -1,0 +1,133 @@
+{
+  "epr": {
+    "config": {
+      "title": "EPR Configuration",
+      "version": "Version"
+    },
+    "export": {
+      "title": "MOHU Export"
+    },
+    "materialLibrary": {
+      "addButton": "Add Material",
+      "columns": {
+        "actions": "Actions",
+        "baseWeight": "Base Weight (g)",
+        "created": "Created",
+        "kfCode": "KF Code",
+        "name": "Name",
+        "recurring": "Recurring",
+        "verified": "Verified"
+      },
+      "confirmDelete": "Are you sure you want to delete the \"{name}\" template?",
+      "copyButton": "Copy from Previous Quarter",
+      "copyDialog": {
+        "copyButton": "Copy",
+        "description": "Copy templates into the current quarter ({quarter})",
+        "includeNonRecurring": "Include one-time templates",
+        "selectQuarter": "Select a quarter",
+        "sourceLabel": "Source quarter",
+        "title": "Copy from Previous Quarter"
+      },
+      "deleteButton": "Delete",
+      "dialog": {
+        "addTitle": "New Material Template",
+        "editTitle": "Edit Material Template",
+        "nameLabel": "Name",
+        "namePlaceholder": "e.g. Standard Cardboard Box",
+        "recurringLabel": "Recurring material",
+        "recurringTooltip": "Recurring materials are automatically included when copying to a new quarter. Uncheck for one-time or campaign-specific packaging.",
+        "weightLabel": "Base Weight (grams)",
+        "weightPlaceholder": "e.g. 120.50"
+      },
+      "editButton": "Edit",
+      "empty": "No material templates yet",
+      "emptyDescription": "Add your first packaging material template to the library.",
+      "filingReady": "Filing-Ready",
+      "filingReadyTooltip": "Fee rate: {feeRate} HUF/kg",
+      "filter": {
+        "all": "All",
+        "oneTimeOnly": "One-time only",
+        "recurringOnly": "Recurring only"
+      },
+      "oneTimeBadge": "One-time",
+      "searchPlaceholder": "Search by name...",
+      "sidePanel": {
+        "filingReady": "Filing-Ready",
+        "oneTime": "One-time",
+        "title": "Summary",
+        "total": "Total Templates"
+      },
+      "tierGate": {
+        "description": "A {tier} subscription is required to access the material library.",
+        "title": "Higher Subscription Tier Required"
+      },
+      "title": "Material Library",
+      "toast": {
+        "copied": "{count} templates copied successfully",
+        "copiedEmpty": "No templates found for Q{quarter} {year}",
+        "created": "Material template created successfully",
+        "deleted": "Material template deleted successfully",
+        "updated": "Material template updated successfully"
+      },
+      "unverified": "Unverified",
+      "validation": {
+        "nameRequired": "Name is required",
+        "weightPositive": "Weight must be greater than 0"
+      }
+    },
+    "title": "EPR Manager",
+    "wizard": {
+      "back": "Back",
+      "breadcrumb": "Classification path",
+      "cancel": "Cancel",
+      "classificationLabel": "Classification",
+      "classify": "Classify",
+      "closeUnlinkedToast": "Calculation saved — you can reclassify later",
+      "closeWithoutLinking": "Close Without Linking",
+      "confidence": {
+        "high": "High Confidence",
+        "low": "Low Confidence — Manual Review Required",
+        "medium": "Review Recommended",
+        "reason": {
+          "catchall_category": "Catch-all category — verify the specific KF code applies",
+          "composite_material": "Composite material — verify the dominant constituent",
+          "full_traversal": "Full traversal with explicit selections",
+          "ref_only_section": "Limited branching — fewer selection choices",
+          "reusable_packaging": "Reusable packaging — less common type, verify classification"
+        }
+      },
+      "confirmAndLink": "Confirm and Link",
+      "errorToast": "An error occurred during classification",
+      "feeRateLabel": "Fee Rate",
+      "hints": {
+        "step1": "Select the main product category (e.g., packaging, electronics, tires).",
+        "step2": "What material is the item you are reporting made of?",
+        "step3group": "Select the packaging usage level.",
+        "step3depositGroup": "Select the container type that this material component belongs to. For example, a wooden closure on a PET bottle: the material is \"Wood\", the container is \"PET bottle\".",
+        "step3subgroup": "Select the specific subtype to finalize the classification."
+      },
+      "kfCodeLabel": "KF Code",
+      "linkFailed": "KF-code calculation saved but template link failed — retry or close",
+      "override": {
+        "apply": "Apply Override",
+        "badge": "Overridden",
+        "button": "Manual Override",
+        "cancel": "Cancel",
+        "original": "Original suggestion",
+        "reasonLabel": "Reason for override (optional)",
+        "reasonPlaceholder": "Enter reason for override...",
+        "searchPlaceholder": "Search by KF code number or material name...",
+        "title": "Manual KF-Code Override",
+        "tooltip": "Manually overridden"
+      },
+      "reclassify": "Re-classify",
+      "resultTitle": "Result",
+      "retryLink": "Retry Link",
+      "step1Title": "Product Stream",
+      "step2Title": "Material & Usage",
+      "step3Title": "Subtype",
+      "successToast": "KF-code linked to template — Filing-Ready",
+      "title": "Material Classification"
+    }
+  }
+}

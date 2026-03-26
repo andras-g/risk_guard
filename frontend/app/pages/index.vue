@@ -6,13 +6,9 @@ const authStore = useAuthStore()
 
 const serviceUnavailable = ref(false)
 
+// Authenticated users are redirected to /dashboard by auth.global middleware
+// before this page renders — no onMounted check needed.
 onMounted(async () => {
-  // If already authenticated (e.g., navigated back to landing), redirect to dashboard.
-  if (authStore.isAuthenticated) {
-    navigateTo('/dashboard')
-    return
-  }
-
   // Health check: any HTTP response (even 503) means the backend is reachable.
   // Only set serviceUnavailable on actual network failures (server down, timeout, CORS).
   try {

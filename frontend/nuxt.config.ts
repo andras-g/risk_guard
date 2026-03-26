@@ -16,6 +16,9 @@ export default defineNuxtConfig({
         'primevue/dialog', 'primevue/inputtext', 'primevue/tag',
         'primevue/skeleton', 'primevue/badge', 'primevue/confirmdialog',
         'primevue/usetoast', 'primevue/useconfirm',
+        'primevue/stepper', 'primevue/steplist', 'primevue/steppanels',
+        'primevue/step', 'primevue/steppanel',
+        'primevue/autocomplete', 'primevue/textarea',
         '@primevue/core/api',
         'pinia', 'vue-router', 'jwt-decode', 'zod',
       ],
@@ -46,12 +49,12 @@ export default defineNuxtConfig({
       { 
         code: 'hu', 
         name: 'Magyar',
-        files: ['hu/common.json', 'hu/auth.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json', 'hu/notification.json']
+        files: ['hu/common.json', 'hu/auth.json', 'hu/epr.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json', 'hu/notification.json']
       },
       { 
         code: 'en', 
         name: 'English',
-        files: ['en/common.json', 'en/auth.json', 'en/identity.json', 'en/landing.json', 'en/screening.json', 'en/notification.json']
+        files: ['en/common.json', 'en/auth.json', 'en/epr.json', 'en/identity.json', 'en/landing.json', 'en/screening.json', 'en/notification.json']
       }
     ],
     langDir: 'app/i18n',

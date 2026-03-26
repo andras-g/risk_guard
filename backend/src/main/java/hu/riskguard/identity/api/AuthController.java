@@ -104,7 +104,8 @@ public class AuthController {
         String refreshToken = identityService.issueRefreshToken(user.getId(), user.getTenantId());
         setAuthCookies(response, token, refreshToken);
 
-        UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString());
+        UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString(),
+                tier != null ? tier : properties.getIdentity().getDefaultTier());
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
     }
 
@@ -157,7 +158,8 @@ public class AuthController {
         String refreshToken = identityService.issueRefreshToken(user.getId(), user.getTenantId());
         setAuthCookies(response, token, refreshToken);
 
-        UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString());
+        UserResponse userResponse = UserResponse.from(user, user.getTenantId().toString(),
+                tier != null ? tier : properties.getIdentity().getDefaultTier());
         return ResponseEntity.ok(userResponse);
     }
 

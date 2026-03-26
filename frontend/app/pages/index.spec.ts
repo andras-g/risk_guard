@@ -142,13 +142,14 @@ describe('Landing Page (index.vue)', () => {
     expect(jsonLd.name).toBe('RiskGuard')
   })
 
-  it('redirects authenticated users to /dashboard', async () => {
+  it('does NOT redirect from component — middleware handles auth redirect', async () => {
+    // Auth redirect for "/" is now handled by auth.global middleware,
+    // not by the component's onMounted. Verify no navigateTo call from component.
     mockIsAuthenticated.value = true
     mountPage()
     await nextTick()
 
-    // onMounted triggers the check
-    expect(mockNavigateTo).toHaveBeenCalledWith('/dashboard')
+    expect(mockNavigateTo).not.toHaveBeenCalled()
   })
 
   it('does NOT redirect unauthenticated users', async () => {

@@ -181,7 +181,7 @@ describe('Register Page — form submission', () => {
       })
     )
     expect(mockInitializeAuth).toHaveBeenCalled()
-    expect(mockNavigateTo).toHaveBeenCalledWith('/')
+    expect(mockNavigateTo).toHaveBeenCalledWith('/dashboard')
   })
 
   it('shows error toast on duplicate email', async () => {
