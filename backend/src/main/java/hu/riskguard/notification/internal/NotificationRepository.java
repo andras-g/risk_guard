@@ -33,6 +33,9 @@ public class NotificationRepository {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationRepository.class);
 
+    /** Mirrors {@code ScreeningRepository.HASH_UNAVAILABLE_SENTINEL}. Defined locally to avoid cross-module import. */
+    private static final String HASH_UNAVAILABLE_SENTINEL = "HASH_UNAVAILABLE";
+
     private final DSLContext dsl;
 
     public NotificationRepository(DSLContext dsl) {
@@ -106,7 +109,8 @@ public class NotificationRepository {
                         field("created_at", OffsetDateTime.class),
                         field("updated_at", OffsetDateTime.class),
                         field("last_verdict_status", String.class),
-                        field("last_checked_at", OffsetDateTime.class))
+                        field("last_checked_at", OffsetDateTime.class),
+                        field("latest_sha256_hash", String.class))
                 .from(table("watchlist_entries"))
                 .where(field("tenant_id", UUID.class).eq(tenantId))
                 .orderBy(field("created_at", OffsetDateTime.class).desc())
@@ -119,7 +123,8 @@ public class NotificationRepository {
                         r.get(field("created_at", OffsetDateTime.class)),
                         r.get(field("updated_at", OffsetDateTime.class)),
                         r.get(field("last_verdict_status", String.class)),
-                        r.get(field("last_checked_at", OffsetDateTime.class))));
+                        r.get(field("last_checked_at", OffsetDateTime.class)),
+                        r.get(field("latest_sha256_hash", String.class))));
     }
 
     /**
@@ -139,7 +144,8 @@ public class NotificationRepository {
                         field("created_at", OffsetDateTime.class),
                         field("updated_at", OffsetDateTime.class),
                         field("last_verdict_status", String.class),
-                        field("last_checked_at", OffsetDateTime.class))
+                        field("last_checked_at", OffsetDateTime.class),
+                        field("latest_sha256_hash", String.class))
                 .from(table("watchlist_entries"))
                 .where(field("tenant_id", UUID.class).eq(tenantId))
                 .and(field("tax_number", String.class).eq(taxNumber))
@@ -152,7 +158,8 @@ public class NotificationRepository {
                         r.get(field("created_at", OffsetDateTime.class)),
                         r.get(field("updated_at", OffsetDateTime.class)),
                         r.get(field("last_verdict_status", String.class)),
-                        r.get(field("last_checked_at", OffsetDateTime.class))));
+                        r.get(field("last_checked_at", OffsetDateTime.class)),
+                        r.get(field("latest_sha256_hash", String.class))));
     }
 
     /**
@@ -210,6 +217,33 @@ public class NotificationRepository {
                 .where(field("tenant_id", UUID.class).eq(tenantId))
                 .and(field("tax_number", String.class).eq(taxNumber))
                 .execute();
+    }
+
+    /**
+     * Update the denormalized verdict status, last_checked_at, and (conditionally) latest_sha256_hash.
+     * The hash is only overwritten when {@code sha256Hash} is non-null and not the sentinel
+     * {@code "HASH_UNAVAILABLE"} — null/sentinel retains the existing column value.
+     *
+     * @param tenantId      tenant owning the entry
+     * @param taxNumber     the tax number to update
+     * @param verdictStatus new verdict status
+     * @param checkedAt     timestamp of the evaluation
+     * @param sha256Hash    SHA-256 hash from search_audit_log (may be null or sentinel)
+     * @return number of rows updated
+     */
+    public int updateVerdictStatusWithHash(UUID tenantId, String taxNumber,
+                                           String verdictStatus, OffsetDateTime checkedAt,
+                                           String sha256Hash) {
+        var update = dsl.update(table("watchlist_entries"))
+                .set(field("last_verdict_status", String.class), verdictStatus)
+                .set(field("last_checked_at", OffsetDateTime.class), checkedAt)
+                .set(field("updated_at", OffsetDateTime.class), OffsetDateTime.now());
+        if (sha256Hash != null && !sha256Hash.isBlank() && !sha256Hash.equals(HASH_UNAVAILABLE_SENTINEL)) {
+            update = update.set(field("latest_sha256_hash", String.class), sha256Hash);
+        }
+        return update.where(field("tenant_id", UUID.class).eq(tenantId))
+                     .and(field("tax_number", String.class).eq(taxNumber))
+                     .execute();
     }
 
     /**
@@ -629,14 +663,15 @@ public class NotificationRepository {
             OffsetDateTime createdAt,
             OffsetDateTime updatedAt,
             String verdictStatus,
-            OffsetDateTime lastCheckedAt
+            OffsetDateTime lastCheckedAt,
+            String latestSha256Hash
     ) {
         /**
          * Convenience constructor without verdict fields (used by findByTenantIdAndTaxNumber, insert read-back).
          */
         public WatchlistEntryRecord(UUID id, UUID tenantId, String taxNumber, String companyName,
                                      String label, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
-            this(id, tenantId, taxNumber, companyName, label, createdAt, updatedAt, null, null);
+            this(id, tenantId, taxNumber, companyName, label, createdAt, updatedAt, null, null, null);
         }
     }
 }

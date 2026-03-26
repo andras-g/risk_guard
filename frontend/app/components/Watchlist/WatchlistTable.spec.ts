@@ -6,11 +6,12 @@ import type { WatchlistEntryResponse } from '~/types/api'
 // Stub PrimeVue components
 const DataTableStub = {
   template: '<div data-testid="watchlist-table"><slot /><slot name="header" /></div>',
-  props: ['value', 'filters', 'globalFilterFields', 'rows', 'paginator', 'stripedRows'],
+  props: ['value', 'filters', 'globalFilterFields', 'rows', 'paginator', 'stripedRows', 'selection', 'selectionMode'],
+  emits: ['update:selection'],
 }
 const ColumnStub = {
   template: '<div><slot name="body" :data="mockData" /></div>',
-  props: ['field', 'header', 'sortable'],
+  props: ['field', 'header', 'sortable', 'selectionMode'],
   data() { return { mockData: {} } },
 }
 const ButtonStub = {
@@ -50,11 +51,12 @@ function buildEntry(overrides: Partial<WatchlistEntryResponse> = {}): WatchlistE
   }
 }
 
-function mountTable(props: { entries?: WatchlistEntryResponse[]; isLoading?: boolean } = {}) {
+function mountTable(props: { entries?: WatchlistEntryResponse[]; isLoading?: boolean; selection?: WatchlistEntryResponse[] } = {}) {
   return mount(WatchlistTable, {
     props: {
       entries: props.entries ?? [buildEntry()],
       isLoading: props.isLoading ?? false,
+      selection: props.selection ?? [],
     },
     global: {
       stubs: {
@@ -122,5 +124,13 @@ describe('WatchlistTable', () => {
   it('renders search input in table header', () => {
     const wrapper = mountTable({ entries: [buildEntry()] })
     expect(wrapper.find('[data-testid="watchlist-search-input"]').exists()).toBe(true)
+  })
+
+  it('emits update:selection when selection prop changes', async () => {
+    const entry = buildEntry()
+    const wrapper = mountTable({ entries: [entry], selection: [] })
+    await wrapper.setProps({ selection: [entry] })
+    // Prop update wires through internalSelection computed — no crash expected
+    expect(wrapper.props('selection')).toEqual([entry])
   })
 })

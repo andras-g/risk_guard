@@ -198,6 +198,9 @@ tasks.register('flywayMigrate') {
 }
 
 tasks.named('test') {
+	// Increased heap for full test suite: multiple Spring Boot + Testcontainers contexts
+	// can exhaust the default 512m heap → OutOfMemoryError. Fixed 2026-03-26.
+	jvmArgs '-Xmx1g'
 	useJUnitPlatform {
 		if (System.getProperty('groups')) {
 			includeTags System.getProperty('groups')

@@ -12,6 +12,7 @@ const confirm = useConfirm()
 const watchlistStore = useWatchlistStore()
 
 const showAddDialog = ref(false)
+const selectedEntries = ref<WatchlistEntryResponse[]>([])
 
 // Fetch entries on mount
 onMounted(async () => {
@@ -77,20 +78,27 @@ function handleRemove(entry: WatchlistEntryResponse) {
 <template>
   <div class="max-w-6xl mx-auto p-6">
     <!-- Page Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex justify-between items-center mb-6">
       <h1 class="text-2xl font-bold text-slate-800">
         {{ t('notification.watchlist.title') }}
       </h1>
-      <Button
-        :label="t('notification.watchlist.addButton')"
-        icon="pi pi-plus"
-        data-testid="add-partner-button"
-        @click="showAddDialog = true"
-      />
+      <div class="flex gap-2 items-center flex-wrap">
+        <AuditDispatcher
+          :entries="watchlistStore.entries"
+          :selected-entries="selectedEntries"
+        />
+        <Button
+          :label="t('notification.watchlist.addButton')"
+          icon="pi pi-plus"
+          data-testid="add-partner-button"
+          @click="showAddDialog = true"
+        />
+      </div>
     </div>
 
     <!-- Watchlist Table -->
     <WatchlistTable
+      v-model:selection="selectedEntries"
       :entries="watchlistStore.entries"
       :is-loading="watchlistStore.isLoading"
       @remove="handleRemove"

@@ -128,6 +128,8 @@ export interface WatchlistEntryResponse {
   currentVerdictStatus: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE' | null
   lastCheckedAt: string | null
   createdAt: string
+  // TODO: Remove manual addition once CI OpenAPI pipeline regenerates types from backend (Story 5.1)
+  latestSha256Hash?: string | null
 }
 
 export interface AddWatchlistEntryResponse {

@@ -19,6 +19,7 @@ import java.util.UUID;
  * @param updatedAt         last update timestamp
  * @param verdictStatus     latest verdict status (e.g., RELIABLE, AT_RISK) or null
  * @param lastCheckedAt     timestamp of last screening, or null
+ * @param latestSha256Hash  64-char hex SHA-256 hash from the most recent screening, or null
  */
 public record WatchlistEntry(
         UUID id,
@@ -29,7 +30,8 @@ public record WatchlistEntry(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt,
         String verdictStatus,
-        OffsetDateTime lastCheckedAt
+        OffsetDateTime lastCheckedAt,
+        String latestSha256Hash
 ) {
 
     /**
@@ -37,6 +39,6 @@ public record WatchlistEntry(
      */
     public WatchlistEntry(UUID id, UUID tenantId, String taxNumber, String companyName,
                           String label, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
-        this(id, tenantId, taxNumber, companyName, label, createdAt, updatedAt, null, null);
+        this(id, tenantId, taxNumber, companyName, label, createdAt, updatedAt, null, null, null);
     }
 }

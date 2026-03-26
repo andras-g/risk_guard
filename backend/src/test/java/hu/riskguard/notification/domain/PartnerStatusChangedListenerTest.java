@@ -60,9 +60,9 @@ class PartnerStatusChangedListenerTest {
         // When
         listener.onPartnerStatusChanged(event);
 
-        // Then — verdict status updated for matching entry
-        verify(notificationRepository).updateVerdictStatus(
-                eq(TENANT_1), eq(TAX_NUMBER), eq("AT_RISK"), any(OffsetDateTime.class));
+        // Then — verdict status updated for matching entry (Story 5.1: now uses updateVerdictStatusWithHash)
+        verify(notificationRepository).updateVerdictStatusWithHash(
+                eq(TENANT_1), eq(TAX_NUMBER), eq("AT_RISK"), any(OffsetDateTime.class), eq((String) null));
     }
 
     @Test
@@ -78,7 +78,7 @@ class PartnerStatusChangedListenerTest {
         listener.onPartnerStatusChanged(event);
 
         // Then — no updates attempted, no errors
-        verify(notificationRepository, never()).updateVerdictStatus(any(), any(), any(), any());
+        verify(notificationRepository, never()).updateVerdictStatusWithHash(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -95,11 +95,11 @@ class PartnerStatusChangedListenerTest {
         // When
         listener.onPartnerStatusChanged(event);
 
-        // Then — both tenants' entries updated
-        verify(notificationRepository).updateVerdictStatus(
-                eq(TENANT_1), eq(TAX_NUMBER), eq("RELIABLE"), any(OffsetDateTime.class));
-        verify(notificationRepository).updateVerdictStatus(
-                eq(TENANT_2), eq(TAX_NUMBER), eq("RELIABLE"), any(OffsetDateTime.class));
+        // Then — both tenants' entries updated (Story 5.1: now uses updateVerdictStatusWithHash)
+        verify(notificationRepository).updateVerdictStatusWithHash(
+                eq(TENANT_1), eq(TAX_NUMBER), eq("RELIABLE"), any(OffsetDateTime.class), eq((String) null));
+        verify(notificationRepository).updateVerdictStatusWithHash(
+                eq(TENANT_2), eq(TAX_NUMBER), eq("RELIABLE"), any(OffsetDateTime.class), eq((String) null));
     }
 
     @Test
@@ -113,7 +113,7 @@ class PartnerStatusChangedListenerTest {
 
         // Then — no repository calls
         verify(notificationRepository, never()).findWatchlistEntriesByTaxNumber(any());
-        verify(notificationRepository, never()).updateVerdictStatus(any(), any(), any(), any());
+        verify(notificationRepository, never()).updateVerdictStatusWithHash(any(), any(), any(), any(), any());
     }
 
     // --- Story 3.8: Outbox record creation tests ---
@@ -132,7 +132,9 @@ class PartnerStatusChangedListenerTest {
         // When
         listener.onPartnerStatusChanged(event);
 
-        // Then — outbox record created with SHA-256 hash from event (C1 review fix)
+        // Then — watchlist entry updated with hash (Story 5.1) and outbox record created (C1 review fix)
+        verify(notificationRepository).updateVerdictStatusWithHash(
+                eq(TENANT_1), eq(TAX_NUMBER), eq("AT_RISK"), any(OffsetDateTime.class), eq("abc123def456"));
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
         verify(notificationService).createAlertNotification(eq(TENANT_1), eq(USER_1), payloadCaptor.capture());
@@ -151,8 +153,8 @@ class PartnerStatusChangedListenerTest {
         // When
         listener.onPartnerStatusChanged(event);
 
-        // Then — watchlist entries updated, but NO outbox record created
-        verify(notificationRepository).updateVerdictStatus(any(), any(), any(), any());
+        // Then — watchlist entries updated (Story 5.1: via updateVerdictStatusWithHash), but NO outbox record created
+        verify(notificationRepository).updateVerdictStatusWithHash(any(), any(), any(), any(), any());
         verify(notificationService, never()).createAlertNotification(any(), any(), any());
     }
 
@@ -168,8 +170,8 @@ class PartnerStatusChangedListenerTest {
         // When
         listener.onPartnerStatusChanged(event);
 
-        // Then — watchlist entries updated, but NO outbox record (null previousStatus)
-        verify(notificationRepository).updateVerdictStatus(any(), any(), any(), any());
+        // Then — watchlist entries updated (Story 5.1: via updateVerdictStatusWithHash), but NO outbox record (null previousStatus)
+        verify(notificationRepository).updateVerdictStatusWithHash(any(), any(), any(), any(), any());
         verify(notificationService, never()).createAlertNotification(any(), any(), any());
     }
 

@@ -71,9 +71,9 @@ public class PartnerStatusChangedListener {
         }
 
         for (WatchlistPartner entry : watchlistEntries) {
-            notificationRepository.updateVerdictStatus(
+            notificationRepository.updateVerdictStatusWithHash(
                     entry.tenantId(), entry.taxNumber(),
-                    event.newStatus(), event.timestamp());
+                    event.newStatus(), event.timestamp(), event.sha256Hash());
         }
 
         log.debug("PartnerStatusChanged: updated {} watchlist entries with new status={}",

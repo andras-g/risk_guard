@@ -11,14 +11,23 @@ import { useDateRelative } from '~/composables/formatting/useDateRelative'
 const { t } = useI18n()
 const { formatRelative } = useDateRelative()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   entries: WatchlistEntryResponse[]
   isLoading: boolean
-}>()
+  selection: WatchlistEntryResponse[]
+}>(), {
+  selection: () => [],
+})
 
 const emit = defineEmits<{
   remove: [entry: WatchlistEntryResponse]
+  'update:selection': [entries: WatchlistEntryResponse[]]
 }>()
+
+const internalSelection = computed({
+  get: () => props.selection,
+  set: (v) => emit('update:selection', v),
+})
 
 // Client-side global filter
 const filters = ref({
@@ -94,11 +103,13 @@ function verdictLabel(status: string | null): string {
   <!-- DataTable -->
   <DataTable
     v-else
+    v-model:selection="internalSelection"
     v-model:filters="filters"
     :value="entries"
     :global-filter-fields="['companyName', 'taxNumber']"
     :rows="20"
     :paginator="entries.length > 20"
+    selection-mode="multiple"
     striped-rows
     data-testid="watchlist-table"
   >
@@ -112,6 +123,8 @@ function verdictLabel(status: string | null): string {
         />
       </div>
     </template>
+
+    <Column selection-mode="multiple" style="width: 3rem" />
 
     <Column
       field="companyName"

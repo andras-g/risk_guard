@@ -367,7 +367,7 @@ public class NotificationService {
         }
 
         WatchlistEntry inserted = new WatchlistEntry(
-                id, tenantId, normalizedTaxNumber, companyName, null, now, now, verdictStatus, now);
+                id, tenantId, normalizedTaxNumber, companyName, null, now, now, verdictStatus, now, null);
 
         return new AddResult(inserted, false);
     }
@@ -531,7 +531,8 @@ public class NotificationService {
     private static WatchlistEntry toDomain(WatchlistEntryRecord rec) {
         return new WatchlistEntry(
                 rec.id(), rec.tenantId(), rec.taxNumber(), rec.companyName(), rec.label(),
-                rec.createdAt(), rec.updatedAt(), rec.verdictStatus(), rec.lastCheckedAt());
+                rec.createdAt(), rec.updatedAt(), rec.verdictStatus(), rec.lastCheckedAt(),
+                rec.latestSha256Hash());
     }
 
     /**

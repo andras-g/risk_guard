@@ -16,6 +16,7 @@ import java.util.UUID;
  * @param currentVerdictStatus latest verdict status (RELIABLE, AT_RISK, etc.) or null if never screened
  * @param lastCheckedAt       timestamp of last screening, or null
  * @param createdAt           when the entry was added to the watchlist
+ * @param latestSha256Hash    64-char hex SHA-256 from most recent screening, or null
  */
 public record WatchlistEntryResponse(
         UUID id,
@@ -24,7 +25,8 @@ public record WatchlistEntryResponse(
         String label,
         String currentVerdictStatus,
         OffsetDateTime lastCheckedAt,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String latestSha256Hash
 ) {
 
     /**
@@ -42,6 +44,7 @@ public record WatchlistEntryResponse(
                 entry.label(),
                 entry.verdictStatus(),
                 entry.lastCheckedAt(),
-                entry.createdAt());
+                entry.createdAt(),
+                entry.latestSha256Hash());
     }
 }

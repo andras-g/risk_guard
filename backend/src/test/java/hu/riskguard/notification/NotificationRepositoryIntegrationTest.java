@@ -127,12 +127,73 @@ class NotificationRepositoryIntegrationTest {
         assertThat(partners).allMatch(p -> p.tenantId().equals(tenantA));
     }
 
+    @Test
+    void updateVerdictStatusWithHash_doesNotOverwriteHashWhenNullProvided() {
+        // Given — entry with an existing hash
+        String existingHash = "b".repeat(64);
+        insertWatchlistEntryWithHash(tenantA, "12345678", existingHash);
+
+        // When — update with null sha256Hash (should NOT overwrite the existing hash)
+        notificationRepository.updateVerdictStatusWithHash(
+                tenantA, "12345678", "AT_RISK", OffsetDateTime.now(), null);
+
+        // Then — existing hash is preserved
+        var entry = notificationRepository.findByTenantIdAndTaxNumber(tenantA, "12345678");
+        assertThat(entry).isPresent();
+        assertThat(entry.get().latestSha256Hash()).isEqualTo(existingHash);
+    }
+
+    @Test
+    void updateVerdictStatusWithHash_doesNotOverwriteHashWhenSentinelProvided() {
+        // Given — entry with an existing hash
+        String existingHash = "c".repeat(64);
+        insertWatchlistEntryWithHash(tenantA, "12345678", existingHash);
+
+        // When — update with sentinel value (should NOT overwrite)
+        notificationRepository.updateVerdictStatusWithHash(
+                tenantA, "12345678", "RELIABLE", OffsetDateTime.now(), "HASH_UNAVAILABLE");
+
+        // Then — existing hash is preserved
+        var entry = notificationRepository.findByTenantIdAndTaxNumber(tenantA, "12345678");
+        assertThat(entry).isPresent();
+        assertThat(entry.get().latestSha256Hash()).isEqualTo(existingHash);
+    }
+
+    @Test
+    void updateVerdictStatusWithHash_updatesHashWhenValidHashProvided() {
+        // Given — entry without a hash
+        insertWatchlistEntry(tenantA, "12345678");
+        String newHash = "d".repeat(64);
+
+        // When — update with a valid hash
+        notificationRepository.updateVerdictStatusWithHash(
+                tenantA, "12345678", "RELIABLE", OffsetDateTime.now(), newHash);
+
+        // Then — hash is written
+        var entry = notificationRepository.findByTenantIdAndTaxNumber(tenantA, "12345678");
+        assertThat(entry).isPresent();
+        assertThat(entry.get().latestSha256Hash()).isEqualTo(newHash);
+    }
+
     private void insertWatchlistEntry(UUID tenantId, String taxNumber) {
         OffsetDateTime now = OffsetDateTime.now();
         dsl.insertInto(table("watchlist_entries"))
                 .set(field("id", UUID.class), UUID.randomUUID())
                 .set(field("tenant_id", UUID.class), tenantId)
                 .set(field("tax_number", String.class), taxNumber)
+                .set(field("created_at", OffsetDateTime.class), now)
+                .set(field("updated_at", OffsetDateTime.class), now)
+                .execute();
+    }
+
+    private void insertWatchlistEntryWithHash(UUID tenantId, String taxNumber, String sha256Hash) {
+        OffsetDateTime now = OffsetDateTime.now();
+        dsl.insertInto(table("watchlist_entries"))
+                .set(field("id", UUID.class), UUID.randomUUID())
+                .set(field("tenant_id", UUID.class), tenantId)
+                .set(field("tax_number", String.class), taxNumber)
+                .set(field("company_name", String.class), "Test Company Kft.")
+                .set(field("latest_sha256_hash", String.class), sha256Hash)
                 .set(field("created_at", OffsetDateTime.class), now)
                 .set(field("updated_at", OffsetDateTime.class), now)
                 .execute();

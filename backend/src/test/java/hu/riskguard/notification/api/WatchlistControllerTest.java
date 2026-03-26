@@ -78,6 +78,32 @@ class WatchlistControllerTest {
     }
 
     @Test
+    void listEntriesShouldIncludeLatestSha256HashInResponse() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        String expectedHash = "a".repeat(64);
+        WatchlistEntry entryWithHash = new WatchlistEntry(
+                UUID.randomUUID(), TENANT_ID, "12345678", "Test Company Kft.",
+                null, OffsetDateTime.now(), OffsetDateTime.now(), "RELIABLE", OffsetDateTime.now(), expectedHash);
+        when(notificationService.getWatchlistEntries(eq(TENANT_ID))).thenReturn(List.of(entryWithHash));
+
+        List<WatchlistEntryResponse> result = controller.listEntries(jwt);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).latestSha256Hash()).isEqualTo(expectedHash);
+    }
+
+    @Test
+    void listEntriesShouldIncludeNullHashWhenNeverScreened() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        when(notificationService.getWatchlistEntries(eq(TENANT_ID))).thenReturn(List.of(buildEntry("12345678")));
+
+        List<WatchlistEntryResponse> result = controller.listEntries(jwt);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).latestSha256Hash()).isNull();
+    }
+
+    @Test
     void removeEntryShouldReturn204WhenDeleted() {
         Jwt jwt = buildJwt(TENANT_ID);
         UUID entryId = UUID.randomUUID();

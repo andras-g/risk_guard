@@ -43,6 +43,12 @@
       "confirmNo": "Mégse",
       "duplicateToast": "A partner már a figyelőlistán van",
       "emptyCta": "Keressen egy partnert a kezdéshez",
+      "export": {
+        "all": "összes",
+        "downloadLabel": "PDF exportálás",
+        "shareLabel": "Jelentés megosztása"
+      },
+      "exportError": "PDF generálása sikertelen. Kérjük, próbálja újra.",
       "emptyDescription": "Adja hozzá a partnereket a keresési eredményekből, vagy használja a fenti Partner hozzáadása gombot.",
       "emptyTitle": "Még nincs partner a figyelőlistáján",
       "lastMonitored": "Utolsó monitorozás",

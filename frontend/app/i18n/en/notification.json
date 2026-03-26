@@ -43,6 +43,12 @@
       "confirmNo": "Cancel",
       "duplicateToast": "Partner already on Watchlist",
       "emptyCta": "Search a partner to get started",
+      "export": {
+        "all": "all",
+        "downloadLabel": "Export PDF",
+        "shareLabel": "Share Report"
+      },
+      "exportError": "Failed to generate PDF. Please try again.",
       "emptyDescription": "Add partners from search results or use the Add Partner button above.",
       "emptyTitle": "No partners on your Watchlist yet",
       "lastMonitored": "Last monitored",
