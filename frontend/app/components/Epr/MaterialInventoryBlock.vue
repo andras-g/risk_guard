@@ -115,6 +115,7 @@ const filteredEntries = computed(() => {
           option-label="label"
           option-value="value"
           class="w-48"
+          :aria-label="t('epr.materialLibrary.filter.ariaLabel')"
           data-testid="recurring-filter"
         />
         <InputText

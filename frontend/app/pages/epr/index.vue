@@ -168,6 +168,14 @@ async function handleCopyFromQuarter(data: { sourceYear: number; sourceQuarter: 
           </h1>
           <div class="flex gap-2">
             <Button
+              :label="t('epr.filing.newFilingButton')"
+              icon="pi pi-calculator"
+              severity="secondary"
+              :disabled="eprStore.verifiedCount === 0"
+              data-testid="new-filing-button"
+              @click="$router.push('/epr/filing')"
+            />
+            <Button
               :label="t('epr.materialLibrary.copyButton')"
               icon="pi pi-copy"
               severity="secondary"

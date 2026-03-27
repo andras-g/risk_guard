@@ -13,11 +13,19 @@ import org.jooq.Record;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -35,6 +43,7 @@ public class EprService {
 
     private final EprRepository eprRepository;
     private final DagEngine dagEngine;
+    private final FeeCalculator feeCalculator;
 
     /**
      * ObjectMapper for JSON serialization of traversal paths and config parsing.
@@ -146,6 +155,74 @@ public class EprService {
      */
     public List<EprMaterialTemplatesRecord> findTemplatesByIds(List<UUID> ids, UUID tenantId) {
         return eprRepository.findByIdsAndTenant(ids, tenantId);
+    }
+
+    // ─── Filing methods ──────────────────────────────────────────────────────
+
+    /**
+     * Compute EPR filing liability for a set of (templateId, quantityPcs) lines.
+     * Validates: templates exist, belong to tenant, are verified, have a fee_rate.
+     * Uses FeeCalculator for per-line and total computation.
+     *
+     * @throws ResponseStatusException 404 if any templateId not found or doesn't belong to tenant
+     * @throws ResponseStatusException 422 if any template is not verified or has no fee_rate
+     */
+    @Transactional(readOnly = true)
+    public FilingCalculationResponse calculateFiling(List<FilingLineRequest> lines, UUID tenantId) {
+        // Reject duplicate templateIds before any DB work
+        Set<UUID> seen = new HashSet<>();
+        for (FilingLineRequest line : lines) {
+            if (!seen.add(line.templateId())) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Duplicate templateId in request: " + line.templateId());
+            }
+        }
+
+        // Build a lookup: templateId → TemplateWithOverride (includes fee_rate)
+        Map<UUID, EprRepository.TemplateWithOverride> templateMap = eprRepository.findAllByTenantWithOverride(tenantId)
+                .stream()
+                .collect(Collectors.toMap(t -> t.template().getId(), t -> t));
+
+        List<FilingLineResultDto> resultLines = new ArrayList<>();
+        List<FeeCalculator.FilingLineResult> calculatedLines = new ArrayList<>();
+        for (FilingLineRequest line : lines) {
+            EprRepository.TemplateWithOverride two = templateMap.get(line.templateId());
+            if (two == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Template not found: " + line.templateId());
+            }
+            if (!Boolean.TRUE.equals(two.template().getVerified())) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Template is not verified: " + line.templateId());
+            }
+            BigDecimal feeRate = two.feeRate();
+            if (feeRate == null) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Template has no fee rate — run the wizard first: " + line.templateId());
+            }
+            BigDecimal baseWeightGrams = two.template().getBaseWeightGrams();
+            if (baseWeightGrams == null) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Template has no base weight: " + line.templateId());
+            }
+            FeeCalculator.FilingLineResult result = feeCalculator.computeLine(
+                    line.quantityPcs(), baseWeightGrams, feeRate);
+            calculatedLines.add(result);
+            resultLines.add(new FilingLineResultDto(
+                    two.template().getId(),
+                    two.template().getName(),
+                    two.template().getKfCode(),
+                    line.quantityPcs(),
+                    baseWeightGrams,
+                    result.totalWeightGrams(),
+                    result.totalWeightKg(),
+                    feeRate,
+                    result.feeAmountHuf()
+            ));
+        }
+        FeeCalculator.FilingTotals totals = feeCalculator.computeTotals(calculatedLines);
+        return FilingCalculationResponse.from(resultLines, totals.totalWeightKg(), totals.totalFeeHuf(),
+                getActiveConfigVersion());
     }
 
     // ─── Wizard methods ──────────────────────────────────────────────────────

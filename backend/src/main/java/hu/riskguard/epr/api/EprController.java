@@ -206,6 +206,18 @@ public class EprController {
     }
 
     /**
+     * Compute EPR filing liability for a set of material quantities.
+     * Validates all templates are Verified and belong to the requesting tenant.
+     */
+    @PostMapping("/filing/calculate")
+    public FilingCalculationResponse calculateFiling(
+            @Valid @RequestBody FilingCalculationRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        return eprService.calculateFiling(request.lines(), tenantId);
+    }
+
+    /**
      * Extract and validate a UUID claim from the JWT.
      */
     private UUID requireUuidClaim(Jwt jwt, String claimName) {

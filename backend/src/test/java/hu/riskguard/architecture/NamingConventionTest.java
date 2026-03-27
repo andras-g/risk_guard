@@ -176,6 +176,56 @@ public class NamingConventionTest {
                     .and().haveSimpleNameNotContaining("BeanFactoryRegistrations")
                     .should().dependOnClassesThat().resideInAPackage("..screening.internal..");
 
+    // EPR module may only access its own tables (EprConfigs, EprCalculations, EprExports, EprMaterialTemplates).
+    // Uses prefix-matching (identity pattern) to correctly handle jOOQ nested classes and record types.
+    @ArchTest
+    static final ArchRule epr_module_should_only_access_own_tables =
+            classes().that().resideInAPackage("..epr..")
+                    .and().haveSimpleNameNotEndingWith("Test")
+                    .and().haveSimpleNameNotEndingWith("Tests")
+                    .should(new ArchCondition<JavaClass>("only access epr-owned jOOQ tables") {
+                        private static final java.util.Set<String> ALLOWED_TABLE_PREFIXES = java.util.Set.of(
+                                "hu.riskguard.jooq.tables.EprConfigs",
+                                "hu.riskguard.jooq.tables.EprCalculations",
+                                "hu.riskguard.jooq.tables.EprExports",
+                                "hu.riskguard.jooq.tables.EprMaterialTemplates"
+                        );
+                        private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
+
+                        @Override
+                        public void check(JavaClass javaClass, ConditionEvents events) {
+                            javaClass.getDirectDependenciesFromSelf().forEach(dep -> {
+                                String targetName = dep.getTargetClass().getFullName();
+                                if (targetName.startsWith(JOOQ_TABLES_PKG)) {
+                                    boolean allowed = ALLOWED_TABLE_PREFIXES.stream()
+                                            .anyMatch(prefix -> targetName.equals(prefix)
+                                                    || targetName.startsWith(prefix + ".") // nested classes
+                                                    || targetName.equals("hu.riskguard.jooq.tables.records." + extractRecordName(prefix)));
+                                    if (!allowed) {
+                                        events.add(SimpleConditionEvent.violated(dep,
+                                                javaClass.getName() + " accesses non-owned jOOQ table " + targetName));
+                                    }
+                                }
+                            });
+                        }
+
+                        private String extractRecordName(String tableClassName) {
+                            // hu.riskguard.jooq.tables.EprConfigs → EprConfigsRecord
+                            String simple = tableClassName.substring(tableClassName.lastIndexOf('.') + 1);
+                            return simple + "Record";
+                        }
+                    });
+
+    // No external module should access epr module's internal package.
+    // Exceptions: domain facade within the same module, ArchUnit tests, and Spring AOT-generated classes.
+    @ArchTest
+    static final ArchRule epr_internal_should_not_be_accessed_externally =
+            noClasses().that().resideOutsideOfPackage("..epr..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().haveSimpleNameNotContaining("BeanDefinitions")
+                    .and().haveSimpleNameNotContaining("BeanFactoryRegistrations")
+                    .should().dependOnClassesThat().resideInAPackage("..epr.internal..");
+
     @ArchTest
     static final ArchRule response_dtos_should_have_from_factory =
             classes().that().resideInAPackage("..api.dto..")

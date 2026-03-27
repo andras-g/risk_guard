@@ -46,6 +46,7 @@
       "filingReadyTooltip": "Díjtétel: {feeRate} HUF/kg",
       "filter": {
         "all": "Összes",
+        "ariaLabel": "Szűrés visszatérő típus szerint",
         "oneTimeOnly": "Csak egyszeri",
         "recurringOnly": "Csak visszatérő"
       },
@@ -73,6 +74,30 @@
       "validation": {
         "nameRequired": "A név megadása kötelező",
         "weightPositive": "A súlynak nagyobbnak kell lennie, mint 0"
+      }
+    },
+    "filing": {
+      "backToLibrary": "Vissza a könyvtárhoz",
+      "calculateButton": "Összesítés kiszámítása",
+      "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
+      "grandTotalFee": "Teljes díj összege",
+      "grandTotalWeight": "Teljes tömeg",
+      "newFilingButton": "Új bejelentés",
+      "summaryTitle": "Bejelentési összesítő",
+      "table": {
+        "baseWeight": "Alapsúly (g)",
+        "feeAmount": "Díj összege (HUF)",
+        "feeRate": "Díjkulcs (HUF/kg)",
+        "kfCode": "KF kód",
+        "name": "Megnevezés",
+        "quantity": "Darabszám (db)",
+        "totalWeight": "Összsúly (kg)"
+      },
+      "title": "Negyedéves EPR bejelentés",
+      "totalLines": "Anyagok száma",
+      "validation": {
+        "mustBeInteger": "A darabszámnak egész számnak kell lennie",
+        "mustBePositive": "A darabszámnak nagyobbnak kell lennie 0-nál"
       }
     },
     "title": "EPR Kezelő",

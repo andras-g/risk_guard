@@ -6,6 +6,7 @@ import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.DagEngine.KfCodeResolution;
 import hu.riskguard.epr.domain.DagEngine.WizardStepResult;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.domain.FeeCalculator;
 import hu.riskguard.epr.internal.EprRepository;
 import org.jooq.JSONB;
 import org.jooq.Record;
@@ -45,7 +46,7 @@ class EprServiceWizardTest {
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine);
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator());
     }
 
     @Nested

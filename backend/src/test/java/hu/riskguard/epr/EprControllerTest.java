@@ -254,6 +254,65 @@ class EprControllerTest {
                 .hasMessageContaining("not a valid UUID");
     }
 
+    @Test
+    void calculateFiling_validLines_returnsCalculationResponse() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        UUID templateId = UUID.randomUUID();
+        hu.riskguard.epr.api.dto.FilingLineRequest line =
+                new hu.riskguard.epr.api.dto.FilingLineRequest(templateId, 1000);
+        hu.riskguard.epr.api.dto.FilingCalculationRequest request =
+                new hu.riskguard.epr.api.dto.FilingCalculationRequest(List.of(line));
+
+        hu.riskguard.epr.api.dto.FilingLineResultDto resultLine =
+                new hu.riskguard.epr.api.dto.FilingLineResultDto(
+                        templateId, "Cardboard Box", "11010101", 1000,
+                        new BigDecimal("120"), new BigDecimal("120000"),
+                        new BigDecimal("120.000000"), new BigDecimal("215"),
+                        new BigDecimal("25800"));
+        hu.riskguard.epr.api.dto.FilingCalculationResponse expected =
+                new hu.riskguard.epr.api.dto.FilingCalculationResponse(
+                        List.of(resultLine), new BigDecimal("120.000000"),
+                        new BigDecimal("25800"), 1);
+
+        when(eprService.calculateFiling(any(), any())).thenReturn(expected);
+
+        hu.riskguard.epr.api.dto.FilingCalculationResponse result = controller.calculateFiling(request, jwt);
+
+        assertThat(result.lines()).hasSize(1);
+        assertThat(result.grandTotalFeeHuf()).isEqualByComparingTo(new BigDecimal("25800"));
+        assertThat(result.grandTotalWeightKg()).isEqualByComparingTo(new BigDecimal("120.000000"));
+    }
+
+    @Test
+    void calculateFiling_emptyLines_returns400() {
+        // @NotEmpty on FilingCalculationRequest.lines is enforced by Spring MVC (@Valid on the
+        // controller parameter), resulting in HTTP 400. Verify the constraint is declared on the DTO.
+        var request = new hu.riskguard.epr.api.dto.FilingCalculationRequest(List.of());
+        var violations = jakarta.validation.Validation.buildDefaultValidatorFactory()
+                .getValidator().validate(request);
+        assertThat(violations).isNotEmpty();
+        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("lines");
+    }
+
+    @Test
+    void calculateFiling_missingJwtClaim_returns401() {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("test@test.com")
+                .build();
+        UUID templateId = UUID.randomUUID();
+        hu.riskguard.epr.api.dto.FilingCalculationRequest request =
+                new hu.riskguard.epr.api.dto.FilingCalculationRequest(
+                        List.of(new hu.riskguard.epr.api.dto.FilingLineRequest(templateId, 100)));
+
+        assertThatThrownBy(() -> controller.calculateFiling(request, jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> {
+                    ResponseStatusException rse = (ResponseStatusException) e;
+                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+                });
+    }
+
     private Jwt buildJwt(UUID tenantId) {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")

@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Thu Mar 26 2026 — Story 5.1 (Watchlist Bulk PDF Export & Mobile Dispatcher) created as ready-for-dev; Epic 5 started.
+# updated: Thu Mar 26 2026 — Story 5.2 (Quarterly EPR Filing Workflow) created as ready-for-dev.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -107,7 +107,7 @@ development_status:
   5-0-rename-seasonal-to-recurring: done  # Story file created 2026-03-26; dev completed 2026-03-26; UX clarity rename: seasonal→recurring with logic inversion; 13 tasks done, all tests green; code-review R1 2026-03-26 — 2 patch items fixed (SidePanelStub prop name, wizard mock lastCloseReason); 9 deferred, 11 dismissed; status → done
   5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: done  # Story file created 2026-03-26; dev 2026-03-26; SHA-256 denormalization onto watchlist_entries, jsPDF client-side export, AuditDispatcher mobile share (navigator.share), WatchlistTable multi-select; OOM fixed (-Xmx1g); code-review R1 2026-03-26 — 9 patch items resolved; code-review R2 2026-03-26 — 2 patch items fixed (detached anchor Firefox download, lastCheckedAt ISO-8601 full string); 6 deferred; all tests green (570 frontend, BUILD SUCCESSFUL backend); status → done
   5-1a-my-audit-history-due-diligence-timeline: backlog  # Added 2026-03-20 — user-facing audit trail viewer + nightly monitoring writes to search_audit_log (owner request)
-  5-2-quarterly-epr-filing-workflow: backlog  # NOTE (2026-03-26): Story must include test fixtures with backdated created_at (e.g. '2025-11-15') to simulate prior-quarter templates for copy-from-quarter and filing workflow tests — do NOT depend on calendar date
+  5-2-quarterly-epr-filing-workflow: review  # Story file created 2026-03-26; FeeCalculator, filing calculate endpoint, filing page, EprFilingStore, MOHU Gate validation; test fixtures must use backdated created_at '2025-11-15' for prior-quarter templates; code-review R1 2026-03-27 — 5 patch items resolved (P1–P5); backend bug fixed: IdentityRepository.findByTokenHashForUpdate cross-tenant pattern; Quantity input width constrained; all tests green
   5-3-mohu-ready-csv-export: backlog
   5-4-export-locale-enforcement-and-ux-notice: backlog
   epic-5-retrospective: optional

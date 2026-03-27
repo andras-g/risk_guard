@@ -46,6 +46,7 @@
       "filingReadyTooltip": "Fee rate: {feeRate} HUF/kg",
       "filter": {
         "all": "All",
+        "ariaLabel": "Filter by recurring type",
         "oneTimeOnly": "One-time only",
         "recurringOnly": "Recurring only"
       },
@@ -73,6 +74,30 @@
       "validation": {
         "nameRequired": "Name is required",
         "weightPositive": "Weight must be greater than 0"
+      }
+    },
+    "filing": {
+      "backToLibrary": "Back to Library",
+      "calculateButton": "Calculate Totals",
+      "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
+      "grandTotalFee": "Grand Total Fee",
+      "grandTotalWeight": "Grand Total Weight",
+      "newFilingButton": "New Filing",
+      "summaryTitle": "Filing Summary",
+      "table": {
+        "baseWeight": "Base Weight (g)",
+        "feeAmount": "Fee Amount (HUF)",
+        "feeRate": "Fee Rate (HUF/kg)",
+        "kfCode": "KF Code",
+        "name": "Name",
+        "quantity": "Quantity (pcs)",
+        "totalWeight": "Total Weight (kg)"
+      },
+      "title": "Quarterly EPR Filing",
+      "totalLines": "Materials included",
+      "validation": {
+        "mustBeInteger": "Quantity must be a whole number (pcs)",
+        "mustBePositive": "Quantity must be greater than 0"
       }
     },
     "title": "EPR Manager",

@@ -2,6 +2,7 @@ package hu.riskguard.epr;
 
 import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.domain.FeeCalculator;
 import hu.riskguard.epr.internal.EprRepository;
 import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
 import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
@@ -41,7 +42,7 @@ class EprServiceTest {
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine);
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator());
     }
 
     @Test

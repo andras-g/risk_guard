@@ -88,11 +88,12 @@ function closeDialog() {
     <div class="flex flex-col gap-4">
       <!-- AutoComplete for KF-code search -->
       <div>
-        <label class="block text-sm font-medium mb-1">
+        <label for="override-kf-code-search" class="block text-sm font-medium mb-1">
           {{ t('epr.wizard.override.searchPlaceholder') }}
         </label>
         <AutoComplete
           v-model="selectedEntry"
+          input-id="override-kf-code-search"
           :suggestions="filteredGroups"
           option-group-label="label"
           option-group-children="items"
@@ -136,10 +137,11 @@ function closeDialog() {
 
       <!-- Reason textarea -->
       <div>
-        <label class="block text-sm font-medium mb-1">
+        <label for="override-reason-input" class="block text-sm font-medium mb-1">
           {{ t('epr.wizard.override.reasonLabel') }}
         </label>
         <Textarea
+          id="override-reason-input"
           v-model="reason"
           :placeholder="t('epr.wizard.override.reasonPlaceholder')"
           :maxlength="MAX_REASON_LENGTH"

@@ -298,16 +298,22 @@ public class IdentityRepository extends BaseRepository {
     /**
      * Find a refresh token by its SHA-256 hash — intentionally cross-tenant.
      *
+     * <p>Uses {@code dsl.select().from()} (not {@code selectFrom()}) because token_hash is globally
+     * unique and this query must work before tenant context is established (e.g., during token refresh).
+     * {@code selectFrom()} would trigger {@link hu.riskguard.core.security.TenantAwareDSLContext}
+     * tenant filtering, which fails with no tenant context set at the auth layer.
+     *
      * <p>Uses {@code FOR UPDATE} to acquire a row-level lock, preventing TOCTOU race
      * conditions where concurrent requests could both read the same valid token before
      * either revokes it, bypassing token rotation. The lock is held until the enclosing
      * transaction commits.
      */
     public Optional<RefreshTokensRecord> findByTokenHashForUpdate(String tokenHash) {
-        return dsl.selectFrom(REFRESH_TOKENS)
+        return dsl.select(REFRESH_TOKENS.asterisk())
+                .from(REFRESH_TOKENS)
                 .where(REFRESH_TOKENS.TOKEN_HASH.eq(tokenHash))
                 .forUpdate()
-                .fetchOptional();
+                .fetchOptionalInto(RefreshTokensRecord.class);
     }
 
     /**
