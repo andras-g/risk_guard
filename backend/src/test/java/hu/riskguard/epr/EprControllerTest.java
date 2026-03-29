@@ -313,6 +313,91 @@ class EprControllerTest {
                 });
     }
 
+    // ─── Export endpoint tests ───────────────────────────────────────────────
+
+    @Test
+    void exportMohu_happyPath_returnsCsvResponse() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        UUID templateId = UUID.randomUUID();
+        hu.riskguard.epr.api.dto.ExportLineRequest line =
+                new hu.riskguard.epr.api.dto.ExportLineRequest(
+                        templateId, "11010101", "Kartondoboz A", 1000,
+                        new java.math.BigDecimal("120.000000"),
+                        new java.math.BigDecimal("25800"));
+        hu.riskguard.epr.api.dto.MohuExportRequest request =
+                new hu.riskguard.epr.api.dto.MohuExportRequest(List.of(line), 1);
+
+        byte[] csvBytes = new byte[]{ (byte) 0xEF, (byte) 0xBB, (byte) 0xBF, 'K', 'F' };
+        when(eprService.exportMohuCsv(any(), eq(TENANT_ID))).thenReturn(csvBytes);
+
+        org.springframework.http.ResponseEntity<byte[]> response = controller.exportMohu(request, jwt);
+
+        assertThat(response.getStatusCode()).isEqualTo(org.springframework.http.HttpStatus.OK);
+        assertThat(response.getHeaders().getFirst(org.springframework.http.HttpHeaders.CONTENT_TYPE))
+                .contains("text/csv");
+        assertThat(response.getHeaders().getFirst(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION))
+                .contains("attachment");
+        assertThat(response.getBody()).isEqualTo(csvBytes);
+    }
+
+    @Test
+    void exportMohu_configVersionMismatch_propagates422() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        UUID templateId = UUID.randomUUID();
+        hu.riskguard.epr.api.dto.ExportLineRequest line =
+                new hu.riskguard.epr.api.dto.ExportLineRequest(
+                        templateId, "11010101", "Kartondoboz A", 1000,
+                        new java.math.BigDecimal("120.000000"),
+                        new java.math.BigDecimal("25800"));
+        hu.riskguard.epr.api.dto.MohuExportRequest request =
+                new hu.riskguard.epr.api.dto.MohuExportRequest(List.of(line), 99);
+
+        when(eprService.exportMohuCsv(any(), any()))
+                .thenThrow(new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "Config version mismatch"));
+
+        assertThatThrownBy(() -> controller.exportMohu(request, jwt))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .satisfies(e -> {
+                    var rse = (org.springframework.web.server.ResponseStatusException) e;
+                    assertThat(rse.getStatusCode())
+                            .isEqualTo(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY);
+                });
+    }
+
+    @Test
+    void exportMohu_emptyLines_validationRejectsRequest() {
+        hu.riskguard.epr.api.dto.MohuExportRequest request =
+                new hu.riskguard.epr.api.dto.MohuExportRequest(List.of(), 1);
+        var violations = jakarta.validation.Validation.buildDefaultValidatorFactory()
+                .getValidator().validate(request);
+        assertThat(violations).isNotEmpty();
+        assertThat(violations.iterator().next().getPropertyPath().toString()).isEqualTo("lines");
+    }
+
+    @Test
+    void exportMohu_missingJwtClaim_returns401() {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("test@test.com")
+                .build();
+        UUID templateId = UUID.randomUUID();
+        hu.riskguard.epr.api.dto.ExportLineRequest line =
+                new hu.riskguard.epr.api.dto.ExportLineRequest(
+                        templateId, "11010101", "Kartondoboz A", 1000,
+                        new java.math.BigDecimal("120.000000"),
+                        new java.math.BigDecimal("25800"));
+        hu.riskguard.epr.api.dto.MohuExportRequest request =
+                new hu.riskguard.epr.api.dto.MohuExportRequest(List.of(line), 1);
+
+        assertThatThrownBy(() -> controller.exportMohu(request, jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> {
+                    ResponseStatusException rse = (ResponseStatusException) e;
+                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+                });
+    }
+
     private Jwt buildJwt(UUID tenantId) {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")

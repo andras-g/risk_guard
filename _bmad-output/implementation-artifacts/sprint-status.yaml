@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Thu Mar 26 2026 — Story 5.2 (Quarterly EPR Filing Workflow) created as ready-for-dev.
+# updated: Fri Mar 27 2026 — Story 5.3 (MOHU-Ready CSV Export) created as ready-for-dev.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -108,7 +108,7 @@ development_status:
   5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: done  # Story file created 2026-03-26; dev 2026-03-26; SHA-256 denormalization onto watchlist_entries, jsPDF client-side export, AuditDispatcher mobile share (navigator.share), WatchlistTable multi-select; OOM fixed (-Xmx1g); code-review R1 2026-03-26 — 9 patch items resolved; code-review R2 2026-03-26 — 2 patch items fixed (detached anchor Firefox download, lastCheckedAt ISO-8601 full string); 6 deferred; all tests green (570 frontend, BUILD SUCCESSFUL backend); status → done
   5-1a-my-audit-history-due-diligence-timeline: backlog  # Added 2026-03-20 — user-facing audit trail viewer + nightly monitoring writes to search_audit_log (owner request)
   5-2-quarterly-epr-filing-workflow: done  # Story file created 2026-03-26; FeeCalculator, filing calculate endpoint, filing page, EprFilingStore, MOHU Gate validation; code-review R1 2026-03-27 — 5 patch items resolved; code-review R2 2026-03-27 — duplicate templateId guard, baseWeightGrams null guard, dead findVerifiedByTenant removed, real-time per-row computation (AC 2), summary always visible (AC 4), from() factory used, ESLint a11y errors fixed (pipeline); 575 frontend + BUILD SUCCESSFUL backend; CI green; status → done
-  5-3-mohu-ready-csv-export: backlog
+  5-3-mohu-ready-csv-export: done  # Story file created 2026-03-27; dev 2026-03-28; code-review R1 2026-03-28 — 4 patch items resolved 2026-03-29; 3 deferred; 10 dismissed; code-review R2 2026-03-29 — clean (0 patch, 25 dismissed, 3 defers confirmed); status → done
   5-4-export-locale-enforcement-and-ux-notice: backlog
   epic-5-retrospective: optional
 

@@ -30,6 +30,24 @@ public final class HashUtil {
     private static final byte SEPARATOR = 0x00;
 
     /**
+     * Compute a hex-encoded SHA-256 digest of raw bytes.
+     * Used for file hash computation (e.g., CSV export audit trail in {@code epr_exports.file_hash}).
+     *
+     * @param bytes the raw bytes to hash
+     * @return lowercase hex-encoded SHA-256 digest (64 characters)
+     * @throws IllegalStateException if SHA-256 algorithm is not available (never on standard JVMs)
+     */
+    public static String sha256Hex(byte[] bytes) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(bytes);
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
+        }
+    }
+
+    /**
      * Hashes each part individually (separated by a null byte) and returns a hex-encoded SHA-256 digest.
      *
      * <p>Each part is fed to the digest followed by a {@code 0x00} separator byte, preventing

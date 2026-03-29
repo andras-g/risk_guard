@@ -3,6 +3,11 @@ import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import FilingPage from './filing.vue'
 
+const mockToastAdd = vi.fn()
+vi.mock('primevue/usetoast', () => ({
+  useToast: () => ({ add: mockToastAdd }),
+}))
+
 // Stub PrimeVue components
 const ButtonStub = {
   template: '<button :disabled="$attrs.disabled" :data-testid="$attrs[\'data-testid\']" @click="$emit(\'click\')"><slot /></button>',
@@ -48,6 +53,7 @@ vi.mock('~/composables/auth/useTierGate', () => ({
 
 const mockFetchMaterials = vi.fn().mockResolvedValue(undefined)
 const mockCalculate = vi.fn().mockResolvedValue(undefined)
+const mockExportMohu = vi.fn().mockResolvedValue(undefined)
 const mockUpdateQuantity = vi.fn()
 const mockInitFromTemplates = vi.fn()
 
@@ -56,6 +62,7 @@ let mockFilingLines: any[] = []
 let mockServerResult: any = null
 let mockHasValidLines = false
 let mockIsCalculating = false
+let mockIsExporting = false
 let mockValidLines: any[] = []
 
 vi.mock('~/stores/epr', () => ({
@@ -73,6 +80,7 @@ vi.mock('~/stores/eprFiling', () => ({
     get serverResult() { return mockServerResult },
     get hasValidLines() { return mockHasValidLines },
     get isCalculating() { return mockIsCalculating },
+    get isExporting() { return mockIsExporting },
     get validLines() { return mockValidLines },
     get grandTotalWeightKg() { return mockServerResult?.grandTotalWeightKg ?? 0 },
     get grandTotalFeeHuf() { return mockServerResult?.grandTotalFeeHuf ?? 0 },
@@ -81,6 +89,7 @@ vi.mock('~/stores/eprFiling', () => ({
     initFromTemplates: mockInitFromTemplates,
     updateQuantity: mockUpdateQuantity,
     calculate: mockCalculate,
+    exportMohu: mockExportMohu,
   }),
 }))
 
@@ -100,11 +109,13 @@ function mountPage() {
 describe('EPR Filing Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockToastAdd.mockReset()
     mockEprMaterials = []
     mockFilingLines = []
     mockServerResult = null
     mockHasValidLines = false
     mockIsCalculating = false
+    mockIsExporting = false
     mockValidLines = []
   })
 
@@ -187,5 +198,92 @@ describe('EPR Filing Page', () => {
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="filing-summary"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="summary-total-lines"]').text()).toContain('1')
+  })
+
+  // ─── Export for MOHU tests ─────────────────────────────────────────────────
+
+  it('Export for MOHU button hidden when serverResult is null', () => {
+    mockFilingLines = [
+      {
+        templateId: '1', name: 'Box A', kfCode: '11010101',
+        baseWeightGrams: 120, feeRateHufPerKg: 215,
+        quantityPcs: null, totalWeightGrams: null, totalWeightKg: null,
+        feeAmountHuf: null, isValid: false, validationMessage: null,
+      },
+    ]
+    mockServerResult = null
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="export-mohu-button"]').exists()).toBe(false)
+  })
+
+  it('Export for MOHU button visible when serverResult is populated', () => {
+    mockFilingLines = [
+      {
+        templateId: '1', name: 'Box A', kfCode: '11010101',
+        baseWeightGrams: 120, feeRateHufPerKg: 215,
+        quantityPcs: 1000, totalWeightGrams: 120000, totalWeightKg: 120,
+        feeAmountHuf: 25800, isValid: true, validationMessage: null,
+      },
+    ]
+    mockHasValidLines = true
+    mockServerResult = {
+      lines: [{ templateId: '1', name: 'Box A', kfCode: '11010101', quantityPcs: 1000, baseWeightGrams: 120, totalWeightGrams: 120000, totalWeightKg: 120, feeRateHufPerKg: 215, feeAmountHuf: 25800 }],
+      grandTotalWeightKg: 120,
+      grandTotalFeeHuf: 25800,
+      configVersion: 1,
+    }
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="export-mohu-button"]').exists()).toBe(true)
+  })
+
+  it('Export for MOHU button calls exportMohu() action on click', async () => {
+    mockFilingLines = [
+      {
+        templateId: '1', name: 'Box A', kfCode: '11010101',
+        baseWeightGrams: 120, feeRateHufPerKg: 215,
+        quantityPcs: 1000, totalWeightGrams: 120000, totalWeightKg: 120,
+        feeAmountHuf: 25800, isValid: true, validationMessage: null,
+      },
+    ]
+    mockHasValidLines = true
+    mockServerResult = {
+      lines: [{ templateId: '1', name: 'Box A', kfCode: '11010101', quantityPcs: 1000, baseWeightGrams: 120, totalWeightGrams: 120000, totalWeightKg: 120, feeRateHufPerKg: 215, feeAmountHuf: 25800 }],
+      grandTotalWeightKg: 120,
+      grandTotalFeeHuf: 25800,
+      configVersion: 1,
+    }
+    const wrapper = mountPage()
+    const exportBtn = wrapper.find('[data-testid="export-mohu-button"]')
+    expect(exportBtn.exists()).toBe(true)
+    await exportBtn.trigger('click')
+    expect(mockExportMohu).toHaveBeenCalledOnce()
+  })
+
+  it('Export error shows toast when exportMohu() throws', async () => {
+    mockFilingLines = [
+      {
+        templateId: '1', name: 'Box A', kfCode: '11010101',
+        baseWeightGrams: 120, feeRateHufPerKg: 215,
+        quantityPcs: 1000, totalWeightGrams: 120000, totalWeightKg: 120,
+        feeAmountHuf: 25800, isValid: true, validationMessage: null,
+      },
+    ]
+    mockHasValidLines = true
+    mockServerResult = {
+      lines: [{ templateId: '1', name: 'Box A', kfCode: '11010101', quantityPcs: 1000, baseWeightGrams: 120, totalWeightGrams: 120000, totalWeightKg: 120, feeRateHufPerKg: 215, feeAmountHuf: 25800 }],
+      grandTotalWeightKg: 120,
+      grandTotalFeeHuf: 25800,
+      configVersion: 1,
+    }
+    mockExportMohu.mockRejectedValueOnce(new Error('Config version mismatch'))
+
+    const wrapper = mountPage()
+    const exportBtn = wrapper.find('[data-testid="export-mohu-button"]')
+    await exportBtn.trigger('click')
+    await wrapper.vm.$nextTick()
+
+    expect(mockToastAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ severity: 'error' }),
+    )
   })
 })

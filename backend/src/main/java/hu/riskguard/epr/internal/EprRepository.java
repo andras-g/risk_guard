@@ -13,8 +13,11 @@ import java.util.UUID;
 
 import org.jooq.JSONB;
 
+import hu.riskguard.jooq.enums.ExportFormatType;
+
 import static hu.riskguard.jooq.Tables.EPR_CALCULATIONS;
 import static hu.riskguard.jooq.Tables.EPR_CONFIGS;
+import static hu.riskguard.jooq.Tables.EPR_EXPORTS;
 import static hu.riskguard.jooq.Tables.EPR_MATERIAL_TEMPLATES;
 
 /**
@@ -282,6 +285,22 @@ public class EprRepository extends BaseRepository {
                 .set(EPR_CALCULATIONS.OVERRIDE_REASON, overrideReason)
                 .returning(EPR_CALCULATIONS.ID)
                 .fetchOne(EPR_CALCULATIONS.ID);
+    }
+
+    /**
+     * Insert a row into {@code epr_exports} recording a completed CSV export.
+     * {@code calculation_id} is intentionally left null for bulk filing exports —
+     * the export covers multiple templates, not a single {@code epr_calculations} row.
+     */
+    public void saveExport(UUID tenantId, int configVersion, String fileHash) {
+        dsl.insertInto(EPR_EXPORTS)
+           .set(EPR_EXPORTS.ID, UUID.randomUUID())
+           .set(EPR_EXPORTS.TENANT_ID, tenantId)
+           .set(EPR_EXPORTS.CONFIG_VERSION, configVersion)
+           .set(EPR_EXPORTS.EXPORT_FORMAT, ExportFormatType.CSV)
+           .set(EPR_EXPORTS.FILE_HASH, fileHash)
+           // calculation_id left null — bulk export, no single calculation row
+           .execute();
     }
 
     /**

@@ -6,7 +6,9 @@ import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.EprService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -215,6 +217,23 @@ public class EprController {
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
         return eprService.calculateFiling(request.lines(), tenantId);
+    }
+
+    /**
+     * Generate a MOHU-compliant CSV export for the completed EPR filing and download it.
+     * Logs the export in {@code epr_exports} with SHA-256 file hash.
+     */
+    @PostMapping("/filing/export")
+    public ResponseEntity<byte[]> exportMohu(
+            @Valid @RequestBody MohuExportRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        byte[] csv = eprService.exportMohuCsv(request, tenantId);
+        String filename = "mohu-epr-" + java.time.LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(csv);
     }
 
     /**

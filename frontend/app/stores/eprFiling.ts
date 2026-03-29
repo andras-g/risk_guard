@@ -34,6 +34,7 @@ interface FilingState {
   serverResult: FilingCalculationResponse | null
   isLoading: boolean
   isCalculating: boolean
+  isExporting: boolean
   error: string | null
 }
 
@@ -43,6 +44,7 @@ export const useEprFilingStore = defineStore('eprFiling', {
     serverResult: null,
     isLoading: false,
     isCalculating: false,
+    isExporting: false,
     error: null,
   }),
 
@@ -154,11 +156,50 @@ export const useEprFilingStore = defineStore('eprFiling', {
       }
     },
 
+    async exportMohu() {
+      if (!this.serverResult) return
+      this.isExporting = true
+      try {
+        const config = useRuntimeConfig()
+        const blob = await $fetch<Blob>('/api/v1/epr/filing/export', {
+          method: 'POST',
+          body: {
+            lines: this.serverResult.lines.map(l => ({
+              templateId: l.templateId,
+              kfCode: l.kfCode,
+              name: l.name,
+              quantityPcs: l.quantityPcs,
+              totalWeightKg: l.totalWeightKg,
+              feeAmountHuf: l.feeAmountHuf,
+            })),
+            configVersion: this.serverResult.configVersion,
+          },
+          responseType: 'blob',
+          baseURL: config.public.apiBase as string,
+          credentials: 'include',
+        })
+        if (import.meta.client) {
+          const url = URL.createObjectURL(blob)
+          const anchor = document.createElement('a')
+          anchor.href = url
+          anchor.download = `mohu-epr-${new Date().toISOString().slice(0, 10)}.csv`
+          document.body.appendChild(anchor)
+          anchor.click()
+          document.body.removeChild(anchor)
+          setTimeout(() => URL.revokeObjectURL(url), 100)
+        }
+      }
+      finally {
+        this.isExporting = false
+      }
+    },
+
     reset() {
       this.lines = []
       this.serverResult = null
       this.isLoading = false
       this.isCalculating = false
+      this.isExporting = false
       this.error = null
     },
   },

@@ -2,6 +2,7 @@ package hu.riskguard.epr.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import hu.riskguard.core.util.HashUtil;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.internal.EprRepository;
 import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
@@ -44,6 +45,7 @@ public class EprService {
     private final EprRepository eprRepository;
     private final DagEngine dagEngine;
     private final FeeCalculator feeCalculator;
+    private final MohuExporter mohuExporter;
 
     /**
      * ObjectMapper for JSON serialization of traversal paths and config parsing.
@@ -223,6 +225,33 @@ public class EprService {
         FeeCalculator.FilingTotals totals = feeCalculator.computeTotals(calculatedLines);
         return FilingCalculationResponse.from(resultLines, totals.totalWeightKg(), totals.totalFeeHuf(),
                 getActiveConfigVersion());
+    }
+
+    /**
+     * Generate a MOHU-compliant CSV export for the given filing lines, log the export in
+     * {@code epr_exports}, and return the raw CSV bytes.
+     *
+     * <p>The config version in the request is validated against the currently active config —
+     * if a newer config has been activated since the user last calculated, we reject to prevent
+     * stale-data exports.
+     *
+     * @param request  the export request with lines and config version
+     * @param tenantId the tenant from the JWT
+     * @return raw UTF-8 BOM + CSV bytes ready to send as a file download
+     * @throws ResponseStatusException 422 if configVersion does not match the active config
+     */
+    @Transactional
+    public byte[] exportMohuCsv(MohuExportRequest request, UUID tenantId) {
+        int activeVersion = getActiveConfigVersion();
+        if (request.configVersion() != activeVersion) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Config version mismatch: request has version " + request.configVersion()
+                    + " but active version is " + activeVersion);
+        }
+        byte[] csvBytes = mohuExporter.generate(request.lines());
+        String fileHash = HashUtil.sha256Hex(csvBytes);
+        eprRepository.saveExport(tenantId, request.configVersion(), fileHash);
+        return csvBytes;
     }
 
     // ─── Wizard methods ──────────────────────────────────────────────────────

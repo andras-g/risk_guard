@@ -3,12 +3,14 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
+import { useToast } from 'primevue/usetoast'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useEprStore } from '~/stores/epr'
 import { useEprFilingStore } from '~/stores/eprFiling'
 
 const { t } = useI18n()
 const router = useRouter()
+const toast = useToast()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const eprStore = useEprStore()
 const filingStore = useEprFilingStore()
@@ -26,6 +28,21 @@ function formatHuf(value: number): string {
 
 async function handleCalculate() {
   await filingStore.calculate()
+}
+
+async function handleExport() {
+  try {
+    await filingStore.exportMohu()
+  }
+  catch (e: unknown) {
+    const message = (e as { data?: { detail?: string } })?.data?.detail
+      ?? (e instanceof Error ? e.message : 'Unknown error')
+    toast.add({
+      severity: 'error',
+      summary: t('epr.filing.exportError', { message }),
+      life: 5000,
+    })
+  }
 }
 </script>
 
@@ -150,6 +167,18 @@ async function handleCalculate() {
           :loading="filingStore.isCalculating"
           data-testid="calculate-button"
           @click="handleCalculate"
+        />
+      </div>
+
+      <!-- Export for MOHU button (only visible after a successful Calculate) -->
+      <div v-if="filingStore.serverResult !== null" class="flex justify-end mb-6">
+        <Button
+          :label="filingStore.isExporting ? t('epr.filing.exportGenerating') : t('epr.filing.exportButton')"
+          icon="pi pi-download"
+          :disabled="filingStore.isExporting"
+          :loading="filingStore.isExporting"
+          data-testid="export-mohu-button"
+          @click="handleExport"
         />
       </div>
 

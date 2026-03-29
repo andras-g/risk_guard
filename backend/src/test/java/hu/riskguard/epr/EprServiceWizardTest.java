@@ -7,6 +7,7 @@ import hu.riskguard.epr.domain.DagEngine.KfCodeResolution;
 import hu.riskguard.epr.domain.DagEngine.WizardStepResult;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.domain.FeeCalculator;
+import hu.riskguard.epr.domain.MohuExporter;
 import hu.riskguard.epr.internal.EprRepository;
 import org.jooq.JSONB;
 import org.jooq.Record;
@@ -39,6 +40,9 @@ class EprServiceWizardTest {
     @Mock
     private DagEngine dagEngine;
 
+    @Mock
+    private MohuExporter mohuExporter;
+
     private EprService eprService;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
@@ -46,7 +50,7 @@ class EprServiceWizardTest {
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator());
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter);
     }
 
     @Nested
