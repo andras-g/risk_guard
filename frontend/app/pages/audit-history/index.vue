@@ -129,9 +129,10 @@ function verdictSeverity(status: string | null): 'success' | 'warning' | 'danger
     <div class="bg-white rounded-lg border border-slate-200 p-4 mb-4 flex flex-wrap gap-4 items-end">
       <!-- Date Range -->
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.dateRange') }}</label>
+        <label for="audit-date-range" class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.dateRange') }}</label>
         <DatePicker
           v-model="dateRange"
+          input-id="audit-date-range"
           selection-mode="range"
           date-format="yy-mm-dd"
           :placeholder="t('screening.audit.filters.dateRangePlaceholder')"
@@ -142,8 +143,9 @@ function verdictSeverity(status: string | null): 'success' | 'warning' | 'danger
 
       <!-- Partner filter -->
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.taxNumber') }}</label>
+        <label for="audit-tax-number" class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.taxNumber') }}</label>
         <InputText
+          id="audit-tax-number"
           :model-value="audit.filters.value.taxNumber"
           :placeholder="t('screening.audit.filters.taxNumberPlaceholder')"
           class="w-44"
@@ -153,7 +155,7 @@ function verdictSeverity(status: string | null): 'success' | 'warning' | 'danger
 
       <!-- Check Source -->
       <div class="flex flex-col gap-1">
-        <label class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.checkSource') }}</label>
+        <span class="text-xs font-medium text-slate-500">{{ t('screening.audit.filters.checkSource') }}</span>
         <SelectButton
           v-model="selectedSource"
           :options="checkSourceOptions"
