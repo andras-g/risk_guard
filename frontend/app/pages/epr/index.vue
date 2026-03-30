@@ -157,7 +157,7 @@ async function handleCopyFromQuarter(data: { sourceYear: number; sourceQuarter: 
   </div>
 
   <!-- Material Library -->
-  <div v-else class="mx-auto p-6">
+  <div v-else class="w-full">
     <div class="flex flex-col lg:flex-row gap-6">
       <!-- Main Content -->
       <div class="flex-1 min-w-0">

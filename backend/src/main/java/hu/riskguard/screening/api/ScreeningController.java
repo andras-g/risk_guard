@@ -1,5 +1,6 @@
 package hu.riskguard.screening.api;
 
+import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.screening.api.dto.PartnerSearchRequest;
 import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.api.dto.VerdictResponse;
@@ -47,8 +48,8 @@ public class ScreeningController {
             @Valid @RequestBody PartnerSearchRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID userId = requireUuidClaim(jwt, "user_id");
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         SearchResult result = screeningService.search(request.taxNumber(), userId, tenantId);
 
@@ -70,28 +71,11 @@ public class ScreeningController {
             @AuthenticationPrincipal Jwt jwt) {
 
         // Validate JWT is present (tenant isolation is enforced by TenantContext in repository layer)
-        requireUuidClaim(jwt, "active_tenant_id");
+        JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         return screeningService.getSnapshotProvenance(snapshotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Snapshot not found or not accessible"));
     }
 
-    /**
-     * Extract and validate a UUID claim from the JWT. Throws 401 if the claim is absent
-     * or not a valid UUID. Named {@code requireUuidClaim} to make the side-effect explicit
-     * at call sites where the return value is intentionally discarded (validation-only use).
-     */
-    private UUID requireUuidClaim(Jwt jwt, String claimName) {
-        String claimValue = jwt.getClaimAsString(claimName);
-        if (claimValue == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing " + claimName + " claim in JWT");
-        }
-        try {
-            return UUID.fromString(claimValue);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Invalid " + claimName + " claim in JWT: not a valid UUID");
-        }
-    }
 }

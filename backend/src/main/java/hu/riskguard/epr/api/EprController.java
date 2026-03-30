@@ -2,6 +2,7 @@ package hu.riskguard.epr.api;
 
 import hu.riskguard.core.security.Tier;
 import hu.riskguard.core.security.TierRequired;
+import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.EprService;
 import jakarta.validation.Valid;
@@ -42,7 +43,7 @@ public class EprController {
             @Valid @RequestBody MaterialTemplateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         UUID id = eprService.createTemplate(
                 tenantId, request.name(), request.baseWeightGrams(), request.recurring());
         return eprService.findTemplate(id, tenantId)
@@ -57,7 +58,7 @@ public class EprController {
      */
     @GetMapping("/materials")
     public List<MaterialTemplateResponse> listTemplates(@AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.listTemplatesWithOverride(tenantId);
     }
 
@@ -70,7 +71,7 @@ public class EprController {
             @Valid @RequestBody MaterialTemplateRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         boolean updated = eprService.updateTemplate(id, tenantId, request.name(), request.baseWeightGrams(), request.recurring());
         if (!updated) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Material template not found");
@@ -90,7 +91,7 @@ public class EprController {
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         boolean deleted = eprService.deleteTemplate(id, tenantId);
         if (!deleted) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Material template not found");
@@ -106,7 +107,7 @@ public class EprController {
             @Valid @RequestBody RecurringToggleRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         boolean updated = eprService.toggleRecurring(id, tenantId, request.recurring());
         if (!updated) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Material template not found");
@@ -125,7 +126,7 @@ public class EprController {
             @Valid @RequestBody CopyQuarterRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         List<UUID> newIds = eprService.copyFromQuarter(
                 tenantId, request.sourceYear(), request.sourceQuarter(), request.includeNonRecurring());
 
@@ -190,7 +191,7 @@ public class EprController {
     public WizardConfirmResponse wizardConfirm(
             @Valid @RequestBody WizardConfirmRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.confirmWizard(request, tenantId);
     }
 
@@ -203,7 +204,7 @@ public class EprController {
     public RetryLinkResponse wizardRetryLink(
             @Valid @RequestBody RetryLinkRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.retryLink(request.calculationId(), request.templateId(), tenantId);
     }
 
@@ -215,7 +216,7 @@ public class EprController {
     public FilingCalculationResponse calculateFiling(
             @Valid @RequestBody FilingCalculationRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.calculateFiling(request.lines(), tenantId);
     }
 
@@ -227,7 +228,7 @@ public class EprController {
     public ResponseEntity<byte[]> exportMohu(
             @Valid @RequestBody MohuExportRequest request,
             @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         byte[] csv = eprService.exportMohuCsv(request, tenantId);
         String filename = "mohu-epr-" + java.time.LocalDate.now() + ".csv";
         return ResponseEntity.ok()
@@ -236,20 +237,4 @@ public class EprController {
                 .body(csv);
     }
 
-    /**
-     * Extract and validate a UUID claim from the JWT.
-     */
-    private UUID requireUuidClaim(Jwt jwt, String claimName) {
-        String claimValue = jwt.getClaimAsString(claimName);
-        if (claimValue == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Missing " + claimName + " claim in JWT");
-        }
-        try {
-            return UUID.fromString(claimValue);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Invalid " + claimName + " claim in JWT: not a valid UUID");
-        }
-    }
 }

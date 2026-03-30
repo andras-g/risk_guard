@@ -33,6 +33,11 @@ async function handleCalculate() {
 async function handleExport() {
   try {
     await filingStore.exportMohu()
+    toast.add({
+      severity: 'info',
+      summary: t('epr.filing.exportLocaleNotice'),
+      life: 5000,
+    })
   }
   catch (e: unknown) {
     const message = (e as { data?: { detail?: string } })?.data?.detail
@@ -59,7 +64,7 @@ async function handleExport() {
   </div>
 
   <!-- Filing Page -->
-  <div v-else class="mx-auto p-6">
+  <div v-else class="w-full">
     <!-- Page Header -->
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold text-slate-800">
@@ -94,69 +99,71 @@ async function handleExport() {
 
     <!-- Filing Table -->
     <template v-else>
-      <DataTable :value="filingStore.lines" class="mb-6" data-testid="filing-table">
-        <Column field="name" :header="t('epr.filing.table.name')" />
-        <Column field="kfCode" :header="t('epr.filing.table.kfCode')" />
-        <Column field="baseWeightGrams" :header="t('epr.filing.table.baseWeight')" />
-        <Column field="feeRateHufPerKg" :header="t('epr.filing.table.feeRate')" />
-        <Column :header="t('epr.filing.table.quantity')">
-          <template #body="{ data: line }">
-            <div class="flex flex-col gap-1">
-              <div class="flex items-center gap-2">
-                <InputNumber
-                  :model-value="line.quantityPcs"
-                  :use-grouping="false"
-                  :min-fraction-digits="0"
-                  :max-fraction-digits="0"
-                  :min="1"
-                  input-class="w-20"
-                  :class="[
-                    line.isValid
-                      ? 'border border-emerald-500 rounded'
-                      : (line.validationMessage ? 'border border-red-600 rounded' : ''),
-                  ]"
-                  :data-testid="`quantity-input-${line.templateId}`"
-                  @input="filingStore.updateQuantity(line.templateId, $event.value?.toString() ?? '')"
-                />
-                <i
-                  v-if="line.isValid"
-                  class="pi pi-check-circle text-emerald-500"
-                  aria-hidden="true"
-                />
+      <div class="overflow-x-auto mb-6">
+        <DataTable :value="filingStore.lines" data-testid="filing-table">
+          <Column field="name" :header="t('epr.filing.table.name')" />
+          <Column field="kfCode" :header="t('epr.filing.table.kfCode')" />
+          <Column field="baseWeightGrams" :header="t('epr.filing.table.baseWeight')" />
+          <Column field="feeRateHufPerKg" :header="t('epr.filing.table.feeRate')" />
+          <Column :header="t('epr.filing.table.quantity')">
+            <template #body="{ data: line }">
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <InputNumber
+                    :model-value="line.quantityPcs"
+                    :use-grouping="false"
+                    :min-fraction-digits="0"
+                    :max-fraction-digits="0"
+                    :min="1"
+                    input-class="w-20"
+                    :class="[
+                      line.isValid
+                        ? 'border border-emerald-500 rounded'
+                        : (line.validationMessage ? 'border border-red-600 rounded' : ''),
+                    ]"
+                    :data-testid="`quantity-input-${line.templateId}`"
+                    @input="filingStore.updateQuantity(line.templateId, $event.value?.toString() ?? '')"
+                  />
+                  <i
+                    v-if="line.isValid"
+                    class="pi pi-check-circle text-emerald-500"
+                    aria-hidden="true"
+                  />
+                </div>
+                <span
+                  v-if="line.validationMessage"
+                  class="text-red-600 text-xs"
+                  :data-testid="`validation-msg-${line.templateId}`"
+                >
+                  {{ t(line.validationMessage) }}
+                </span>
               </div>
-              <span
-                v-if="line.validationMessage"
-                class="text-red-600 text-xs"
-                :data-testid="`validation-msg-${line.templateId}`"
-              >
-                {{ t(line.validationMessage) }}
+            </template>
+          </Column>
+          <Column :header="t('epr.filing.table.totalWeight')">
+            <template #body="{ data: line }">
+              <span v-if="filingStore.isCalculating">
+                <i class="pi pi-spin pi-spinner" aria-hidden="true" />
               </span>
-            </div>
-          </template>
-        </Column>
-        <Column :header="t('epr.filing.table.totalWeight')">
-          <template #body="{ data: line }">
-            <span v-if="filingStore.isCalculating">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true" />
-            </span>
-            <span v-else-if="line.totalWeightKg !== null">
-              {{ line.totalWeightKg.toFixed(3) }} kg
-            </span>
-            <span v-else class="text-slate-400">—</span>
-          </template>
-        </Column>
-        <Column :header="t('epr.filing.table.feeAmount')">
-          <template #body="{ data: line }">
-            <span v-if="filingStore.isCalculating">
-              <i class="pi pi-spin pi-spinner" aria-hidden="true" />
-            </span>
-            <span v-else-if="line.feeAmountHuf !== null">
-              {{ formatHuf(line.feeAmountHuf) }}
-            </span>
-            <span v-else class="text-slate-400">—</span>
-          </template>
-        </Column>
-      </DataTable>
+              <span v-else-if="line.totalWeightKg !== null">
+                {{ line.totalWeightKg.toFixed(3) }} kg
+              </span>
+              <span v-else class="text-slate-400">—</span>
+            </template>
+          </Column>
+          <Column :header="t('epr.filing.table.feeAmount')">
+            <template #body="{ data: line }">
+              <span v-if="filingStore.isCalculating">
+                <i class="pi pi-spin pi-spinner" aria-hidden="true" />
+              </span>
+              <span v-else-if="line.feeAmountHuf !== null">
+                {{ formatHuf(line.feeAmountHuf) }}
+              </span>
+              <span v-else class="text-slate-400">—</span>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
 
       <!-- Calculate Button -->
       <div class="flex justify-end mb-6">

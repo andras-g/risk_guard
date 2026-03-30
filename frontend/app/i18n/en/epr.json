@@ -83,6 +83,7 @@
       "exportButton": "Export for MOHU",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating CSV...",
+      "exportLocaleNotice": "Export generated in Hungarian (required by MOHU portal).",
       "grandTotalFee": "Grand Total Fee",
       "grandTotalWeight": "Grand Total Weight",
       "newFilingButton": "New Filing",

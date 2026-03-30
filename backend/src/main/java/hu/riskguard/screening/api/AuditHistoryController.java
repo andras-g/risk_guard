@@ -1,5 +1,6 @@
 package hu.riskguard.screening.api;
 
+import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.screening.api.dto.AuditHashVerifyResponse;
 import hu.riskguard.screening.api.dto.AuditHistoryPageResponse;
 import hu.riskguard.screening.domain.AuditHistoryFilter;
@@ -57,7 +58,7 @@ public class AuditHistoryController {
             @RequestParam(required = false) String checkSource,
             @AuthenticationPrincipal Jwt jwt) {
 
-        requireUuidClaim(jwt, "active_tenant_id");
+        JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         validateCheckSource(checkSource);
 
         int clampedSize = Math.min(Math.max(size, 1), 100);
@@ -80,7 +81,7 @@ public class AuditHistoryController {
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        requireUuidClaim(jwt, "active_tenant_id");
+        JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         return screeningService.verifyAuditHash(id)
                 .map(AuditHashVerifyResponse::from)
@@ -94,20 +95,6 @@ public class AuditHistoryController {
         if (checkSource != null && !VALID_CHECK_SOURCES.contains(checkSource)) {
             throw problemDetail(HttpStatus.BAD_REQUEST,
                     "Bad Request", "checkSource must be MANUAL or AUTOMATED");
-        }
-    }
-
-    private UUID requireUuidClaim(Jwt jwt, String claimName) {
-        String claimValue = jwt.getClaimAsString(claimName);
-        if (claimValue == null) {
-            throw problemDetail(HttpStatus.UNAUTHORIZED,
-                    "Unauthorized", "Missing " + claimName + " claim in JWT");
-        }
-        try {
-            return UUID.fromString(claimValue);
-        } catch (IllegalArgumentException e) {
-            throw problemDetail(HttpStatus.UNAUTHORIZED,
-                    "Unauthorized", "Invalid " + claimName + " claim in JWT: not a valid UUID");
         }
     }
 

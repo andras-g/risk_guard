@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import FilingPage from './filing.vue'
 
@@ -84,7 +84,6 @@ vi.mock('~/stores/eprFiling', () => ({
     get validLines() { return mockValidLines },
     get grandTotalWeightKg() { return mockServerResult?.grandTotalWeightKg ?? 0 },
     get grandTotalFeeHuf() { return mockServerResult?.grandTotalFeeHuf ?? 0 },
-    isLoading: false,
     error: null,
     initFromTemplates: mockInitFromTemplates,
     updateQuantity: mockUpdateQuantity,
@@ -259,6 +258,35 @@ describe('EPR Filing Page', () => {
     expect(mockExportMohu).toHaveBeenCalledOnce()
   })
 
+  it('Export success shows info toast with locale notice', async () => {
+    mockFilingLines = [
+      {
+        templateId: '1', name: 'Box A', kfCode: '11010101',
+        baseWeightGrams: 120, feeRateHufPerKg: 215,
+        quantityPcs: 1000, totalWeightGrams: 120000, totalWeightKg: 120,
+        feeAmountHuf: 25800, isValid: true, validationMessage: null,
+      },
+    ]
+    mockHasValidLines = true
+    mockServerResult = {
+      lines: [{ templateId: '1', name: 'Box A', kfCode: '11010101', quantityPcs: 1000, baseWeightGrams: 120, totalWeightGrams: 120000, totalWeightKg: 120, feeRateHufPerKg: 215, feeAmountHuf: 25800 }],
+      grandTotalWeightKg: 120,
+      grandTotalFeeHuf: 25800,
+      configVersion: 1,
+    }
+    // mockExportMohu resolves by default (vi.fn().mockResolvedValue(undefined))
+
+    const wrapper = mountPage()
+    const exportBtn = wrapper.find('[data-testid="export-mohu-button"]')
+    expect(exportBtn.exists()).toBe(true)
+    await exportBtn.trigger('click')
+    await flushPromises()
+
+    expect(mockToastAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ severity: 'info', summary: 'epr.filing.exportLocaleNotice' }),
+    )
+  })
+
   it('Export error shows toast when exportMohu() throws', async () => {
     mockFilingLines = [
       {
@@ -280,7 +308,7 @@ describe('EPR Filing Page', () => {
     const wrapper = mountPage()
     const exportBtn = wrapper.find('[data-testid="export-mohu-button"]')
     await exportBtn.trigger('click')
-    await wrapper.vm.$nextTick()
+    await flushPromises()
 
     expect(mockToastAdd).toHaveBeenCalledWith(
       expect.objectContaining({ severity: 'error' }),

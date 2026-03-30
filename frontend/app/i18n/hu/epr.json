@@ -83,6 +83,7 @@
       "exportButton": "Exportálás MOHU-ba",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "CSV generálása...",
+      "exportLocaleNotice": "Az export magyar nyelven készült (a MOHU portál követelménye).",
       "grandTotalFee": "Teljes díj összege",
       "grandTotalWeight": "Teljes tömeg",
       "newFilingButton": "Új bejelentés",

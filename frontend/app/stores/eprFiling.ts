@@ -32,7 +32,6 @@ export interface FilingCalculationResponse {
 interface FilingState {
   lines: FilingLineState[]
   serverResult: FilingCalculationResponse | null
-  isLoading: boolean
   isCalculating: boolean
   isExporting: boolean
   error: string | null
@@ -42,7 +41,6 @@ export const useEprFilingStore = defineStore('eprFiling', {
   state: (): FilingState => ({
     lines: [],
     serverResult: null,
-    isLoading: false,
     isCalculating: false,
     isExporting: false,
     error: null,
@@ -197,7 +195,6 @@ export const useEprFilingStore = defineStore('eprFiling', {
     reset() {
       this.lines = []
       this.serverResult = null
-      this.isLoading = false
       this.isCalculating = false
       this.isExporting = false
       this.error = null

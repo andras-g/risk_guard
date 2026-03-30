@@ -33,8 +33,20 @@ public class TenantFilter extends OncePerRequestFilter {
             String tenantIdStr = jwt.getClaimAsString(TENANT_ID_CLAIM);
             if (tenantIdStr != null) {
                 UUID tenantId = UUID.fromString(tenantIdStr);
-                TenantContext.setCurrentTenant(tenantId);
                 MDC.put(MDC_TENANT_ID, tenantIdStr);
+                try {
+                    ScopedValue.where(TenantContext.CURRENT_TENANT, tenantId)
+                            .call(() -> { filterChain.doFilter(request, response); return null; });
+                } catch (IOException | ServletException e) {
+                    throw e;
+                } catch (RuntimeException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    MDC.remove(MDC_TENANT_ID);
+                }
+                return;
             } else {
                 // Authenticated user without active_tenant_id — this is a security concern.
                 // Log it so we can track requests that bypass tenant context.
@@ -43,11 +55,6 @@ public class TenantFilter extends OncePerRequestFilter {
             }
         }
 
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            TenantContext.clear();
-            MDC.remove(MDC_TENANT_ID);
-        }
+        filterChain.doFilter(request, response);
     }
 }

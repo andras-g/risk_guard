@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Fri Mar 27 2026 — Story 5.3 (MOHU-Ready CSV Export) created as ready-for-dev.
+# updated: Mon Mar 30 2026 — Story 6.0 created (ready-for-dev). Epic 6 in-progress.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -106,13 +106,14 @@ development_status:
   epic-5: in-progress  # STARTED (2026-03-26) — Story 5.1 created, epic transitioned backlog → in-progress
   5-0-rename-seasonal-to-recurring: done  # Story file created 2026-03-26; dev completed 2026-03-26; UX clarity rename: seasonal→recurring with logic inversion; 13 tasks done, all tests green; code-review R1 2026-03-26 — 2 patch items fixed (SidePanelStub prop name, wizard mock lastCloseReason); 9 deferred, 11 dismissed; status → done
   5-1-watchlist-bulk-pdf-export-and-mobile-dispatcher: done  # Story file created 2026-03-26; dev 2026-03-26; SHA-256 denormalization onto watchlist_entries, jsPDF client-side export, AuditDispatcher mobile share (navigator.share), WatchlistTable multi-select; OOM fixed (-Xmx1g); code-review R1 2026-03-26 — 9 patch items resolved; code-review R2 2026-03-26 — 2 patch items fixed (detached anchor Firefox download, lastCheckedAt ISO-8601 full string); 6 deferred; all tests green (570 frontend, BUILD SUCCESSFUL backend); status → done
-  5-1a-my-audit-history-due-diligence-timeline: backlog  # Added 2026-03-20 — user-facing audit trail viewer + nightly monitoring writes to search_audit_log (owner request)
+  5-1a-my-audit-history-due-diligence-timeline: done  # Story file created 2026-03-30; dev completed 2026-03-30; code-review R1 2026-03-30 — 11 patch items resolved 2026-03-30; 8 deferred; 4 dismissed; code-review R2 2026-03-30 — 2 patch items fixed (unavailable field in api.d.ts, controller URL /api/v1 + NamingConventionTest pattern updated); 666 backend + 580 frontend + 5 e2e all green; status → done
   5-2-quarterly-epr-filing-workflow: done  # Story file created 2026-03-26; FeeCalculator, filing calculate endpoint, filing page, EprFilingStore, MOHU Gate validation; code-review R1 2026-03-27 — 5 patch items resolved; code-review R2 2026-03-27 — duplicate templateId guard, baseWeightGrams null guard, dead findVerifiedByTenant removed, real-time per-row computation (AC 2), summary always visible (AC 4), from() factory used, ESLint a11y errors fixed (pipeline); 575 frontend + BUILD SUCCESSFUL backend; CI green; status → done
   5-3-mohu-ready-csv-export: done  # Story file created 2026-03-27; dev 2026-03-28; code-review R1 2026-03-28 — 4 patch items resolved 2026-03-29; 3 deferred; 10 dismissed; code-review R2 2026-03-29 — clean (0 patch, 25 dismissed, 3 defers confirmed); status → done
-  5-4-export-locale-enforcement-and-ux-notice: backlog
-  epic-5-retrospective: optional
+  5-4-export-locale-enforcement-and-ux-notice: done  # code-review R1 2026-03-29 — 1 patch (toast assertion tightened), 3 deferred, 3 dismissed; status → done
+  epic-5-retrospective: done  # DONE (2026-03-30) — Retrospective completed. Saved to epic-5-retro-2026-03-30.md. Key decisions: retro action items must be named story tasks (P1); Story 6.0 carries T1 (requireUuidClaim), T2 (ScopedValue), T3 (curated deferred-work cleanup pass).
 
-  epic-6: backlog
+  epic-6: in-progress  # STARTED (2026-03-30) — Story 6.0 created, epic transitioned backlog → in-progress
+  6-0-epic-6-foundation-technical-debt-cleanup: review  # Story file created 2026-03-30; dev completed 2026-03-30; T1 requireUuidClaim extraction, T2 ScopedValue HTTP-path migration, T3 curated deferred-work pass; BUILD SUCCESSFUL + 580 frontend tests green; code-review R1 2026-03-30 — 1 patch item (TenantFilter RuntimeException wrapping) fixed 2026-03-30; 5 deferred; 16 dismissed; status → review
   6-1-data-source-health-dashboard-the-heartbeat: backlog
   6-2-manual-adapter-quarantine: backlog
   6-3-hot-swappable-epr-json-manager: backlog

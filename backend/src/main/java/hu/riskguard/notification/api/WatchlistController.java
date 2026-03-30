@@ -1,5 +1,6 @@
 package hu.riskguard.notification.api;
 
+import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.notification.api.dto.AddWatchlistEntryRequest;
 import hu.riskguard.notification.api.dto.AddWatchlistEntryResponse;
 import hu.riskguard.notification.api.dto.WatchlistCountResponse;
@@ -48,7 +49,7 @@ public class WatchlistController {
             @Valid @RequestBody AddWatchlistEntryRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         AddResult result = notificationService.addToWatchlist(
                 tenantId, request.taxNumber(), request.companyName(), request.verdictStatus());
         return AddWatchlistEntryResponse.from(result);
@@ -59,7 +60,7 @@ public class WatchlistController {
      */
     @GetMapping
     public List<WatchlistEntryResponse> listEntries(@AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         List<WatchlistEntry> entries = notificationService.getWatchlistEntries(tenantId);
         return entries.stream()
                 .map(WatchlistEntryResponse::from)
@@ -76,7 +77,7 @@ public class WatchlistController {
             @PathVariable UUID id,
             @AuthenticationPrincipal Jwt jwt) {
 
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         boolean deleted = notificationService.removeFromWatchlist(tenantId, id);
         if (!deleted) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Watchlist entry not found");
@@ -88,25 +89,9 @@ public class WatchlistController {
      */
     @GetMapping("/count")
     public WatchlistCountResponse getCount(@AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = requireUuidClaim(jwt, "active_tenant_id");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         int count = notificationService.getWatchlistCount(tenantId);
         return WatchlistCountResponse.from(count);
     }
 
-    /**
-     * Extract and validate a UUID claim from the JWT.
-     */
-    private UUID requireUuidClaim(Jwt jwt, String claimName) {
-        String claimValue = jwt.getClaimAsString(claimName);
-        if (claimValue == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Missing " + claimName + " claim in JWT");
-        }
-        try {
-            return UUID.fromString(claimValue);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                    "Invalid " + claimName + " claim in JWT: not a valid UUID");
-        }
-    }
 }
