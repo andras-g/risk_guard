@@ -182,3 +182,35 @@ export interface FlightControlResponse {
   totals: FlightControlTotals
   tenants: FlightControlTenantSummaryResponse[]
 }
+
+// ─── Audit History DTOs (Story 5.1a) ────────────────────────────────────────
+// TODO: Remove manual definitions below once CI OpenAPI pipeline regenerates types
+// from AuditHistoryEntryResponse.java / AuditHistoryPageResponse.java / AuditHashVerifyResponse.java.
+
+export interface AuditHistoryEntryResponse {
+  id: string
+  companyName: string | null
+  taxNumber: string
+  verdictStatus: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE' | null
+  verdictConfidence: 'FRESH' | 'STALE' | 'UNAVAILABLE' | null
+  searchedAt: string
+  sha256Hash: string
+  dataSourceMode: 'DEMO' | 'LIVE'
+  checkSource: 'MANUAL' | 'AUTOMATED'
+  sourceUrls: string[]
+  disclaimerText: string | null
+}
+
+export interface AuditHistoryPageResponse {
+  content: AuditHistoryEntryResponse[]
+  totalElements: number
+  page: number
+  size: number
+}
+
+export interface AuditHashVerifyResponse {
+  match: boolean
+  computedHash: string
+  storedHash: string
+  unavailable: boolean
+}

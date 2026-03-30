@@ -43,23 +43,35 @@ public class NotificationRepository {
     }
 
     /**
-     * Find all watchlist entries across ALL tenants — used by the background {@code AsyncIngestor}
-     * and {@code WatchlistMonitor}.
+     * Find all watchlist entries across ALL tenants — used by the background {@code AsyncIngestor}.
+     * Resolves the owning user (accountant) via a LEFT JOIN on {@code tenant_mandates} so the ingestor
+     * can write AUTOMATED audit log entries attributed to the correct user.
+     *
+     * <p>The JOIN is a LEFT JOIN — if no active mandate exists for a tenant the entry is still
+     * returned with {@code userId = null}. The ingestor must handle null userId gracefully
+     * (skip audit write or use a sentinel user ID).
      *
      * <p><b>⚠️ PRIVILEGED CROSS-TENANT READ:</b> This method deliberately bypasses
      * {@code TenantContext} because it is called from a background job with no user session.
-     * It reads every tenant's watchlist entries to refresh partner data proactively.
      *
      * <p>Only call this from the scheduled background jobs — never from user-facing code.
      *
-     * @return all watchlist entries as {@code WatchlistPartner} records (tenantId + taxNumber)
+     * @return all watchlist entries as {@code WatchlistPartner} records (tenantId + taxNumber + userId)
      */
     public List<WatchlistPartner> findAllWatchlistEntries() {
         return dsl.select(
-                        field("tenant_id", java.util.UUID.class),
-                        field("tax_number", String.class))
-                .from(table("watchlist_entries"))
-                .fetchInto(WatchlistPartner.class);
+                        field("we.tenant_id", UUID.class),
+                        field("we.tax_number", String.class),
+                        field("tm.accountant_user_id", UUID.class))
+                .from(table("watchlist_entries").as("we"))
+                .leftJoin(table("tenant_mandates").as("tm"))
+                    .on(field("tm.tenant_id", UUID.class).eq(field("we.tenant_id", UUID.class)))
+                    .and(field("tm.valid_to").isNull()
+                        .or(field("tm.valid_to", OffsetDateTime.class).gt(OffsetDateTime.now())))
+                .fetch(r -> new WatchlistPartner(
+                        r.get(field("we.tenant_id", UUID.class)),
+                        r.get(field("we.tax_number", String.class)),
+                        r.get(field("tm.accountant_user_id", UUID.class))));
     }
 
     /**
@@ -282,7 +294,10 @@ public class NotificationRepository {
                         field("tax_number", String.class))
                 .from(table("watchlist_entries"))
                 .where(field("tax_number", String.class).eq(taxNumber))
-                .fetchInto(WatchlistPartner.class);
+                .fetch(r -> new WatchlistPartner(
+                        r.get(field("tenant_id", UUID.class)),
+                        r.get(field("tax_number", String.class)),
+                        null)); // userId not needed for status-change event listener
     }
 
     /**

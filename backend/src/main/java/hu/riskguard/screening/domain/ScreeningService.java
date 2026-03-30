@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.config.RiskGuardProperties;
+import hu.riskguard.core.security.TenantContext;
+import hu.riskguard.core.util.HashUtil;
 import hu.riskguard.jooq.enums.VerdictConfidence;
 import hu.riskguard.jooq.enums.VerdictStatus;
 import hu.riskguard.datasource.api.dto.CompanyData;
@@ -13,6 +15,8 @@ import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.domain.events.PartnerSearchCompleted;
 import hu.riskguard.core.events.PartnerStatusChanged;
 import hu.riskguard.screening.internal.ScreeningRepository;
+import hu.riskguard.screening.internal.ScreeningRepository.AuditHistoryRow;
+import hu.riskguard.screening.internal.ScreeningRepository.AuditVerifyRow;
 import hu.riskguard.screening.internal.ScreeningRepository.FreshSnapshot;
 import hu.riskguard.screening.internal.ScreeningRepository.SnapshotRecord;
 import org.slf4j.Logger;
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -198,7 +203,9 @@ public class ScreeningService {
                     verdictResult.status().getLiteral(),
                     verdictResult.confidence().getLiteral(),
                     vId,
-                    now);
+                    now,
+                    "MANUAL",
+                    dataSourceMode);
 
             return new Tx2Result(vId, verdictResult.status(), verdictResult.confidence(),
                     verdictResult.riskSignals(), parsedData.companyName(), auditHash);
@@ -429,6 +436,168 @@ public class ScreeningService {
      */
     public boolean hasSnapshotForTenant(UUID tenantId, String taxNumber) {
         return screeningRepository.existsSnapshotByTenantAndTaxNumber(tenantId, taxNumber);
+    }
+
+    // ─── Audit History Facade (Story 5.1a) ──────────────────────────────────
+
+    /**
+     * Write an AUTOMATED audit log entry after a successful live ingestor refresh.
+     * Sets TenantContext to the partner's tenant for the duration of the write, then clears it.
+     *
+     * <p><b>Do NOT call {@link TenantContext#setCurrentTenant} before calling this method</b> —
+     * this method manages TenantContext internally. If TenantContext is already set to the
+     * correct tenant, pass it explicitly and this method will set it again (idempotent).
+     *
+     * <p>If the snapshotId cannot be loaded or verdict re-evaluation fails, the error is logged
+     * and no audit record is written (the existing snapshot is unaffected).
+     *
+     * @param taxNumber  normalized tax number
+     * @param userId     watchlist entry owner (from tenant_mandates); null = skip audit write
+     * @param tenantId   tenant that owns the watchlist entry
+     * @param snapshotId the snapshot that was just refreshed
+     * @param mode       data source mode ("live" or "test")
+     */
+    public void auditIngestorRefresh(String taxNumber, UUID userId, UUID tenantId,
+                                     UUID snapshotId, String mode) {
+        if (userId == null) {
+            log.debug("auditIngestorRefresh: no userId for tenant={} — skipping audit write", tenantId);
+            return;
+        }
+        try {
+            TenantContext.setCurrentTenant(tenantId);
+
+            // Load fresh snapshot data via existing findSnapshotById (tenant-scoped)
+            SnapshotRecord snapshot = screeningRepository.findSnapshotById(snapshotId).orElse(null);
+            if (snapshot == null) {
+                log.warn("auditIngestorRefresh: snapshot not found snapshotId={} tenant={}", snapshotId, tenantId);
+                return;
+            }
+
+            // Parse snapshot and re-evaluate verdict
+            Map<String, Object> jsonbMap = parseJsonbToMap(snapshot.snapshotData());
+            SnapshotData parsedData = SnapshotDataParser.parse(jsonbMap);
+            OffsetDateTime now = OffsetDateTime.now();
+            VerdictResult verdictResult = VerdictEngine.evaluate(parsedData, now, freshnessConfig, now);
+
+            // Serialize snapshot data JSON for hash
+            String snapshotDataJson;
+            try {
+                snapshotDataJson = JSONB_MAPPER.writeValueAsString(jsonbMap);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+                log.warn("auditIngestorRefresh: failed to serialize snapshot for hash — will use HASH_UNAVAILABLE");
+                snapshotDataJson = null;
+            }
+
+            // Look up the existing verdict for this snapshot — do NOT create a new one
+            // (creating a new verdict row per ingestor run causes data bloat and duplicate rows).
+            UUID verdictId = screeningRepository.findLatestVerdictIdForSnapshot(snapshotId).orElse(null);
+            screeningRepository.writeAuditLog(
+                    taxNumber, userId, disclaimerText,
+                    snapshotDataJson,
+                    verdictResult.status().getLiteral(),
+                    verdictResult.confidence().getLiteral(),
+                    verdictId,
+                    now,
+                    "AUTOMATED",
+                    mode.toUpperCase());
+
+        } catch (Exception e) {
+            log.error("auditIngestorRefresh failed for tenant={}", tenantId, e);
+        }
+        // Note: TenantContext is managed by the ingestor loop — do NOT clear it here
+    }
+
+    /**
+     * Retrieve a paginated, filtered audit history for the current tenant.
+     * TenantContext must be set by the caller (controller layer via TenantFilter).
+     *
+     * @param filter  filter parameters (all fields nullable)
+     * @param page    zero-based page number
+     * @param size    page size (must be positive)
+     * @return page result with entries and total count
+     */
+    public AuditHistoryPage getAuditHistory(AuditHistoryFilter filter, int page, int size) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) {
+            throw new IllegalStateException("CRITICAL: Missing tenant context for audit history operation");
+        }
+        long offset = (long) page * size;
+        List<AuditHistoryRow> rows = screeningRepository.findAuditHistoryPage(tenantId, filter, offset, size);
+        long total = screeningRepository.countAuditHistory(tenantId, filter);
+
+        List<AuditHistoryEntry> entries = new ArrayList<>(rows.size());
+        for (AuditHistoryRow row : rows) {
+            List<String> sourceUrls = parseSourceUrls(row.sourceUrlsJson());
+            entries.add(new AuditHistoryEntry(
+                    row.id(), row.companyName(), row.taxNumber(),
+                    row.verdictStatus(), row.verdictConfidence(),
+                    row.searchedAt(), row.sha256Hash(),
+                    row.dataSourceMode(), row.checkSource(),
+                    sourceUrls, row.disclaimerText()));
+        }
+        return new AuditHistoryPage(entries, total, page, size);
+    }
+
+    /**
+     * Verify the SHA-256 hash for a given audit entry by re-computing from stored inputs.
+     * Returns the match result including both computed and stored hash for display.
+     *
+     * @param auditId  the audit log row UUID
+     * @return verify result, or empty if audit entry not found / not accessible to this tenant
+     */
+    public Optional<AuditHashVerifyResult> verifyAuditHash(UUID auditId) {
+        UUID tenantId = TenantContext.getCurrentTenant();
+        if (tenantId == null) {
+            throw new IllegalStateException("CRITICAL: Missing tenant context for audit hash verify");
+        }
+        return screeningRepository.findAuditEntryForVerification(auditId, tenantId)
+                .map(row -> {
+                    String computed;
+                    try {
+                        computed = HashUtil.sha256(
+                                row.snapshotDataJson(),
+                                row.verdictStatus(),
+                                row.verdictConfidence(),
+                                row.disclaimerText());
+                    } catch (IllegalArgumentException e) {
+                        computed = ScreeningRepository.HASH_UNAVAILABLE_SENTINEL;
+                    }
+                    // Sentinel in either hash → original was never computed or current re-computation failed.
+                    // Mismatch is treated as unavailable: can't distinguish tampering from a legitimate
+                    // ingestor refresh that updated the snapshot data (stale-snapshot limitation, option 2).
+                    boolean sentinelStored = ScreeningRepository.HASH_UNAVAILABLE_SENTINEL.equals(row.storedHash());
+                    boolean sentinelComputed = ScreeningRepository.HASH_UNAVAILABLE_SENTINEL.equals(computed);
+                    boolean match = !sentinelStored && !sentinelComputed && computed.equals(row.storedHash());
+                    boolean unavailable = sentinelStored || sentinelComputed || !match;
+                    return new AuditHashVerifyResult(match, computed, row.storedHash(), unavailable);
+                });
+    }
+
+    /**
+     * Page result for audit history queries.
+     *
+     * @param entries       entries on this page
+     * @param totalElements total number of matching rows (across all pages)
+     * @param page          zero-based page number
+     * @param size          page size requested
+     */
+    public record AuditHistoryPage(
+            List<AuditHistoryEntry> entries,
+            long totalElements,
+            int page,
+            int size
+    ) {}
+
+    private List<String> parseSourceUrls(String sourceUrlsJson) {
+        if (sourceUrlsJson == null || sourceUrlsJson.isBlank() || "[]".equals(sourceUrlsJson)) {
+            return List.of();
+        }
+        try {
+            return JSONB_MAPPER.readValue(sourceUrlsJson, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            log.debug("Failed to parse source_urls JSON: {}", e.getMessage());
+            return List.of();
+        }
     }
 
     /**

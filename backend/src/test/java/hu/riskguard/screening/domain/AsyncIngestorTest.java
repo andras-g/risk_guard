@@ -32,7 +32,8 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link AsyncIngestor}.
- * Covers: (a) demo mode run, (b) source unavailable — retention, (c) rate limit delay.
+ * Covers: (a) demo mode run, (b) source unavailable — retention, (c) rate limit delay,
+ * (d) audit log written on successful live refresh, (e) no audit log on demo/unavailable.
  */
 @ExtendWith(MockitoExtension.class)
 class AsyncIngestorTest {
@@ -46,12 +47,16 @@ class AsyncIngestorTest {
     @Mock
     ScreeningRepository screeningRepository;
 
+    @Mock
+    ScreeningService screeningService;
+
     AsyncIngestorHealthState healthState;
     RiskGuardProperties properties;
     AsyncIngestor ingestor;
 
     private static final UUID TENANT_1 = UUID.randomUUID();
     private static final UUID TENANT_2 = UUID.randomUUID();
+    private static final UUID USER_1 = UUID.randomUUID();
     private static final UUID SNAPSHOT_1 = UUID.randomUUID();
     private static final UUID SNAPSHOT_2 = UUID.randomUUID();
     private static final String TAX_1 = "12345678";
@@ -63,7 +68,7 @@ class AsyncIngestorTest {
         properties = new RiskGuardProperties();
         ingestor = new AsyncIngestor(
                 notificationService, dataSourceService, screeningRepository,
-                properties, healthState);
+                screeningService, properties, healthState);
     }
 
     @AfterEach
@@ -78,8 +83,8 @@ class AsyncIngestorTest {
         properties.getDataSource().setMode("demo");
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1),
-                new WatchlistPartner(TENANT_2, TAX_2));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1),
+                new WatchlistPartner(TENANT_2, TAX_2, null));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -97,6 +102,9 @@ class AsyncIngestorTest {
         // Data source NOT called in demo mode (snapshot data is static)
         verify(dataSourceService, never()).fetchCompanyData(any());
 
+        // No audit log in demo mode
+        verify(screeningService, never()).auditIngestorRefresh(any(), any(), any(), any(), any());
+
         // Health state recorded
         assertThat(healthState.hasRunAtLeastOnce()).isTrue();
         assertThat(healthState.getLastEntriesProcessed()).isEqualTo(2);
@@ -113,7 +121,7 @@ class AsyncIngestorTest {
         properties.getAsyncIngestor().setDelayBetweenRequestsMs(0); // no delay for test speed
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -133,6 +141,9 @@ class AsyncIngestorTest {
         verify(screeningRepository, never()).updateSnapshotFromIngestor(any(), any(), any(), any(), any(), any(), any());
         verify(screeningRepository, never()).updateSnapshotCheckedAt(any(), any(), any());
 
+        // No audit log when source unavailable (AC #6)
+        verify(screeningService, never()).auditIngestorRefresh(any(), any(), any(), any(), any());
+
         // Error count incremented
         assertThat(healthState.getLastErrorCount()).isEqualTo(1);
         assertThat(healthState.getLastEntriesProcessed()).isEqualTo(1);
@@ -142,13 +153,13 @@ class AsyncIngestorTest {
     }
 
     @Test
-    void ingest_liveMode_allSourcesAvailable_snapshotUpdated() {
+    void ingest_liveMode_allSourcesAvailable_snapshotUpdated_auditLogWritten() {
         // Given — live mode, all adapters return successfully
         properties.getDataSource().setMode("live");
         properties.getAsyncIngestor().setDelayBetweenRequestsMs(0);
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -166,14 +177,48 @@ class AsyncIngestorTest {
         // When
         ingestor.ingest();
 
-        // Then — snapshot updated with fresh data including source URLs and fingerprint
+        // Then — snapshot updated with fresh data
         verify(screeningRepository).updateSnapshotFromIngestor(
                 eq(SNAPSHOT_1), eq(TENANT_1), eq(data.snapshotData()),
                 eq(data.sourceUrls()), eq(data.domFingerprintHash()),
                 any(OffsetDateTime.class), eq("live"));
 
+        // Audit log written via ScreeningService facade (AC #6)
+        verify(screeningService).auditIngestorRefresh(
+                eq(TAX_1), eq(USER_1), eq(TENANT_1), eq(SNAPSHOT_1), eq("live"));
+
         assertThat(healthState.getLastErrorCount()).isZero();
         assertThat(healthState.getLastEntriesProcessed()).isEqualTo(1);
+    }
+
+    @Test
+    void ingest_liveMode_nullUserId_auditLogSkipped() {
+        // Given — live mode, partner has no userId (no mandate found)
+        properties.getDataSource().setMode("live");
+        properties.getAsyncIngestor().setDelayBetweenRequestsMs(0);
+
+        List<WatchlistPartner> partners = List.of(
+                new WatchlistPartner(TENANT_1, TAX_1, null)); // null userId
+        when(notificationService.getMonitoredPartners()).thenReturn(partners);
+
+        when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
+                .thenReturn(Optional.of(SNAPSHOT_1));
+
+        ScrapedData available = new ScrapedData("demo", Map.of("companyName", "Test Kft."),
+                List.of("https://example.com"), true, null);
+        CompanyData data = new CompanyData(
+                Map.of("demo", Map.of("companyName", "Test Kft.")),
+                List.of("https://example.com"),
+                Map.of("demo", available), "hash123");
+        when(dataSourceService.fetchCompanyData(TAX_1)).thenReturn(data);
+
+        // When
+        ingestor.ingest();
+
+        // Then — snapshot updated, but auditIngestorRefresh called (it handles null userId internally)
+        verify(screeningService).auditIngestorRefresh(
+                eq(TAX_1), isNull(), eq(TENANT_1), eq(SNAPSHOT_1), eq("live"));
+        assertThat(healthState.getLastErrorCount()).isZero();
     }
 
     @Test
@@ -186,8 +231,8 @@ class AsyncIngestorTest {
         doNothing().when(spyIngestor).sleepBetweenRequests(anyLong());
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1),
-                new WatchlistPartner(TENANT_2, TAX_2));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1),
+                new WatchlistPartner(TENANT_2, TAX_2, null));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -219,8 +264,8 @@ class AsyncIngestorTest {
         AsyncIngestor spyIngestor = spy(ingestor);
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1),
-                new WatchlistPartner(TENANT_2, TAX_2));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1),
+                new WatchlistPartner(TENANT_2, TAX_2, null));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -244,7 +289,7 @@ class AsyncIngestorTest {
         AsyncIngestor spyIngestor = spy(ingestor);
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -281,8 +326,8 @@ class AsyncIngestorTest {
         properties.getDataSource().setMode("demo");
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1),
-                new WatchlistPartner(TENANT_2, TAX_2));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1),
+                new WatchlistPartner(TENANT_2, TAX_2, null));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -306,7 +351,7 @@ class AsyncIngestorTest {
         properties.getAsyncIngestor().setDelayBetweenRequestsMs(0);
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))
@@ -339,7 +384,7 @@ class AsyncIngestorTest {
         properties.getDataSource().setMode("demo");
 
         List<WatchlistPartner> partners = List.of(
-                new WatchlistPartner(TENANT_1, TAX_1));
+                new WatchlistPartner(TENANT_1, TAX_1, USER_1));
         when(notificationService.getMonitoredPartners()).thenReturn(partners);
 
         when(screeningRepository.findLatestSnapshotId(TENANT_1, TAX_1))

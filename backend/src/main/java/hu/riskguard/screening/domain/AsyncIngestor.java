@@ -51,17 +51,20 @@ public class AsyncIngestor {
     private final NotificationService notificationService;
     private final DataSourceService dataSourceService;
     private final ScreeningRepository screeningRepository;
+    private final ScreeningService screeningService;
     private final RiskGuardProperties properties;
     private final AsyncIngestorHealthState healthState;
 
     public AsyncIngestor(NotificationService notificationService,
                          DataSourceService dataSourceService,
                          ScreeningRepository screeningRepository,
+                         ScreeningService screeningService,
                          RiskGuardProperties properties,
                          AsyncIngestorHealthState healthState) {
         this.notificationService = notificationService;
         this.dataSourceService = dataSourceService;
         this.screeningRepository = screeningRepository;
+        this.screeningService = screeningService;
         this.properties = properties;
         this.healthState = healthState;
     }
@@ -115,8 +118,15 @@ public class AsyncIngestor {
                                 snapshotId, partner.tenantId(),
                                 data.snapshotData(), data.sourceUrls(),
                                 data.domFingerprintHash(), now, mode);
+
+                        // Write AUTOMATED audit log via ScreeningService facade (ADR-4: no direct repo call)
+                        // TenantContext is already set above — auditIngestorRefresh must NOT clear it
+                        screeningService.auditIngestorRefresh(
+                                partner.taxNumber(), partner.userId(), partner.tenantId(),
+                                snapshotId, mode);
                     } else {
                         // Source unavailable — retain existing snapshot, do NOT overwrite
+                        // No audit log when source unavailable (AC #6)
                         errors++;
                         log.warn("Source unavailable during ingestion tax_number={} tenant={}",
                                 PiiUtil.maskTaxNumber(partner.taxNumber()), partner.tenantId());

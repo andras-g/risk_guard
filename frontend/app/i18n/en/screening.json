@@ -1,5 +1,50 @@
 {
   "screening": {
+    "audit": {
+      "columns": {
+        "companyName": "Company Name",
+        "hash": "SHA-256 Hash",
+        "mode": "Mode",
+        "searchedAt": "Searched At",
+        "source": "Source",
+        "taxNumber": "Tax Number",
+        "verdict": "Verdict"
+      },
+      "empty": "No audit records yet. Search a partner or add one to your watchlist to start building your due diligence trail.",
+      "expand": {
+        "confidence": "Data Confidence",
+        "copyHash": "Copy hash",
+        "copyHashSuccess": "Hash copied to clipboard",
+        "disclaimer": "Disclaimer",
+        "fullHash": "Full SHA-256 Hash",
+        "sourceUrls": "Source URLs",
+        "verifyHash": "Verify Hash"
+      },
+      "filters": {
+        "apply": "Apply",
+        "checkSource": "Source",
+        "clear": "Clear",
+        "dateRange": "Date Range",
+        "dateRangePlaceholder": "Start — End",
+        "sourceAll": "All",
+        "taxNumber": "Tax Number / Company",
+        "taxNumberPlaceholder": "Tax number"
+      },
+      "mode": {
+        "DEMO": "Demo",
+        "LIVE": "Live"
+      },
+      "source": {
+        "AUTOMATED": "Automated",
+        "MANUAL": "Manual"
+      },
+      "title": "My Audit History",
+      "verify": {
+        "match": "Hash verified",
+        "mismatch": "Hash mismatch — record may have been altered",
+        "unavailable": "Hash cannot be verified — data may have been refreshed"
+      }
+    },
     "actions": {
       "addToWatchlist": "Add to Watchlist",
       "addToWatchlistTooltip": "Add this partner to your Watchlist for monitoring",

@@ -55,7 +55,7 @@ class PartnerStatusChangedListenerTest {
                 VERDICT_ID, TENANT_1, TAX_NUMBER, "RELIABLE", "AT_RISK", null);
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
-                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER)));
+                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER, null)));
 
         // When
         listener.onPartnerStatusChanged(event);
@@ -89,8 +89,8 @@ class PartnerStatusChangedListenerTest {
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
                 .thenReturn(List.of(
-                        new WatchlistPartner(TENANT_1, TAX_NUMBER),
-                        new WatchlistPartner(TENANT_2, TAX_NUMBER)));
+                        new WatchlistPartner(TENANT_1, TAX_NUMBER, null),
+                        new WatchlistPartner(TENANT_2, TAX_NUMBER, null)));
 
         // When
         listener.onPartnerStatusChanged(event);
@@ -125,7 +125,7 @@ class PartnerStatusChangedListenerTest {
                 VERDICT_ID, TENANT_1, TAX_NUMBER, "RELIABLE", "AT_RISK", "abc123def456");
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
-                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER)));
+                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER, null)));
         when(notificationRepository.findWatchlistEntriesWithUserByTaxNumber(TAX_NUMBER))
                 .thenReturn(List.of(new WatchlistEntryWithUser(TENANT_1, TAX_NUMBER, "Test Kft", USER_1)));
 
@@ -148,7 +148,7 @@ class PartnerStatusChangedListenerTest {
                 VERDICT_ID, TENANT_1, TAX_NUMBER, "RELIABLE", "RELIABLE", null);
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
-                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER)));
+                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER, null)));
 
         // When
         listener.onPartnerStatusChanged(event);
@@ -165,7 +165,7 @@ class PartnerStatusChangedListenerTest {
                 VERDICT_ID, TENANT_1, TAX_NUMBER, null, "RELIABLE", null);
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
-                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER)));
+                .thenReturn(List.of(new WatchlistPartner(TENANT_1, TAX_NUMBER, null)));
 
         // When
         listener.onPartnerStatusChanged(event);
@@ -183,8 +183,8 @@ class PartnerStatusChangedListenerTest {
 
         when(notificationRepository.findWatchlistEntriesByTaxNumber(TAX_NUMBER))
                 .thenReturn(List.of(
-                        new WatchlistPartner(TENANT_1, TAX_NUMBER),
-                        new WatchlistPartner(TENANT_2, TAX_NUMBER)));
+                        new WatchlistPartner(TENANT_1, TAX_NUMBER, null),
+                        new WatchlistPartner(TENANT_2, TAX_NUMBER, null)));
         when(notificationRepository.findWatchlistEntriesWithUserByTaxNumber(TAX_NUMBER))
                 .thenReturn(List.of(
                         new WatchlistEntryWithUser(TENANT_1, TAX_NUMBER, "Test Kft", USER_1),

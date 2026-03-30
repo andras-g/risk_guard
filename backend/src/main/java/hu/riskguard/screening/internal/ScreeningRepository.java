@@ -1,19 +1,26 @@
 package hu.riskguard.screening.internal;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.repository.BaseRepository;
 import hu.riskguard.core.security.TenantContext;
 import hu.riskguard.core.util.HashUtil;
 import hu.riskguard.jooq.enums.VerdictConfidence;
 import hu.riskguard.jooq.enums.VerdictStatus;
+import hu.riskguard.screening.domain.AuditHistoryEntry;
+import hu.riskguard.screening.domain.AuditHistoryFilter;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +29,9 @@ import java.util.UUID;
 import static hu.riskguard.jooq.Tables.COMPANY_SNAPSHOTS;
 import static hu.riskguard.jooq.Tables.SEARCH_AUDIT_LOG;
 import static hu.riskguard.jooq.Tables.VERDICTS;
+import static org.jooq.impl.DSL.field;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.trueCondition;
 
 /**
  * jOOQ repository for the screening module.
@@ -135,18 +145,21 @@ public class ScreeningRepository extends BaseRepository {
      * is logged at ERROR level with {@code tenantId} only (no PII — @LogSafe).
      *
      * @param taxNumber          normalized tax number
-     * @param userId             the user performing the search
+     * @param userId             the user performing the search (or watchlist owner for AUTOMATED entries)
      * @param disclaimerText     disclaimer text included in the hash
      * @param snapshotDataJson   serialized JSONB string of the snapshot data
      * @param verdictStatus      verdict status literal (e.g., "RELIABLE", "AT_RISK")
      * @param verdictConfidence  verdict confidence literal (e.g., "FRESH", "STALE")
      * @param verdictId          FK to the verdict created in this search
      * @param now                the search timestamp (shared across snapshot, verdict, and audit log)
+     * @param checkSource        "MANUAL" for user-initiated searches, "AUTOMATED" for ingestor-written entries
+     * @param dataSourceMode     "DEMO" or "LIVE" — the active data source mode at time of search
      * @return the SHA-256 hash written to the audit log, or {@code "HASH_UNAVAILABLE"} if computation failed
      */
     public String writeAuditLog(String taxNumber, UUID userId, String disclaimerText,
                                 String snapshotDataJson, String verdictStatus, String verdictConfidence,
-                                UUID verdictId, OffsetDateTime now) {
+                                UUID verdictId, OffsetDateTime now,
+                                String checkSource, String dataSourceMode) {
         UUID tenantId = requireTenantId();
 
         String hash;
@@ -166,9 +179,189 @@ public class ScreeningRepository extends BaseRepository {
                 .set(SEARCH_AUDIT_LOG.DISCLAIMER_TEXT, disclaimerText)
                 .set(SEARCH_AUDIT_LOG.SEARCHED_AT, now)
                 .set(SEARCH_AUDIT_LOG.VERDICT_ID, verdictId)
+                .set(field("check_source", String.class), checkSource)
+                .set(field("data_source_mode", String.class), dataSourceMode)
                 .execute();
 
         return hash;
+    }
+
+    // ─── Audit History Query Methods (Story 5.1a) ────────────────────────────
+
+    /**
+     * Internal record for raw audit history query results.
+     * Joins search_audit_log → verdicts → company_snapshots for company name and confidence.
+     */
+    public record AuditHistoryRow(
+            UUID id,
+            String taxNumber,
+            String verdictStatus,
+            String verdictConfidence,
+            OffsetDateTime searchedAt,
+            String sha256Hash,
+            String dataSourceMode,
+            String checkSource,
+            String companyName,
+            String sourceUrlsJson,
+            String disclaimerText
+    ) {}
+
+    /**
+     * Internal record for audit entry verification data — all hash inputs plus stored hash.
+     */
+    public record AuditVerifyRow(
+            String snapshotDataJson,
+            String verdictStatus,
+            String verdictConfidence,
+            String disclaimerText,
+            String storedHash
+    ) {}
+
+    /**
+     * Fetch a paginated, filtered page of audit history entries for the given tenant.
+     * Joins search_audit_log → verdicts (LEFT) → company_snapshots (LEFT) to resolve company name.
+     *
+     * <p>Uses raw DSL for the new {@code check_source} and {@code data_source_mode} columns
+     * (pending jOOQ codegen regeneration). Type-safe generated references are used for existing columns.
+     *
+     * @param tenantId tenant scope (enforced in WHERE)
+     * @param filter   nullable filter fields
+     * @param offset   pagination offset (row number)
+     * @param limit    page size
+     * @return list of raw audit history rows
+     */
+    public List<AuditHistoryRow> findAuditHistoryPage(UUID tenantId, AuditHistoryFilter filter,
+                                                       long offset, int limit) {
+        Condition where = SEARCH_AUDIT_LOG.TENANT_ID.eq(tenantId)
+                .and(buildAuditFilterCondition(filter));
+
+        var dataSourceModeField = field(name("search_audit_log", "data_source_mode"), String.class);
+        var checkSourceField = field(name("search_audit_log", "check_source"), String.class);
+
+        return dsl.select(
+                        SEARCH_AUDIT_LOG.ID,
+                        SEARCH_AUDIT_LOG.TAX_NUMBER,
+                        VERDICTS.STATUS,
+                        VERDICTS.CONFIDENCE,
+                        SEARCH_AUDIT_LOG.SEARCHED_AT,
+                        SEARCH_AUDIT_LOG.SHA256_HASH,
+                        dataSourceModeField,
+                        checkSourceField,
+                        field("cs.snapshot_data", JSONB.class),
+                        field("cs.source_urls", JSONB.class),
+                        SEARCH_AUDIT_LOG.DISCLAIMER_TEXT)
+                .from(SEARCH_AUDIT_LOG)
+                .leftJoin(VERDICTS).on(VERDICTS.ID.eq(SEARCH_AUDIT_LOG.VERDICT_ID))
+                .leftJoin(COMPANY_SNAPSHOTS.as("cs")).on(field("cs.id", UUID.class).eq(VERDICTS.SNAPSHOT_ID))
+                .where(where)
+                .orderBy(SEARCH_AUDIT_LOG.SEARCHED_AT.desc())
+                .offset(offset)
+                .limit(limit)
+                .fetch(r -> new AuditHistoryRow(
+                        r.get(SEARCH_AUDIT_LOG.ID),
+                        r.get(SEARCH_AUDIT_LOG.TAX_NUMBER),
+                        r.get(VERDICTS.STATUS) != null ? r.get(VERDICTS.STATUS).getLiteral() : null,
+                        r.get(VERDICTS.CONFIDENCE) != null ? r.get(VERDICTS.CONFIDENCE).getLiteral() : null,
+                        r.get(SEARCH_AUDIT_LOG.SEARCHED_AT),
+                        r.get(SEARCH_AUDIT_LOG.SHA256_HASH),
+                        r.get(dataSourceModeField),
+                        r.get(checkSourceField),
+                        extractCompanyName(r.get(field("cs.snapshot_data", JSONB.class))),
+                        r.get(field("cs.source_urls", JSONB.class)) != null
+                                ? r.get(field("cs.source_urls", JSONB.class)).data() : null,
+                        r.get(SEARCH_AUDIT_LOG.DISCLAIMER_TEXT)));
+    }
+
+    /**
+     * Count audit history rows for pagination total — same filter as {@link #findAuditHistoryPage}.
+     *
+     * @param tenantId tenant scope
+     * @param filter   nullable filter fields
+     * @return total number of matching rows
+     */
+    public long countAuditHistory(UUID tenantId, AuditHistoryFilter filter) {
+        Condition where = SEARCH_AUDIT_LOG.TENANT_ID.eq(tenantId)
+                .and(buildAuditFilterCondition(filter));
+
+        return dsl.selectCount()
+                .from(SEARCH_AUDIT_LOG)
+                .where(where)
+                .fetchOne(0, long.class);
+    }
+
+    /**
+     * Fetch all hash inputs plus the stored hash for a single audit entry — used by verify-hash endpoint.
+     * Tenant-scoped to prevent cross-tenant hash inspection.
+     *
+     * @param auditId  the audit log row UUID
+     * @param tenantId the requesting tenant (enforced in WHERE)
+     * @return raw verify row, or empty if not found or not owned by tenant
+     */
+    public Optional<AuditVerifyRow> findAuditEntryForVerification(UUID auditId, UUID tenantId) {
+        return dsl.select(
+                        field("cs.snapshot_data", JSONB.class),
+                        VERDICTS.STATUS,
+                        VERDICTS.CONFIDENCE,
+                        SEARCH_AUDIT_LOG.DISCLAIMER_TEXT,
+                        SEARCH_AUDIT_LOG.SHA256_HASH)
+                .from(SEARCH_AUDIT_LOG)
+                .leftJoin(VERDICTS).on(VERDICTS.ID.eq(SEARCH_AUDIT_LOG.VERDICT_ID))
+                .leftJoin(COMPANY_SNAPSHOTS.as("cs")).on(field("cs.id", UUID.class).eq(VERDICTS.SNAPSHOT_ID))
+                .where(SEARCH_AUDIT_LOG.ID.eq(auditId))
+                .and(SEARCH_AUDIT_LOG.TENANT_ID.eq(tenantId))
+                .fetchOptional(r -> new AuditVerifyRow(
+                        r.get(field("cs.snapshot_data", JSONB.class)) != null
+                                ? r.get(field("cs.snapshot_data", JSONB.class)).data() : null,
+                        r.get(VERDICTS.STATUS) != null ? r.get(VERDICTS.STATUS).getLiteral() : null,
+                        r.get(VERDICTS.CONFIDENCE) != null ? r.get(VERDICTS.CONFIDENCE).getLiteral() : null,
+                        r.get(SEARCH_AUDIT_LOG.DISCLAIMER_TEXT),
+                        r.get(SEARCH_AUDIT_LOG.SHA256_HASH)));
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private Condition buildAuditFilterCondition(AuditHistoryFilter filter) {
+        if (filter == null) {
+            return trueCondition();
+        }
+        Condition cond = trueCondition();
+        if (filter.startDate() != null) {
+            OffsetDateTime start = filter.startDate().atStartOfDay().atOffset(ZoneOffset.UTC);
+            cond = cond.and(SEARCH_AUDIT_LOG.SEARCHED_AT.ge(start));
+        }
+        if (filter.endDate() != null) {
+            OffsetDateTime end = filter.endDate().plusDays(1).atStartOfDay().atOffset(ZoneOffset.UTC);
+            cond = cond.and(SEARCH_AUDIT_LOG.SEARCHED_AT.lt(end));
+        }
+        if (filter.taxNumber() != null && !filter.taxNumber().isBlank()) {
+            cond = cond.and(SEARCH_AUDIT_LOG.TAX_NUMBER.eq(filter.taxNumber().replaceAll("[\\s-]", "")));
+        }
+        if (filter.checkSource() != null && !filter.checkSource().isBlank()) {
+            cond = cond.and(field("check_source", String.class).eq(filter.checkSource()));
+        }
+        return cond;
+    }
+
+    private String extractCompanyName(JSONB snapshotDataJsonb) {
+        if (snapshotDataJsonb == null || snapshotDataJsonb.data() == null) {
+            return null;
+        }
+        try {
+            Map<String, Object> root = JSON.readValue(snapshotDataJsonb.data(),
+                    new TypeReference<Map<String, Object>>() {});
+            // snapshot_data is a map of adapter → adapterData; search each adapter for companyName
+            for (Object adapterData : root.values()) {
+                if (adapterData instanceof Map<?, ?> m) {
+                    Object name = m.get("companyName");
+                    if (name instanceof String s && !s.isBlank()) {
+                        return s;
+                    }
+                }
+            }
+        } catch (JsonProcessingException e) {
+            log.debug("Failed to parse snapshot_data for company name extraction: {}", e.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -266,6 +459,26 @@ public class ScreeningRepository extends BaseRepository {
             org.jooq.JSONB snapshotData,
             OffsetDateTime checkedAt
     ) {}
+
+    /**
+     * Find the most recent verdict ID for a snapshot.
+     * Used by {@code auditIngestorRefresh} to reference the existing verdict without creating a duplicate.
+     * Tenant-scoped via TenantContext.
+     *
+     * @param snapshotId the snapshot UUID
+     * @return the latest verdict UUID for this snapshot, or empty if none exists
+     */
+    public Optional<UUID> findLatestVerdictIdForSnapshot(UUID snapshotId) {
+        UUID tenantId = requireTenantId();
+        return dsl.select(VERDICTS.ID)
+                .from(VERDICTS)
+                .join(COMPANY_SNAPSHOTS).on(VERDICTS.SNAPSHOT_ID.eq(COMPANY_SNAPSHOTS.ID))
+                .where(VERDICTS.SNAPSHOT_ID.eq(snapshotId))
+                .and(COMPANY_SNAPSHOTS.TENANT_ID.eq(tenantId))
+                .orderBy(VERDICTS.CREATED_AT.desc())
+                .limit(1)
+                .fetchOptional(VERDICTS.ID);
+    }
 
     /**
      * Update only the {@code checked_at} timestamp of a snapshot — used by the background

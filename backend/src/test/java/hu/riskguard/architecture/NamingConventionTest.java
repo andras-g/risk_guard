@@ -45,7 +45,7 @@ public class NamingConventionTest {
                                 events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has empty @RequestMapping"));
                             }
                             for (String path : paths) {
-                                if (!path.matches("/api/v[0-9]+/[a-z-]+") && !path.matches("/api/public/[a-z-]+(/[a-z-]+)*") && !path.matches("/api/v[0-9]+/public/[a-z-]+(/[a-z-]+)*")) {
+                                if (!path.matches("/api/v[0-9]+/[a-z-]+(/[a-z-]+)*") && !path.matches("/api/public/[a-z-]+(/[a-z-]+)*") && !path.matches("/api/v[0-9]+/public/[a-z-]+(/[a-z-]+)*")) {
                                     events.add(SimpleConditionEvent.violated(javaClass, javaClass.getName() + " has invalid path " + path));
                                 }
                             }

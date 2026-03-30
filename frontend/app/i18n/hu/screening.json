@@ -1,5 +1,50 @@
 {
   "screening": {
+    "audit": {
+      "columns": {
+        "companyName": "Cégnév",
+        "hash": "SHA-256 hash",
+        "mode": "Mód",
+        "searchedAt": "Keresés időpontja",
+        "source": "Forrás",
+        "taxNumber": "Adószám",
+        "verdict": "Verdikt"
+      },
+      "empty": "Még nincsenek audit rekordok. Keressen egy partnert, vagy adja hozzá a figyelőlistájához, hogy megkezdje az átvilágítási nyomvonal felépítését.",
+      "expand": {
+        "confidence": "Adatmegbízhatóság",
+        "copyHash": "Hash másolása",
+        "copyHashSuccess": "Hash a vágólapra másolva",
+        "disclaimer": "Jogi nyilatkozat",
+        "fullHash": "Teljes SHA-256 hash",
+        "sourceUrls": "Forrás URL-ek",
+        "verifyHash": "Hash ellenőrzése"
+      },
+      "filters": {
+        "apply": "Szűrés",
+        "checkSource": "Forrás",
+        "clear": "Törlés",
+        "dateRange": "Dátumtartomány",
+        "dateRangePlaceholder": "Kezdet — Vég",
+        "sourceAll": "Összes",
+        "taxNumber": "Adószám / Cégnév",
+        "taxNumberPlaceholder": "Adószám"
+      },
+      "mode": {
+        "DEMO": "Demo",
+        "LIVE": "Éles"
+      },
+      "source": {
+        "AUTOMATED": "Automatikus",
+        "MANUAL": "Manuális"
+      },
+      "title": "Saját audit előzmények",
+      "verify": {
+        "match": "Hash hitelesítve",
+        "mismatch": "Hash nem egyezik — a rekord esetleg módosítva lett",
+        "unavailable": "A hash nem ellenőrizhető — az adatok frissítve lesznek"
+      }
+    },
     "actions": {
       "addToWatchlist": "Figyelőlistára",
       "addToWatchlistTooltip": "Partner hozzáadása a Figyelőlistához felügyelethez",
