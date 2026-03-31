@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Mon Mar 30 2026 — Story 6.0 created (ready-for-dev). Epic 6 in-progress.
+# updated: Tue Mar 31 2026 — Story 6.1 code-review R1 complete; 10 patch action items.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -112,13 +112,21 @@ development_status:
   5-4-export-locale-enforcement-and-ux-notice: done  # code-review R1 2026-03-29 — 1 patch (toast assertion tightened), 3 deferred, 3 dismissed; status → done
   epic-5-retrospective: done  # DONE (2026-03-30) — Retrospective completed. Saved to epic-5-retro-2026-03-30.md. Key decisions: retro action items must be named story tasks (P1); Story 6.0 carries T1 (requireUuidClaim), T2 (ScopedValue), T3 (curated deferred-work cleanup pass).
 
-  epic-6: in-progress  # STARTED (2026-03-30) — Story 6.0 created, epic transitioned backlog → in-progress
+  epic-6: in-progress  # STARTED (2026-03-30) — Story 6.0 created, epic transitioned backlog → in-progress. Stories 6.1-6.5 were UX stories, moved to Epic 7 (2026-03-31). Epic 6 now implements original admin/integrity plan.
   6-0-epic-6-foundation-technical-debt-cleanup: review  # Story file created 2026-03-30; dev completed 2026-03-30; T1 requireUuidClaim extraction, T2 ScopedValue HTTP-path migration, T3 curated deferred-work pass; BUILD SUCCESSFUL + 580 frontend tests green; code-review R1 2026-03-30 — 1 patch item (TenantFilter RuntimeException wrapping) fixed 2026-03-30; 5 deferred; 16 dismissed; status → review
-  6-1-data-source-health-dashboard-the-heartbeat: backlog
+  6-1-data-source-health-dashboard-the-heartbeat: review  # Story file created 2026-03-31; dev completed 2026-03-31; 675 backend + 589 frontend tests green; code-review R1 2026-03-31 — 10 patch items resolved (atomic SQL, DEMO override, N+1 fix, MTBF formula, exception leak, onMounted merge, ariaStatusMessage clear); 10 deferred; BUILD SUCCESSFUL + 589 frontend tests green; status → review
   6-2-manual-adapter-quarantine: backlog
   6-3-hot-swappable-epr-json-manager: backlog
   6-4-gdpr-search-audit-viewer: backlog
   epic-6-retrospective: optional
+
+  epic-7: backlog  # PLANNED (2026-03-31) — UX polish stories moved from Epic 6. Improves SME owner dashboard, watchlist, and accountant flight control UX.
+  7-1-risk-pulse-dashboard-redesign: ready-for-dev  # Story file moved from 6-1 on 2026-03-31
+  7-2-partner-detail-slide-over-drawer: ready-for-dev  # Story file moved from 6-2 on 2026-03-31
+  7-3-watchlist-table-enrichment: ready-for-dev  # Story file moved from 6-3 on 2026-03-31
+  7-4-flight-control-client-partner-view: ready-for-dev  # Story file moved from 6-4 on 2026-03-31
+  7-5-dashboard-empty-onboarding-state: ready-for-dev  # Story file moved from 6-5 on 2026-03-31
+  epic-7-retrospective: optional
 
 # CANCELLED STORIES (2026-03-12):
 # ================================

@@ -80,6 +80,10 @@ resilience4j:
         waitDurationInOpenState: 60s
         permittedNumberOfCallsInHalfOpenState: 3
         registerHealthIndicator: true
+    instances:
+      demo:
+        # Inherits slidingWindowSize:10, failureRateThreshold:50, waitDurationInOpenState:60s from default config
+        registerHealthIndicator: true
   retry:
     configs:
       default:

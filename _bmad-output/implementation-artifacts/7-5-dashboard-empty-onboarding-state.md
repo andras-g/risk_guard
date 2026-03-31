@@ -1,4 +1,4 @@
-# Story 6.5: Dashboard Empty & Onboarding State
+# Story 7.5: Dashboard Empty & Onboarding State
 
 Status: ready-for-dev
 

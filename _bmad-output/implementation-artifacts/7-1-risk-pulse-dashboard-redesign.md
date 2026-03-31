@@ -1,4 +1,4 @@
-# Story 6.1: Risk Pulse Dashboard Redesign
+# Story 7.1: Risk Pulse Dashboard Redesign
 
 Status: ready-for-dev
 

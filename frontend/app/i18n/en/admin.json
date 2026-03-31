@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "datasources": {
+      "a11y": {
+        "statusChanged": "{adapter} adapter: circuit breaker {state}"
+      },
+      "adapterCard": {
+        "circuitBreaker": "Circuit Breaker",
+        "credential": "Credential Status",
+        "lastSuccess": "Last Success",
+        "mode": "Data Source Mode",
+        "mtbf": "MTBF (hours)",
+        "successRate": "Success Rate"
+      },
+      "lastUpdated": "Last updated",
+      "pollInterval": "Auto-refreshes every 30 seconds",
+      "refresh": "Refresh",
+      "states": {
+        "circuitOpen": "Circuit Open",
+        "degraded": "Degraded",
+        "demoMode": "Demo Mode",
+        "disabled": "Disabled",
+        "healthy": "Healthy",
+        "notConfigured": "Not Configured"
+      },
+      "subtitle": "Live health status of all registered data source adapters",
+      "title": "Data Sources"
+    }
+  }
+}

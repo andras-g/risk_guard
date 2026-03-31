@@ -1,4 +1,4 @@
-# Story 6.4: Flight Control — Client Partner View
+# Story 7.4: Flight Control — Client Partner View
 
 Status: ready-for-dev
 

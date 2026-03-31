@@ -131,7 +131,12 @@ Users can generate schema-perfect CSV exports for MOHU and high-integrity PDF re
 ### Epic 6: System Administration & Integrity
 Administrators can monitor data source health (NAV API connectivity, circuit breaker state, credential status), quarantine failing adapters, and hot-swap EPR logic without code changes. Admin pages follow "Mission Control" page spec with accessibility-first health gauges per UX Spec.
 **FRs covered:** FR11, FR12, UX-MissionControl.
-**Stories:** 6.1 (Data Source Health Dashboard), 6.2 (Adapter Quarantine), 6.3 (EPR JSON Manager), 6.4 (Audit Viewer).
+**Stories:** 6.0 (Foundation/Tech Debt Cleanup), 6.1 (Data Source Health Dashboard), 6.2 (Adapter Quarantine), 6.3 (EPR JSON Manager), 6.4 (Audit Viewer).
+**Note:** Stories originally filed as 6.1–6.5 were UX polish features and were moved to Epic 7 on 2026-03-31.
+
+### Epic 7: UX Polish & Dashboard Improvements
+SME owners and accountants get a richer, more actionable dashboard experience. Covers the "Morning Risk Pulse" SME flow, watchlist table enrichment, partner detail slide-over, and onboarding state for new users.
+**Stories:** 7.1 (Risk Pulse Dashboard Redesign), 7.2 (Partner Detail Slide-Over Drawer), 7.3 (Watchlist Table Enrichment), 7.4 (Flight Control — Client Partner View), 7.5 (Dashboard Empty & Onboarding State).
 
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.

@@ -1,4 +1,4 @@
-# Story 6.3: Watchlist Table Enrichment
+# Story 7.3: Watchlist Table Enrichment
 
 Status: ready-for-dev
 

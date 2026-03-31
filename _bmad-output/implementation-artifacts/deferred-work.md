@@ -1,5 +1,18 @@
 # Deferred Work
 
+## Deferred from: code review of 6-1-data-source-health-dashboard-the-heartbeat (2026-03-31)
+
+- `CircuitBreakerEventListener.init()` registers only on CBs present at startup — `getAllCircuitBreakers()` misses lazily-created instances; use `registry.getEventPublisher().onEntryAdded()` for dynamic registration when new adapters are added.
+- `dataSourceMode` is a global value applied to all adapters — multi-adapter deployments (e.g., demo + live NAV) will show incorrect per-adapter mode; requires per-adapter mode resolution in controller.
+- No test for missing/null JWT `role` claim in `DataSourceAdminControllerTest` — edge case produces correct 403 but is untested; add a test with a JWT that has no role claim.
+- Skeleton loading grid hardcoded to 3 placeholders — layout shift if actual adapter count differs; make count dynamic once adapter registry size is known at render time.
+- ARIA announcement uses raw CB state enum value (`OPEN`) instead of past-tense verb phrase (`opened`) — i18n enhancement; add state → verb mapping in `en/hu admin.json`.
+- Initial page paint has a brief empty grid before `onMounted` fires — `loading` starts as `false` so skeleton does not show until after the first fetch is triggered; initialise `loading: true` in store state.
+- `$fetch` error handler in `useHealthStore.fetchHealth()` swallows HTTP status codes — stores only a string message; pre-existing pattern across other stores; improve to distinguish auth failures from server errors.
+- `AdapterHealthResponse.from()` factory method is redundant — pure delegation to the canonical record constructor; cosmetic noise.
+- `adapter_health.updated_at` has no `NOT NULL` constraint — minor DDL omission; low risk since upsert always supplies the value.
+- `lastUpdated` relative timestamp in `datasources.vue` does not tick between 30 s polls — `formatRelative` is not time-reactive; shows stale "just now" until next reactive update; add a reactive interval or use a ticking composable.
+
 ## Deferred from: code review of 6-0-epic-6-foundation-technical-debt-cleanup (2026-03-30)
 
 - `TenantFilter`: `UUID.fromString(tenantIdStr)` is called before any try/catch; a malformed `active_tenant_id` JWT claim propagates as unhandled `IllegalArgumentException` (500); pre-existing behaviour not introduced by this story.

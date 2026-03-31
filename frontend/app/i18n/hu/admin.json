@@ -1,0 +1,30 @@
+{
+  "admin": {
+    "datasources": {
+      "a11y": {
+        "statusChanged": "{adapter} adapter: áramköri megszakító {state}"
+      },
+      "adapterCard": {
+        "circuitBreaker": "Áramköri megszakító",
+        "credential": "Hitelesítő adatok",
+        "lastSuccess": "Utolsó sikeres kérés",
+        "mode": "Adatforrás mód",
+        "mtbf": "MTBF (óra)",
+        "successRate": "Sikerességi arány"
+      },
+      "lastUpdated": "Utolsó frissítés",
+      "pollInterval": "30 másodpercenként automatikusan frissül",
+      "refresh": "Frissítés",
+      "states": {
+        "circuitOpen": "Megszakító nyitva",
+        "degraded": "Leromlott",
+        "demoMode": "Demo mód",
+        "disabled": "Letiltva",
+        "healthy": "Egészséges",
+        "notConfigured": "Nincs beállítva"
+      },
+      "subtitle": "Minden regisztrált adatforrás-adapter élő állapota",
+      "title": "Adatforrások"
+    }
+  }
+}

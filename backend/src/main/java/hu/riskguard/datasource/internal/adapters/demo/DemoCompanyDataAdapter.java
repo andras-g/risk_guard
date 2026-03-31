@@ -3,6 +3,7 @@ package hu.riskguard.datasource.internal.adapters.demo;
 import hu.riskguard.datasource.api.dto.ScrapedData;
 import hu.riskguard.datasource.domain.CompanyDataPort;
 import hu.riskguard.datasource.internal.DataSourceLoggingUtil;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,7 @@ public class DemoCompanyDataAdapter implements CompanyDataPort {
     private static final String ADAPTER_NAME = "demo";
 
     @Override
+    @CircuitBreaker(name = "demo", fallbackMethod = "fetchFallback")
     public ScrapedData fetch(String taxNumber) {
         log.info("Demo adapter fetching data for tax_number={}", DataSourceLoggingUtil.maskTaxNumber(taxNumber));
 
@@ -44,6 +46,22 @@ public class DemoCompanyDataAdapter implements CompanyDataPort {
                 List.of("demo://in-memory/" + DataSourceLoggingUtil.maskTaxNumber(taxNumber)),
                 true, // Demo adapter is always available
                 null  // No error
+        );
+    }
+
+    /**
+     * Fallback used by Resilience4j when the circuit breaker is OPEN or an exception escapes fetch().
+     * Returns an unavailable ScrapedData to signal degraded state to the caller.
+     */
+    public ScrapedData fetchFallback(String taxNumber, Throwable t) {
+        log.warn("Demo adapter circuit breaker fallback triggered for tax_number={}: {}",
+                DataSourceLoggingUtil.maskTaxNumber(taxNumber), t.getMessage());
+        return new ScrapedData(
+                ADAPTER_NAME,
+                java.util.Map.of("available", false),
+                List.of("demo://circuit-breaker-open"),
+                false,
+                "Demo adapter temporarily unavailable"
         );
     }
 

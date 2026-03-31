@@ -46,15 +46,15 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: [
-      { 
-        code: 'hu', 
+      {
+        code: 'hu',
         name: 'Magyar',
-        files: ['hu/common.json', 'hu/auth.json', 'hu/epr.json', 'hu/identity.json', 'hu/landing.json', 'hu/screening.json', 'hu/notification.json']
+        files: ['hu/admin.json', 'hu/auth.json', 'hu/common.json', 'hu/epr.json', 'hu/identity.json', 'hu/landing.json', 'hu/notification.json', 'hu/screening.json']
       },
-      { 
-        code: 'en', 
+      {
+        code: 'en',
         name: 'English',
-        files: ['en/common.json', 'en/auth.json', 'en/epr.json', 'en/identity.json', 'en/landing.json', 'en/screening.json', 'en/notification.json']
+        files: ['en/admin.json', 'en/auth.json', 'en/common.json', 'en/epr.json', 'en/identity.json', 'en/landing.json', 'en/notification.json', 'en/screening.json']
       }
     ],
     langDir: 'app/i18n',

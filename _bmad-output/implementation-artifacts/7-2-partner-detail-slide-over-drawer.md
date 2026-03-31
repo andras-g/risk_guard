@@ -1,4 +1,4 @@
-# Story 6.2: Partner Detail Slide-Over Drawer
+# Story 7.2: Partner Detail Slide-Over Drawer
 
 Status: ready-for-dev
 
