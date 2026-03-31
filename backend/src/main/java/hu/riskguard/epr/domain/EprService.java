@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -46,6 +47,7 @@ public class EprService {
     private final DagEngine dagEngine;
     private final FeeCalculator feeCalculator;
     private final MohuExporter mohuExporter;
+    private final EprConfigValidator eprConfigValidator;
 
     /**
      * ObjectMapper for JSON serialization of traversal paths and config parsing.
@@ -445,6 +447,46 @@ public class EprService {
         boolean updated = eprRepository.updateTemplateKfCode(templateId, tenantId, effectiveKfCode);
 
         return RetryLinkResponse.from(updated, effectiveKfCode);
+    }
+
+    // ─── Admin: EPR config management ───────────────────────────────────────
+
+    /**
+     * Returns the full active config including version, raw JSON, and activation timestamp.
+     */
+    public EprConfigResponse getActiveConfigFull() {
+        return eprRepository.findActiveConfig()
+                .map(EprConfigResponse::from)
+                .orElseThrow(() -> new IllegalStateException("No active EPR config found"));
+    }
+
+    /**
+     * Validates a candidate EPR config JSON using the 5 golden test cases.
+     */
+    public EprConfigValidateResponse validateNewConfig(String configData) {
+        return eprConfigValidator.validate(configData);
+    }
+
+    /**
+     * Atomically publishes a new EPR config version and logs the admin action.
+     * Re-validates on the server before inserting to prevent client-side bypass.
+     * Does NOT evict or pre-populate configCache — the new version is loaded on-demand.
+     */
+    @Transactional
+    public EprConfigPublishResponse publishNewConfig(String configData, UUID actorUserId) {
+        EprConfigValidateResponse validation = eprConfigValidator.validate(configData);
+        if (!validation.valid()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Config validation failed: " + String.join("; ", validation.errors()));
+        }
+        int previousVersion = getActiveConfigVersion();
+        int newVersion = eprRepository.getMaxConfigVersion() + 1;
+        OffsetDateTime activatedAt = OffsetDateTime.now();
+        eprRepository.insertConfig(newVersion, configData, activatedAt);
+        String details = "{\"version\":" + newVersion + ",\"previous_version\":" + previousVersion + "}";
+        eprRepository.insertAdminActionLog(actorUserId, "PUBLISH_EPR_CONFIG",
+                "epr_config:v" + newVersion, details);
+        return new EprConfigPublishResponse(newVersion, activatedAt.toInstant());
     }
 
     /**

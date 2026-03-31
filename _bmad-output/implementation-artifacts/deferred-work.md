@@ -1,5 +1,24 @@
 # Deferred Work
 
+## Deferred from: code review R1 of 6-3-hot-swappable-epr-json-manager (2026-03-31)
+
+- W1: Concurrent publish race — `getMaxConfigVersion()` + `insertConfig()` not locked; spec accepts negligible risk (SME_ADMIN only, UNIQUE constraint as hard stop); revisit if publish is ever opened to more roles.
+- W2: First-ever publish when no active config → `IllegalStateException` in `publishNewConfig` — impossible in practice (v1 seeded by migration); add guard if zero-config bootstrap scenario ever added.
+- W3: `details` JSON in publish audit log built by string concatenation — safe with int-only values; same as 6-2 W1 pattern; replace with `ObjectMapper` before any string field is added.
+- W4: `activatedAt` displayed raw as ISO-8601 string in `epr-config.vue` — no locale date formatting; acceptable for admin-only tool.
+- W5: Frontend role guard false-redirect when `identityStore.user` is null (store not hydrated on hard refresh) — pre-existing pattern across all admin pages; fix in UX polish sprint.
+- W6: `admin.eprConfig.publishConfirm` i18n key is dead (spec prohibits dialog) — remove key in i18n cleanup pass.
+
+## Deferred from: code review R2 of 6-3-hot-swappable-epr-json-manager (2026-03-31)
+
+- D1: Concurrent publish version TOCTOU — two separate queries in READ_COMMITTED isolation (`getMaxConfigVersion` + `insertConfig`); UNIQUE constraint on version is the safety net; acceptable for admin-only low-frequency operation.
+- D2: No config payload size limit on POST /publish — large JSON could cause resource exhaustion; add request size cap (e.g., `@Size(max=...)` or Spring `max-http-request-header-size`) in a hardening pass.
+- D3: `EprConfigResponse.from()` nullable activatedAt vs non-nullable record type — currently unreachable via `findActiveConfig()` which filters `activated_at IS NOT NULL`; add explicit `requireNonNull` guard if the factory is ever reused elsewhere.
+- D4: `getActiveConfigFull()` throws `IllegalStateException` → HTTP 500 when no active config; better as `ResponseStatusException(404)`; spec-prescribed, admin-only edge case.
+- W7: `getActiveConfigFull()` / `getActiveConfigVersion()` missing `@Transactional(readOnly=true)` — pre-existing pattern, no correctness impact currently.
+- W8: `MonacoEditor.MonacoEnvironment` overwritten on every mount; only `editor.worker` registered — revisit if JSON language features show issues in production.
+- W9: Monaco `setValue` in `watch` resets cursor/undo history on external model updates — acceptable tradeoff for v-model sync; revisit if UX complaints arise.
+
 ## Deferred from: code review of 6-2-manual-adapter-quarantine (2026-03-31)
 
 - W1: Hand-rolled JSON string for audit `details` field — safe now (boolean primitive), but fragile pattern to copy; replace with `ObjectMapper` before any user-controlled string lands in that field.

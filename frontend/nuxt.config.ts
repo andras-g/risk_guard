@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
     // Speed up dev startup: skip full-bundle optimisation on cold start
     optimizeDeps: {
+      exclude: ['monaco-editor'],
       include: [
         'primevue/datatable', 'primevue/column', 'primevue/button',
         'primevue/dialog', 'primevue/inputtext', 'primevue/tag',

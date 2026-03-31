@@ -22,6 +22,20 @@ const { t } = useI18n()
           </p>
         </div>
       </NuxtLink>
+
+      <NuxtLink to="/admin/epr-config" class="block group">
+        <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="pi pi-file-edit text-indigo-600 text-xl" />
+            <h2 class="text-lg font-semibold text-slate-800 group-hover:text-indigo-700">
+              {{ t('admin.eprConfig.title') }}
+            </h2>
+          </div>
+          <p class="text-sm text-slate-500">
+            {{ t('admin.eprConfig.subtitle') }}
+          </p>
+        </div>
+      </NuxtLink>
     </div>
   </div>
 </template>

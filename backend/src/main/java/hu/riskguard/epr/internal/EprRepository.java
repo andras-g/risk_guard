@@ -240,6 +240,44 @@ public class EprRepository extends BaseRepository {
     // ─── Wizard / Config methods ────────────────────────────────────────────
 
     /**
+     * Returns the highest version number in epr_configs, or 0 if the table is empty.
+     */
+    public int getMaxConfigVersion() {
+        Integer max = dsl.select(org.jooq.impl.DSL.max(EPR_CONFIGS.VERSION))
+                .from(EPR_CONFIGS)
+                .fetchOne(0, Integer.class);
+        return max != null ? max : 0;
+    }
+
+    /**
+     * Insert a new EPR config row with the given version, config JSON, and activation timestamp.
+     * The caller provides {@code activatedAt} so the response timestamp matches the DB row exactly.
+     */
+    public void insertConfig(int version, String configData, OffsetDateTime activatedAt) {
+        dsl.insertInto(EPR_CONFIGS)
+                .set(EPR_CONFIGS.ID, UUID.randomUUID())
+                .set(EPR_CONFIGS.VERSION, version)
+                .set(EPR_CONFIGS.CONFIG_DATA, JSONB.jsonb(configData))
+                .set(EPR_CONFIGS.SCHEMA_VERSION, (String) null)
+                .set(EPR_CONFIGS.SCHEMA_VERIFIED, false)
+                .set(EPR_CONFIGS.CREATED_AT, activatedAt)
+                .set(EPR_CONFIGS.ACTIVATED_AT, activatedAt)
+                .execute();
+    }
+
+    /**
+     * Insert an audit row into admin_action_log using raw SQL.
+     * Raw SQL is used here intentionally — ADMIN_ACTION_LOG is outside the EPR module's
+     * jOOQ codegen scope, so the type-safe DSL constants are not available.
+     */
+    public void insertAdminActionLog(UUID actorUserId, String action, String target, String details) {
+        dsl.execute(
+                "INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at) VALUES (?, ?, ?, ?::jsonb, ?)",
+                actorUserId, action, target, details, java.time.Instant.now()
+        );
+    }
+
+    /**
      * Find the latest activated EPR config.
      * @return the active config record, or empty if none activated
      */

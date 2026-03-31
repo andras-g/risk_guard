@@ -1,5 +1,22 @@
 {
   "admin": {
+    "eprConfig": {
+      "title": "EPR Config Manager",
+      "subtitle": "Edit the EPR fee tables and KF-code structure. Validate before publishing.",
+      "currentVersion": "Active version: v{version}",
+      "activatedAt": "Activated: {date}",
+      "validate": "Validate",
+      "publish": "Publish",
+      "validationPassed": "All {count} golden test cases passed",
+      "validationFailed": "Validation failed: {count} error(s)",
+      "publishSuccess": "EPR Config v{version} published successfully",
+      "publishConfirm": "Publish this config as the new active version?",
+      "errors": {
+        "loadFailed": "Failed to load active EPR config",
+        "validateFailed": "Validation request failed",
+        "publishFailed": "Publish failed"
+      }
+    },
     "datasources": {
       "a11y": {
         "statusChanged": "{adapter} adapter: circuit breaker {state}"

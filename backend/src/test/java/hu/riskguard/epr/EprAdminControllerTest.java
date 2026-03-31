@@ -1,0 +1,179 @@
+package hu.riskguard.epr;
+
+import hu.riskguard.epr.api.EprAdminController;
+import hu.riskguard.epr.api.dto.EprConfigPublishRequest;
+import hu.riskguard.epr.api.dto.EprConfigPublishResponse;
+import hu.riskguard.epr.api.dto.EprConfigResponse;
+import hu.riskguard.epr.api.dto.EprConfigValidateRequest;
+import hu.riskguard.epr.api.dto.EprConfigValidateResponse;
+import hu.riskguard.epr.domain.EprService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Unit tests for {@link EprAdminController}.
+ * Pure Mockito — no Spring context. Follows DataSourceAdminControllerTest pattern.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class EprAdminControllerTest {
+
+    @Mock
+    private EprService eprService;
+
+    private EprAdminController controller;
+
+    private static final UUID TENANT_ID = UUID.randomUUID();
+    private static final UUID USER_ID = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        controller = new EprAdminController(eprService);
+    }
+
+    // ─── GET /config ──────────────────────────────────────────────────────────
+
+    @Test
+    void getConfig_smeAdmin_returns200WithVersionAndConfigData() {
+        Jwt jwt = buildSmeAdminJwt();
+        EprConfigResponse response = new EprConfigResponse(1, "{\"fee_rates\": {}}", Instant.parse("2026-01-01T00:00:00Z"));
+        when(eprService.getActiveConfigFull()).thenReturn(response);
+
+        EprConfigResponse result = controller.getConfig(jwt);
+
+        assertThat(result.version()).isEqualTo(1);
+        assertThat(result.configData()).isEqualTo("{\"fee_rates\": {}}");
+        assertThat(result.activatedAt()).isEqualTo(Instant.parse("2026-01-01T00:00:00Z"));
+    }
+
+    @Test
+    void getConfig_nonAdmin_returns403() {
+        Jwt jwt = buildNonAdminJwt();
+
+        assertThatThrownBy(() -> controller.getConfig(jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).getActiveConfigFull();
+    }
+
+    // ─── POST /config/validate ────────────────────────────────────────────────
+
+    @Test
+    void validate_validJson_returns200Valid() {
+        Jwt jwt = buildSmeAdminJwt();
+        EprConfigValidateRequest req = new EprConfigValidateRequest("{\"valid\": true}");
+        when(eprService.validateNewConfig(anyString())).thenReturn(EprConfigValidateResponse.ok());
+
+        EprConfigValidateResponse result = controller.validate(req, jwt);
+
+        assertThat(result.valid()).isTrue();
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    void validate_invalidJson_returns200WithErrors() {
+        Jwt jwt = buildSmeAdminJwt();
+        EprConfigValidateRequest req = new EprConfigValidateRequest("not-json");
+        List<String> errors = List.of("Invalid JSON: Unrecognized token 'not'");
+        when(eprService.validateNewConfig(anyString())).thenReturn(EprConfigValidateResponse.failed(errors));
+
+        EprConfigValidateResponse result = controller.validate(req, jwt);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.errors()).hasSize(1);
+        assertThat(result.errors().get(0)).startsWith("Invalid JSON");
+    }
+
+    @Test
+    void validate_nonAdmin_returns403() {
+        Jwt jwt = buildNonAdminJwt();
+
+        assertThatThrownBy(() -> controller.validate(new EprConfigValidateRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).validateNewConfig(anyString());
+    }
+
+    // ─── POST /config/publish ─────────────────────────────────────────────────
+
+    @Test
+    void publish_smeAdmin_returns200WithNewVersion() {
+        Jwt jwt = buildSmeAdminJwtWithUserId();
+        EprConfigPublishRequest req = new EprConfigPublishRequest("{\"fee_rates\": {}}");
+        Instant now = Instant.now();
+        when(eprService.publishNewConfig(anyString(), any(UUID.class)))
+                .thenReturn(new EprConfigPublishResponse(2, now));
+
+        EprConfigPublishResponse result = controller.publish(req, jwt);
+
+        assertThat(result.version()).isEqualTo(2);
+        assertThat(result.activatedAt()).isEqualTo(now);
+        verify(eprService).publishNewConfig("{\"fee_rates\": {}}", USER_ID);
+    }
+
+    @Test
+    void publish_nonAdmin_returns403() {
+        Jwt jwt = buildNonAdminJwt();
+
+        assertThatThrownBy(() -> controller.publish(new EprConfigPublishRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).publishNewConfig(anyString(), any(UUID.class));
+    }
+
+    // ─── JWT builder helpers ──────────────────────────────────────────────────
+
+    private Jwt buildSmeAdminJwt() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("admin@test.com")
+                .claim("role", "SME_ADMIN")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .build();
+    }
+
+    private Jwt buildSmeAdminJwtWithUserId() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("admin@test.com")
+                .claim("role", "SME_ADMIN")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .claim("user_id", USER_ID.toString())
+                .build();
+    }
+
+    private Jwt buildNonAdminJwt() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("user@test.com")
+                .claim("role", "ACCOUNTANT")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .build();
+    }
+}

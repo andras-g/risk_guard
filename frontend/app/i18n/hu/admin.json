@@ -1,5 +1,22 @@
 {
   "admin": {
+    "eprConfig": {
+      "title": "EPR Konfig kezelő",
+      "subtitle": "Szerkessze az EPR díjtáblákat és KF-kód struktúrát. Közzététel előtt validálja.",
+      "currentVersion": "Aktív verzió: v{version}",
+      "activatedAt": "Aktiválva: {date}",
+      "validate": "Validálás",
+      "publish": "Közzététel",
+      "validationPassed": "Mind a(z) {count} arany teszteset sikeres",
+      "validationFailed": "Validáció sikertelen: {count} hiba",
+      "publishSuccess": "EPR Konfig v{version} sikeresen közzétéve",
+      "publishConfirm": "Közzéteszi ezt a konfigurációt új aktív verzióként?",
+      "errors": {
+        "loadFailed": "Az aktív EPR konfig betöltése sikertelen",
+        "validateFailed": "A validációs kérés sikertelen",
+        "publishFailed": "Közzététel sikertelen"
+      }
+    },
     "datasources": {
       "a11y": {
         "statusChanged": "{adapter} adapter: áramköri megszakító {state}"

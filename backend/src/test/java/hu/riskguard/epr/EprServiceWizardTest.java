@@ -5,6 +5,7 @@ import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.DagEngine.KfCodeResolution;
 import hu.riskguard.epr.domain.DagEngine.WizardStepResult;
+import hu.riskguard.epr.domain.EprConfigValidator;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.domain.FeeCalculator;
 import hu.riskguard.epr.domain.MohuExporter;
@@ -43,6 +44,9 @@ class EprServiceWizardTest {
     @Mock
     private MohuExporter mohuExporter;
 
+    @Mock
+    private EprConfigValidator eprConfigValidator;
+
     private EprService eprService;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
@@ -50,7 +54,7 @@ class EprServiceWizardTest {
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter);
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter, eprConfigValidator);
     }
 
     @Nested
