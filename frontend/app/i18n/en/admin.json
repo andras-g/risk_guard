@@ -21,7 +21,17 @@
         "demoMode": "Demo Mode",
         "disabled": "Disabled",
         "healthy": "Healthy",
-        "notConfigured": "Not Configured"
+        "notConfigured": "Not Configured",
+        "quarantined": "Quarantined"
+      },
+      "quarantine": "Quarantine",
+      "quarantine_release": "Release Quarantine",
+      "quarantineLabel": "Force Quarantine",
+      "quarantineConfirm": "Quarantine this adapter?",
+      "releaseConfirm": "Release quarantine?",
+      "banner": {
+        "title": "Data Source Maintenance",
+        "underMaintenance": "Data source '{name}' is Under Maintenance"
       },
       "subtitle": "Live health status of all registered data source adapters",
       "title": "Data Sources"

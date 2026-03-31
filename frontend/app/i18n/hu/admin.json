@@ -21,7 +21,17 @@
         "demoMode": "Demo mód",
         "disabled": "Letiltva",
         "healthy": "Egészséges",
-        "notConfigured": "Nincs beállítva"
+        "notConfigured": "Nincs beállítva",
+        "quarantined": "Karanténban"
+      },
+      "quarantine": "Karantén",
+      "quarantine_release": "Karantén feloldása",
+      "quarantineLabel": "Karantén kényszerítése",
+      "quarantineConfirm": "Karanténba helyezi ezt az adaptert?",
+      "releaseConfirm": "Karantén feloldása?",
+      "banner": {
+        "title": "Adatforrás karbantartás",
+        "underMaintenance": "A '{name}' adatforrás karbantartás alatt áll"
       },
       "subtitle": "Minden regisztrált adatforrás-adapter élő állapota",
       "title": "Adatforrások"

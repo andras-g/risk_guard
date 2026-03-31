@@ -10,6 +10,12 @@ const router = useRouter()
 const healthStore = useHealthStore()
 const identityStore = useIdentityStore()
 
+const quarantining = computed(() => healthStore.quarantining)
+
+async function handleQuarantine(adapterName: string, quarantined: boolean) {
+  await healthStore.quarantineAdapter(adapterName, quarantined)
+}
+
 // 30-second polling handle
 let pollInterval: ReturnType<typeof setInterval> | null = null
 
@@ -77,6 +83,8 @@ onUnmounted(() => {
     <DataSourceHealthDashboard
       :adapters="healthStore.adapters"
       :loading="healthStore.loading"
+      :quarantining="quarantining"
+      @quarantine="handleQuarantine"
     />
   </div>
 </template>

@@ -1,5 +1,21 @@
 # Deferred Work
 
+## Deferred from: code review of 6-2-manual-adapter-quarantine (2026-03-31)
+
+- W1: Hand-rolled JSON string for audit `details` field — safe now (boolean primitive), but fragile pattern to copy; replace with `ObjectMapper` before any user-controlled string lands in that field.
+- W2: `adapterName` path variable has no length/pattern validation at API boundary — SME_ADMIN gate + adapter-exists check limits risk; add `@Size`/`@Pattern` before public API exposure.
+- W3: No confirmation dialog before quarantine toggle fires — i18n keys `quarantineConfirm`/`releaseConfirm` exist; wire up a confirm dialog when UX polish sprint runs.
+- W4: Global banner fetches health once on mount — non-datasources pages show stale quarantine state on long sessions; admin page polling updates the shared store, so banner auto-refreshes when user visits datasources page; acceptable tradeoff.
+- W5: `setQuarantined` INSERT ON CONFLICT may fail if adapter row is missing other NOT NULL columns (fresh DB before 6.1 startup listener runs) — rows guaranteed by CircuitBreakerEventListener startup; defend if adapter registration order ever changes.
+- W6: `recordStateTransition` and `setQuarantined` write to the same `adapter_health` row without coordination — different columns updated; last-write on `updated_at` is acceptable; revisit if `updated_at` becomes load-bearing for analytics.
+- W7: `findAll()` / `AdapterHealthRow` does not expose the `quarantined` DB flag — frontend infers quarantine from `circuitBreakerState === 'FORCED_OPEN'`; sufficient now, but expose the flag if DB/CB divergence detection is ever needed.
+- W8: Startup quarantine restore race with in-flight health checks — `@PostConstruct` window is narrow; requires a startup barrier or ordered initialization to close fully.
+- W9: `buildResponse` does full O(n) adapter reload for a single-adapter quarantine toggle — low-frequency admin operation; acceptable for MVP; optimize if adapter count grows large.
+- W10: `actor_user_id` has no FK constraint on `admin_action_log` — intentional soft audit (no user table in this service); document as design decision in architecture notes.
+- W11: `admin_action_log` missing indexes on `actor_user_id` and `action` — no audit viewer feature yet; add before Story 6.4 GDPR Search Audit Viewer.
+- W12: `setQuarantined` phantom row: silently creates `adapter_health` row for a never-registered adapter — requires SME_ADMIN access; acceptable defensive behavior; add a health-row existence check if ghost rows become a monitoring concern.
+- W13: `FORCED_OPEN` state conflated with quarantine in banner — only one code path creates `FORCED_OPEN` in the current system; add a `quarantined` flag to `AdapterHealthResponse` if disambiguation is ever needed.
+
 ## Deferred from: code review of 6-1-data-source-health-dashboard-the-heartbeat (2026-03-31)
 
 - `CircuitBreakerEventListener.init()` registers only on CBs present at startup — `getAllCircuitBreakers()` misses lazily-created instances; use `registry.getEventPublisher().onEntryAdded()` for dynamic registration when new adapters are added.

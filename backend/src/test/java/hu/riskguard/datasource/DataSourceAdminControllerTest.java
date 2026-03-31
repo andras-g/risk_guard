@@ -3,6 +3,7 @@ package hu.riskguard.datasource;
 import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.datasource.api.DataSourceAdminController;
 import hu.riskguard.datasource.api.dto.AdapterHealthResponse;
+import hu.riskguard.datasource.api.dto.QuarantineRequest;
 import hu.riskguard.datasource.domain.CompanyDataPort;
 import hu.riskguard.datasource.internal.AdapterHealthRepository;
 import hu.riskguard.datasource.internal.AdapterHealthRepository.AdapterHealthRow;
@@ -28,8 +29,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -211,12 +217,115 @@ class DataSourceAdminControllerTest {
         assertThat(result.get(0).successRatePct()).isEqualTo(100.0);
     }
 
+    // --- Quarantine endpoint tests ---
+
+    @Test
+    void quarantineAdapter_smeAdmin_returns200AndForcedOpen() {
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        CircuitBreaker mockCb = mock(CircuitBreaker.class);
+        CircuitBreaker.Metrics metrics = mock(CircuitBreaker.Metrics.class);
+        when(mockCb.getState()).thenReturn(CircuitBreaker.State.FORCED_OPEN);
+        when(mockCb.getMetrics()).thenReturn(metrics);
+        when(metrics.getFailureRate()).thenReturn(-1f);
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.of(mockCb));
+        when(dataSourceProps.getMode()).thenReturn("live");
+
+        AdapterHealthResponse result = controller.quarantine("demo", new QuarantineRequest(true), jwt);
+
+        verify(mockCb).transitionToForcedOpenState();
+        verify(adapterHealthRepository).setQuarantinedAndLogAction(
+                eq("demo"), eq(true), any(UUID.class), eq("QUARANTINE"), anyString(), any(Instant.class));
+        assertThat(result.adapterName()).isEqualTo("demo");
+        assertThat(result.circuitBreakerState()).isEqualTo("FORCED_OPEN");
+    }
+
+    @Test
+    void releaseQuarantine_smeAdmin_returns200AndClosed() {
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        CircuitBreaker mockCb = mock(CircuitBreaker.class);
+        CircuitBreaker.Metrics metrics = mock(CircuitBreaker.Metrics.class);
+        // P3 guard checks state first (must be FORCED_OPEN); buildResponse sees CLOSED after transition
+        when(mockCb.getState()).thenReturn(CircuitBreaker.State.FORCED_OPEN, CircuitBreaker.State.CLOSED);
+        when(mockCb.getMetrics()).thenReturn(metrics);
+        when(metrics.getFailureRate()).thenReturn(-1f);
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.of(mockCb));
+        when(dataSourceProps.getMode()).thenReturn("live");
+
+        AdapterHealthResponse result = controller.quarantine("demo", new QuarantineRequest(false), jwt);
+
+        verify(mockCb).transitionToClosedState();
+        verify(adapterHealthRepository).setQuarantinedAndLogAction(
+                eq("demo"), eq(false), any(UUID.class), eq("RELEASE_QUARANTINE"), anyString(), any(Instant.class));
+        assertThat(result.circuitBreakerState()).isEqualTo("CLOSED");
+    }
+
+    @Test
+    void releaseQuarantine_notQuarantined_returns409() {
+        // P3: CB not in FORCED_OPEN → 409 Conflict; transitionToClosedState must NOT be called
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        CircuitBreaker mockCb = mock(CircuitBreaker.class);
+        when(mockCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.of(mockCb));
+        when(dataSourceProps.getMode()).thenReturn("live");
+
+        assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(false), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.CONFLICT));
+        verify(mockCb, never()).transitionToClosedState();
+        verify(adapterHealthRepository, never()).setQuarantinedAndLogAction(
+                anyString(), any(Boolean.class), any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void quarantineAdapter_nonAdmin_returns403() {
+        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+
+        assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(true), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+        verify(adapterHealthRepository, never()).setQuarantinedAndLogAction(
+                anyString(), any(Boolean.class), any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void quarantineAdapter_unknownAdapter_returns404() {
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+
+        assertThatThrownBy(() -> controller.quarantine("unknown-adapter", new QuarantineRequest(true), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+    }
+
+    @Test
+    void quarantineAdapter_noCircuitBreaker_returns422() {
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(true), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY));
+    }
+
     private Jwt buildJwtWithRole(String role) {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("user@test.com")
                 .claim("role", role)
                 .claim("active_tenant_id", TENANT_ID.toString())
+                .build();
+    }
+
+    private Jwt buildJwtWithRoleAndUserId(String role) {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("user@test.com")
+                .claim("role", role)
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .claim("user_id", UUID.randomUUID().toString())
                 .build();
     }
 }

@@ -13,6 +13,7 @@
     "actions": {
       "cancel": "Mégse",
       "delete": "Törlés",
+      "dismiss": "Bezárás",
       "login": "Bejelentkezés",
       "logout": "Kijelentkezés",
       "register": "Regisztráció",

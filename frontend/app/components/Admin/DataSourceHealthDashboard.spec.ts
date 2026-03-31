@@ -15,6 +15,11 @@ const SkeletonStub = {
   template: '<div data-testid="skeleton" />',
   props: ['height'],
 }
+const InputSwitchStub = {
+  template: '<input type="checkbox" data-testid="quarantine-toggle" :checked="modelValue" :disabled="disabled" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+  props: ['modelValue', 'disabled', 'inputId'],
+  emits: ['update:modelValue'],
+}
 
 // Stub useI18n
 vi.stubGlobal('useI18n', () => ({
@@ -46,15 +51,21 @@ function buildAdapter(overrides: Partial<AdapterHealth> = {}): AdapterHealth {
   }
 }
 
-function mountDashboard(props: { adapters?: AdapterHealth[]; loading?: boolean } = {}) {
+function mountDashboard(props: {
+  adapters?: AdapterHealth[]
+  loading?: boolean
+  quarantining?: Record<string, boolean>
+} = {}) {
   return mount(DataSourceHealthDashboard, {
     props: {
       adapters: props.adapters ?? [buildAdapter()],
       loading: props.loading ?? false,
+      quarantining: props.quarantining ?? {},
     },
     global: {
       stubs: {
         Card: CardStub,
+        InputSwitch: InputSwitchStub,
         ProgressBar: ProgressBarStub,
         Skeleton: SkeletonStub,
       },
@@ -137,5 +148,52 @@ describe('DataSourceHealthDashboard', () => {
     })
 
     expect(wrapper.text()).toContain('admin.datasources.states.notConfigured')
+  })
+
+  it('renders a quarantine toggle per adapter card', () => {
+    const wrapper = mountDashboard({ adapters: [buildAdapter()] })
+
+    expect(wrapper.findAll('[data-testid="quarantine-toggle"]')).toHaveLength(1)
+  })
+
+  it('quarantine toggle is disabled when quarantining[adapterName] is true', () => {
+    const wrapper = mountDashboard({
+      adapters: [buildAdapter({ adapterName: 'demo' })],
+      quarantining: { demo: true },
+    })
+
+    const toggle = wrapper.find('[data-testid="quarantine-toggle"]')
+    expect((toggle.element as HTMLInputElement).disabled).toBe(true)
+  })
+
+  it('quarantine toggle is enabled when quarantining[adapterName] is false', () => {
+    const wrapper = mountDashboard({
+      adapters: [buildAdapter({ adapterName: 'demo' })],
+      quarantining: { demo: false },
+    })
+
+    const toggle = wrapper.find('[data-testid="quarantine-toggle"]')
+    expect((toggle.element as HTMLInputElement).disabled).toBe(false)
+  })
+
+  it('quarantine toggle emits quarantine event on click', async () => {
+    const wrapper = mountDashboard({ adapters: [buildAdapter({ adapterName: 'demo' })] })
+
+    const toggle = wrapper.find('[data-testid="quarantine-toggle"]')
+    await toggle.trigger('change')
+
+    const emitted = wrapper.emitted('quarantine')
+    expect(emitted).toBeTruthy()
+    expect(emitted![0][0]).toBe('demo')
+  })
+
+  it('FORCED_OPEN state shows orange badge with Quarantined label', () => {
+    const wrapper = mountDashboard({
+      adapters: [buildAdapter({ circuitBreakerState: 'FORCED_OPEN' })],
+    })
+
+    expect(wrapper.text()).toContain('admin.datasources.states.quarantined')
+    // orange badge class
+    expect(wrapper.html()).toContain('bg-orange-100')
   })
 })

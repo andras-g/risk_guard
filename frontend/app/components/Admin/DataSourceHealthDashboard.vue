@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Card from 'primevue/card'
+import InputSwitch from 'primevue/inputswitch'
 import ProgressBar from 'primevue/progressbar'
 import Skeleton from 'primevue/skeleton'
 import type { AdapterHealth } from '~/stores/health'
@@ -11,6 +12,11 @@ const { formatRelative } = useDateRelative()
 const props = defineProps<{
   adapters: AdapterHealth[]
   loading: boolean
+  quarantining: Record<string, boolean>
+}>()
+
+const emit = defineEmits<{
+  (e: 'quarantine', adapterName: string, quarantined: boolean): void
 }>()
 
 // --- ARIA live region ---
@@ -49,6 +55,7 @@ function cbStateBadgeClass(state: string): string {
     case 'CLOSED': return 'bg-emerald-100 text-emerald-800'
     case 'HALF_OPEN': return 'bg-amber-100 text-amber-800'
     case 'OPEN': return 'bg-red-100 text-red-800'
+    case 'FORCED_OPEN': return 'bg-orange-100 text-orange-800'
     case 'DISABLED': return 'bg-slate-100 text-slate-600'
     default: return 'bg-slate-100 text-slate-600'
   }
@@ -59,6 +66,7 @@ function cbStateBadgeLabel(state: string): string {
     case 'CLOSED': return t('admin.datasources.states.healthy')
     case 'HALF_OPEN': return t('admin.datasources.states.degraded')
     case 'OPEN': return t('admin.datasources.states.circuitOpen')
+    case 'FORCED_OPEN': return t('admin.datasources.states.quarantined')
     case 'DISABLED': return t('admin.datasources.states.disabled')
     default: return state
   }
@@ -130,6 +138,19 @@ function successRateBarClass(pct: number): string {
             >
               {{ cbStateBadgeLabel(adapter.circuitBreakerState) }}
             </span>
+          </div>
+
+          <!-- Quarantine Toggle -->
+          <div class="flex items-center gap-2 mt-3">
+            <InputSwitch
+              :model-value="adapter.circuitBreakerState === 'FORCED_OPEN'"
+              :disabled="quarantining[adapter.adapterName]"
+              :input-id="`quarantine-${adapter.adapterName}`"
+              @update:model-value="emit('quarantine', adapter.adapterName, $event as boolean)"
+            />
+            <label :for="`quarantine-${adapter.adapterName}`" class="text-sm text-slate-600">
+              {{ t('admin.datasources.quarantineLabel') }}
+            </label>
           </div>
 
           <!-- Success Rate -->

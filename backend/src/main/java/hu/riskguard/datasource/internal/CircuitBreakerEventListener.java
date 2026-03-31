@@ -8,6 +8,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Listens to Resilience4j circuit breaker events and persists health metrics to
@@ -35,6 +37,18 @@ public class CircuitBreakerEventListener {
         var breakers = circuitBreakerRegistry.getAllCircuitBreakers();
         breakers.forEach(this::registerListeners);
         log.info("CircuitBreakerEventListener registered on {} circuit breaker(s)", breakers.size());
+
+        // Restore quarantine state persisted in DB across server restarts (AC#8)
+        List<String> quarantined = adapterHealthRepository.findQuarantinedAdapterNames();
+        for (String name : quarantined) {
+            Optional<CircuitBreaker> cbOpt = circuitBreakerRegistry.find(name);
+            if (cbOpt.isPresent()) {
+                cbOpt.get().transitionToForcedOpenState();
+                log.info("Restored quarantine for circuit breaker '{}'", name);
+            } else {
+                log.warn("Quarantine restore skipped: no circuit breaker registered for '{}'", name);
+            }
+        }
     }
 
     private void registerListeners(CircuitBreaker cb) {
@@ -52,6 +66,7 @@ public class CircuitBreakerEventListener {
                 case OPEN -> "CIRCUIT_OPEN";
                 case CLOSED -> "HEALTHY";
                 case HALF_OPEN -> "DEGRADED";
+                case FORCED_OPEN -> "QUARANTINED";
                 default -> "DEGRADED";
             };
             log.info("Circuit breaker '{}' transitioned to {} — updating adapter_health", name, toState);

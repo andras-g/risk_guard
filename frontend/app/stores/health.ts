@@ -17,6 +17,7 @@ interface HealthState {
   loading: boolean
   error: string | null
   lastUpdated: Date | null
+  quarantining: Record<string, boolean>
 }
 
 /**
@@ -29,6 +30,7 @@ export const useHealthStore = defineStore('health', {
     loading: false,
     error: null,
     lastUpdated: null,
+    quarantining: {} as Record<string, boolean>,
   }),
 
   actions: {
@@ -50,6 +52,28 @@ export const useHealthStore = defineStore('health', {
       }
       finally {
         this.loading = false
+      }
+    },
+
+    async quarantineAdapter(adapterName: string, quarantined: boolean) {
+      this.quarantining[adapterName] = true
+      this.error = null
+      try {
+        const config = useRuntimeConfig()
+        await $fetch(`/api/v1/admin/datasources/${adapterName}/quarantine`, {
+          method: 'POST',
+          body: { quarantined },
+          baseURL: config.public.apiBase as string,
+          credentials: 'include',
+        })
+        await this.fetchHealth()
+      }
+      catch (error: unknown) {
+        this.error = error instanceof Error ? error.message : String(error)
+        throw error
+      }
+      finally {
+        this.quarantining[adapterName] = false
       }
     },
   },

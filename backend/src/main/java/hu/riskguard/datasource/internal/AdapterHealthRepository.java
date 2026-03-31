@@ -3,6 +3,7 @@ package hu.riskguard.datasource.internal;
 import hu.riskguard.core.repository.BaseRepository;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
@@ -13,6 +14,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
@@ -182,6 +184,47 @@ public class AdapterHealthRepository extends BaseRepository {
                 """,
                 adapterName, status, odt
         );
+    }
+
+    /**
+     * Returns all adapter names where {@code quarantined = TRUE}.
+     * Used at startup to restore quarantine state after server restart.
+     */
+    public List<String> findQuarantinedAdapterNames() {
+        return dsl.select(field("adapter_name"))
+                .from(table("adapter_health"))
+                .where(field("quarantined").isTrue())
+                .fetch(r -> r.get(field("adapter_name", String.class)));
+    }
+
+    /**
+     * Atomically sets the quarantined flag and inserts the admin audit log entry.
+     * Both writes succeed or both are rolled back via a jOOQ transaction.
+     */
+    public void setQuarantinedAndLogAction(
+            String adapterName, boolean quarantined,
+            UUID actorUserId, String actionName, String details,
+            Instant now
+    ) {
+        OffsetDateTime odt = now.atOffset(ZoneOffset.UTC);
+        dsl.transaction(config -> {
+            DSL.using(config).execute("""
+                    INSERT INTO adapter_health
+                        (adapter_name, quarantined, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT (adapter_name) DO UPDATE SET
+                        quarantined = EXCLUDED.quarantined,
+                        updated_at  = EXCLUDED.updated_at
+                    """,
+                    adapterName, quarantined, odt
+            );
+            DSL.using(config).execute("""
+                    INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at)
+                    VALUES (?, ?, ?, ?::jsonb, ?)
+                    """,
+                    actorUserId, actionName, adapterName, details, odt
+            );
+        });
     }
 
     private AdapterHealthRow mapRow(Record r) {

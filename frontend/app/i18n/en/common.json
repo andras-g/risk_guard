@@ -13,6 +13,7 @@
     "actions": {
       "cancel": "Cancel",
       "delete": "Delete",
+      "dismiss": "Dismiss",
       "login": "Log in",
       "logout": "Log out",
       "register": "Register",
