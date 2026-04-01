@@ -111,33 +111,27 @@ describe('AppSidebar — active route detection', () => {
 })
 
 describe('AppSidebar — admin section role gating', () => {
-  it('admin section is visible when user role is ADMIN', () => {
-    const role = ref('ADMIN')
-    const isAdmin = role.value === 'ADMIN'
-    expect(isAdmin).toBe(true)
-  })
-
-  it('admin section is hidden when user role is SME_ADMIN', () => {
+  it('admin section is visible when user role is SME_ADMIN', () => {
     const role = ref('SME_ADMIN')
-    const isAdmin = role.value === 'ADMIN'
-    expect(isAdmin).toBe(false)
+    const isAdmin = role.value === 'SME_ADMIN'
+    expect(isAdmin).toBe(true)
   })
 
   it('admin section is hidden when user role is ACCOUNTANT', () => {
     const role = ref('ACCOUNTANT')
-    const isAdmin = role.value === 'ADMIN'
+    const isAdmin = role.value === 'SME_ADMIN'
     expect(isAdmin).toBe(false)
   })
 
   it('admin section is hidden when user role is GUEST', () => {
     const role = ref('GUEST')
-    const isAdmin = role.value === 'ADMIN'
+    const isAdmin = role.value === 'SME_ADMIN'
     expect(isAdmin).toBe(false)
   })
 
   it('admin section is hidden when role is null', () => {
     const role = ref(null)
-    const isAdmin = role.value === 'ADMIN'
+    const isAdmin = role.value === 'SME_ADMIN'
     expect(isAdmin).toBe(false)
   })
 })
@@ -227,8 +221,8 @@ describe('AppSidebar — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="nav-item-screening"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-item-watchlist"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-item-epr"]').exists()).toBe(true)
-    // Admin section should NOT render (role is SME_ADMIN, not ADMIN)
-    expect(wrapper.find('[data-testid="admin-nav-section"]').exists()).toBe(false)
+    // Admin section SHOULD render for SME_ADMIN role
+    expect(wrapper.find('[data-testid="admin-nav-section"]').exists()).toBe(true)
   })
 })
 

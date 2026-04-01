@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "statReliable": "Reliable",
+    "statAtRisk": "At Risk",
+    "statStale": "Stale / Unavailable",
+    "needsAttention": "Needs Attention",
+    "recentChanges": "Recent Status Changes",
+    "noRecentChanges": "No changes in the last 7 days",
+    "emptyWatchlistHint": "Add partners to your watchlist to see your risk summary here."
+  }
+}

@@ -31,7 +31,7 @@
       "activatedAt": "Aktiválva: {date}",
       "validate": "Validálás",
       "publish": "Közzététel",
-      "validationPassed": "Mind a(z) {count} arany teszteset sikeres",
+      "validationPassed": "A konfiguráció érvényes — készen áll a közzétételre",
       "validationFailed": "Validáció sikertelen: {count} hiba",
       "publishSuccess": "EPR Konfig v{version} sikeresen közzétéve",
       "publishConfirm": "Közzéteszi ezt a konfigurációt új aktív verzióként?",

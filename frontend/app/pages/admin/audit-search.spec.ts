@@ -72,11 +72,11 @@ vi.stubGlobal('NuxtLink', { template: '<a><slot /></a>' })
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-// ── Identity store mock ───────────────────────────────────────────────────────
+// ── Auth store mock ───────────────────────────────────────────────────────────
 let mockUserRole = 'SME_ADMIN'
-vi.mock('~/stores/identity', () => ({
-  useIdentityStore: () => ({
-    get user() { return { role: mockUserRole } },
+vi.mock('~/stores/auth', () => ({
+  useAuthStore: () => ({
+    get role() { return mockUserRole },
   }),
 }))
 

@@ -1,6 +1,6 @@
 # Story 6.4: GDPR Search Audit Viewer
 
-Status: review
+Status: done
 
 ## Story
 

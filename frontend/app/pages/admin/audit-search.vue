@@ -8,12 +8,12 @@ import Column from 'primevue/column'
 import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
-import { useIdentityStore } from '~/stores/identity'
+import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
-const identityStore = useIdentityStore()
+const authStore = useAuthStore()
 
 const { results, pending, error, search } = useAdminAudit()
 
@@ -27,7 +27,7 @@ const canSearch = computed(
 )
 
 onMounted(() => {
-  if (identityStore.user?.role !== 'SME_ADMIN') {
+  if (authStore.role !== 'SME_ADMIN') {
     router.replace('/')
   }
 })

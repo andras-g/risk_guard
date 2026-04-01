@@ -461,7 +461,7 @@ public class EprService {
     }
 
     /**
-     * Validates a candidate EPR config JSON using the 5 golden test cases.
+     * Validates a candidate EPR config JSON using the 5 validation cases.
      */
     public EprConfigValidateResponse validateNewConfig(String configData) {
         return eprConfigValidator.validate(configData);

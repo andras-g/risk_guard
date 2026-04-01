@@ -1,20 +1,42 @@
 <script setup lang="ts">
 import { useScreeningStore } from '~/stores/screening'
-import { useIdentityStore } from '~/stores/identity'
-import { storeToRefs } from 'pinia'
+import { useAuthStore } from '~/stores/auth'
+import { useWatchlistStore } from '~/stores/watchlist'
+import { usePortfolioStore } from '~/stores/portfolio'
 
 const { t } = useI18n()
 const router = useRouter()
 const screeningStore = useScreeningStore()
-const identityStore = useIdentityStore()
-const { currentVerdict, isSearching, searchError } = storeToRefs(screeningStore)
-const isAccountant = computed(() => identityStore.user?.role === 'ACCOUNTANT')
+const authStore = useAuthStore()
+const watchlistStore = useWatchlistStore()
+const portfolioStore = usePortfolioStore()
+
+const currentVerdict = computed(() => screeningStore.currentVerdict)
+const isSearching = computed(() => screeningStore.isSearching)
+const searchError = computed(() => screeningStore.searchError)
+const watchlistEntries = computed(() => watchlistStore.entries)
+const watchlistLoading = computed(() => watchlistStore.isLoading)
+const alerts = computed(() => portfolioStore.alerts)
+const alertsLoading = computed(() => portfolioStore.isLoading)
+
+const isAccountant = computed(() => authStore.isAccountant)
 
 // Clear any previous verdict when the dashboard mounts so the watcher below
 // does not immediately redirect back to the detail page if the user navigated here
 // from /screening/[taxNumber] and the store still holds the previous result.
-onMounted(() => {
+onMounted(async () => {
   screeningStore.clearSearch()
+
+  // Redirect accountants to flight-control — this guard was not present before Story 7.1.
+  if (isAccountant.value) {
+    router.push('/flight-control')
+    return
+  }
+
+  await Promise.all([
+    watchlistStore.fetchEntries(),
+    portfolioStore.fetchAlerts(7),
+  ])
 })
 
 // Navigate to Verdict Detail page as soon as a verdict arrives.
@@ -30,16 +52,47 @@ watch(currentVerdict, (verdict) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 p-6 max-w-4xl mx-auto">
+  <div v-if="!isAccountant" class="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800">
       {{ t('common.nav.dashboard') }}
     </h1>
 
-    <!-- Search Bar -->
-    <ScreeningSearchBar />
+    <!-- Empty watchlist hint (Story 7.5 replaces with onboarding component) -->
+    <p
+      v-if="watchlistEntries.length === 0 && !watchlistLoading"
+      class="text-slate-400 text-sm"
+      data-testid="empty-watchlist-hint"
+    >
+      {{ t('dashboard.emptyWatchlistHint') }}
+    </p>
 
-    <!-- Portfolio Pulse — accountant-only cross-tenant alert feed (Story 3.9) -->
-    <NotificationPortfolioPulse v-if="isAccountant" />
+    <!-- Stat bar -->
+    <DashboardStatBar
+      :entries="watchlistEntries"
+      :is-loading="watchlistLoading"
+    />
+
+    <!-- Two-column: attention list (60%) + alert feed (40%) -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <!-- Needs Attention — 3/5 columns (~60%) -->
+      <div class="md:col-span-3">
+        <DashboardNeedsAttention
+          :entries="watchlistEntries"
+          :is-loading="watchlistLoading"
+        />
+      </div>
+
+      <!-- Recent Status Changes — 2/5 columns (~40%) -->
+      <div class="md:col-span-2">
+        <DashboardAlertFeed
+          :alerts="alerts"
+          :is-loading="alertsLoading"
+        />
+      </div>
+    </div>
+
+    <!-- Search Bar — always visible, not blocked by loading -->
+    <ScreeningSearchBar />
 
     <!-- Skeleton Loading UI — shown while search is pending -->
     <ScreeningSkeletonVerdictCard :visible="isSearching" />
@@ -52,7 +105,5 @@ watch(currentVerdict, (verdict) => {
     >
       {{ searchError }}
     </div>
-
-    <!-- After search completes, navigation to /screening/[taxNumber] happens via watcher -->
   </div>
 </template>

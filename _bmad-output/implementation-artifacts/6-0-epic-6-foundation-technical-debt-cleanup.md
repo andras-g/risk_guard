@@ -1,6 +1,6 @@
 # Story 6.0: Epic 6 Foundation — Technical Debt Cleanup
 
-Status: review
+Status: done
 
 ## Story
 

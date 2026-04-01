@@ -14,9 +14,9 @@ import java.util.List;
 
 /**
  * Domain service that validates a candidate EPR config JSON by running 5 hard-coded
- * golden test cases through {@link DagEngine#resolveKfCode}.
+ * validation cases through {@link DagEngine#resolveKfCode}.
  *
- * <p>Golden test cases are derived from the seeded 2026 config (version 1) and cover
+ * <p>Validation cases are derived from the seeded 2026 config (version 1) and cover
  * the major EPR product streams. A config is valid when all 5 cases produce the expected
  * KF-code and fee rate.
  */
@@ -29,17 +29,17 @@ public class EprConfigValidator {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * A single golden regression case: expected traversal path → expected KF-code and fee rate.
+     * A single validation case: expected traversal path → expected KF-code and fee rate.
      */
-    record GoldenTestCase(
+    record ValidationCase(
             String name,
             List<WizardSelection> path,
             String expectedKfCode,
             BigDecimal expectedFeeRateHufPerKg
     ) {}
 
-    private static final List<GoldenTestCase> GOLDEN_CASES = List.of(
-            new GoldenTestCase(
+    private static final List<ValidationCase> VALIDATION_CASES = List.of(
+            new ValidationCase(
                     "Paper/cardboard consumer non-deposit packaging",
                     List.of(
                             new WizardSelection("product_stream", "11", null),
@@ -48,7 +48,7 @@ public class EprConfigValidator {
                             new WizardSelection("subgroup", "01", null)
                     ),
                     "11010101", new BigDecimal("20.44")),
-            new GoldenTestCase(
+            new ValidationCase(
                     "Plastic consumer non-deposit packaging",
                     List.of(
                             new WizardSelection("product_stream", "11", null),
@@ -57,7 +57,7 @@ public class EprConfigValidator {
                             new WizardSelection("subgroup", "01", null)
                     ),
                     "11020101", new BigDecimal("42.89")),
-            new GoldenTestCase(
+            new ValidationCase(
                     "Portable batteries — general purpose",
                     List.of(
                             new WizardSelection("product_stream", "31", null),
@@ -66,7 +66,7 @@ public class EprConfigValidator {
                             new WizardSelection("subgroup", "02", null)
                     ),
                     "31010102", new BigDecimal("189.02")),
-            new GoldenTestCase(
+            new ValidationCase(
                     "Office paper",
                     List.of(
                             new WizardSelection("product_stream", "61", null),
@@ -75,7 +75,7 @@ public class EprConfigValidator {
                             new WizardSelection("subgroup", "01", null)
                     ),
                     "61010101", new BigDecimal("20.44")),
-            new GoldenTestCase(
+            new ValidationCase(
                     "EPS single-use plastic product",
                     List.of(
                             new WizardSelection("product_stream", "81", null),
@@ -87,7 +87,7 @@ public class EprConfigValidator {
     );
 
     /**
-     * Validates the given config JSON by running all 5 golden test cases.
+     * Validates the given config JSON by running all 5 validation cases.
      *
      * @param configData raw JSON string of the candidate EPR config
      * @return {@link EprConfigValidateResponse#ok()} if all cases pass,
@@ -106,7 +106,7 @@ public class EprConfigValidator {
 
         List<String> errors = new ArrayList<>();
 
-        for (GoldenTestCase testCase : GOLDEN_CASES) {
+        for (ValidationCase testCase : VALIDATION_CASES) {
             String productStream = getCode(testCase.path(), "product_stream");
             String materialStream = getCode(testCase.path(), "material_stream");
             String group = getCode(testCase.path(), "group");

@@ -43,7 +43,7 @@ public class EprAdminController {
     }
 
     /**
-     * Validates the provided EPR config JSON against the 5 golden test cases.
+     * Validates the provided EPR config JSON against the 5 validation cases.
      * Requires {@code SME_ADMIN} role; returns 403 for all other roles.
      */
     @PostMapping("/config/validate")

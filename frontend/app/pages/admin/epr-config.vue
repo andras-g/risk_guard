@@ -3,12 +3,12 @@ import { ref, onMounted, watch } from 'vue'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import { useToast } from 'primevue/usetoast'
-import { useIdentityStore } from '~/stores/identity'
+import { useAuthStore } from '~/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
-const identityStore = useIdentityStore()
+const authStore = useAuthStore()
 const config = useRuntimeConfig()
 
 const configData = ref('')
@@ -21,7 +21,7 @@ const publishing = ref(false)
 watch(configData, () => { validationResult.value = null })
 
 onMounted(async () => {
-  if (identityStore.user?.role !== 'SME_ADMIN') {
+  if (authStore.role !== 'SME_ADMIN') {
     router.replace('/')
     return
   }
@@ -122,7 +122,7 @@ async function handlePublish() {
     </div>
 
     <!-- Monaco editor -->
-    <MonacoEditor v-model="configData" :readonly="false" />
+    <AdminMonacoEditor v-model="configData" :readonly="false" />
 
     <!-- Action buttons -->
     <div class="flex gap-3">
@@ -149,7 +149,7 @@ async function handlePublish() {
     <Panel
       v-if="validationResult !== null"
       :header="validationResult.valid
-        ? t('admin.eprConfig.validationPassed', { count: 5 })
+        ? t('admin.eprConfig.validationPassed')
         : t('admin.eprConfig.validationFailed', { count: validationResult.errors.length })"
       :pt="{ header: { class: validationResult.valid ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50' } }"
       data-testid="validation-panel"

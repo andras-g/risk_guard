@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import { useHealthStore } from '~/stores/health'
-import { useIdentityStore } from '~/stores/identity'
+import { useAuthStore } from '~/stores/auth'
 import { useDateRelative } from '~/composables/formatting/useDateRelative'
 
 const { t } = useI18n()
 const { formatRelative } = useDateRelative()
 const router = useRouter()
 const healthStore = useHealthStore()
-const identityStore = useIdentityStore()
+const authStore = useAuthStore()
 
 const quarantining = computed(() => healthStore.quarantining)
 
@@ -20,7 +20,7 @@ async function handleQuarantine(adapterName: string, quarantined: boolean) {
 let pollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (identityStore.user?.role !== 'SME_ADMIN') {
+  if (authStore.role !== 'SME_ADMIN') {
     router.replace('/dashboard')
     return
   }
@@ -80,7 +80,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Dashboard component -->
-    <DataSourceHealthDashboard
+    <AdminDataSourceHealthDashboard
       :adapters="healthStore.adapters"
       :loading="healthStore.loading"
       :quarantining="quarantining"

@@ -31,7 +31,7 @@
       "activatedAt": "Activated: {date}",
       "validate": "Validate",
       "publish": "Publish",
-      "validationPassed": "All {count} golden test cases passed",
+      "validationPassed": "Config is valid — ready to publish",
       "validationFailed": "Validation failed: {count} error(s)",
       "publishSuccess": "EPR Config v{version} published successfully",
       "publishConfirm": "Publish this config as the new active version?",

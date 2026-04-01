@@ -1,0 +1,11 @@
+{
+  "dashboard": {
+    "statReliable": "Megbízható",
+    "statAtRisk": "Kockázatos",
+    "statStale": "Elavult / Nem elérhető",
+    "needsAttention": "Figyelmet igényel",
+    "recentChanges": "Legutóbbi státuszváltozások",
+    "noRecentChanges": "Nincs változás az elmúlt 7 napban",
+    "emptyWatchlistHint": "Adj hozzá partnereket a figyelőlistádhoz, hogy lásd a kockázati összefoglalót."
+  }
+}

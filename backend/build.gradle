@@ -219,6 +219,12 @@ tasks.named('generateJooq') {
 	dependsOn tasks.named('flywayMigrate')
 }
 
+// bootRun must never be UP-TO-DATE — Spring Boot 4.x + GraalVM native plugin AOT tasks
+// can all be UP-TO-DATE when sources haven't changed, causing Gradle to skip the JVM launch.
+tasks.named('bootRun') {
+	outputs.upToDateWhen { false }
+}
+
 // forkedSpringBootRun is used by springdoc-openapi-gradle-plugin to boot the app
 // and scrape /v3/api-docs. AOT processing is NOT needed for dev-time OpenAPI generation.
 // Gradle 9.x strict validation rejects the implicit classpath→AOT output relationship

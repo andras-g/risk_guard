@@ -107,3 +107,13 @@
 - `feeAmountHuf.intValue()` truncates without rounding — design contract (FeeCalculator always produces integers); add `@DecimalMax` / assertion if fractional fees ever become possible.
 - Duplicate POST creates duplicate `epr_exports` rows (no unique constraint on tenant_id+file_hash) — add `UNIQUE(tenant_id, file_hash)` partial index or unique constraint in a future migration.
 - `Content-Disposition` filename uses `LocalDate.now()` without explicit timezone — cosmetic only; if server timezone ever diverges from user timezone the date in the filename will be wrong.
+
+## Deferred from: code review of 7-1-risk-pulse-dashboard-redesign (2026-04-01)
+
+- W1: API failures silently produce misleading empty states — `fetchEntries` failure renders the "empty watchlist hint"; `fetchAlerts` failure renders "No changes in the last 7 days"; no error display or try/catch; project-wide pattern, fix holistically.
+- W2: `null` `currentVerdictStatus` entries not counted in any stat card — totals appear authoritative but may undercount when entries have no verdict yet; no "pending" bucket in spec; revisit if null-status entries become common.
+- W3: `formatRelative` called with potentially `null` `lastCheckedAt` in `DashboardNeedsAttention` — safe if composable guards null (likely); verify before expanding null-status entry handling.
+- W4: Raw enum strings displayed in attention-list badges (`AT_RISK`, `TAX_SUSPENDED`, etc.) — spec does not mandate localized badge text; UX polish pass.
+- W5: 10-entry cap in `DashboardNeedsAttention` with no overflow indicator — silent truncation in a risk-monitoring context; add "and N more..." affordance if stakeholder feedback requests it.
+- W6: 5-alert cap in `DashboardAlertFeed` with no overflow indicator — spec says "up to 5"; add view-all link if needed.
+- W7: `INCOMPLETE` classified as "At Risk" (red) in stat bar but "warn" (yellow) in attention list — intentional per spec; may confuse users who see the same entity coloured differently; consolidate in UX pass.

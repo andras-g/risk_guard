@@ -29,9 +29,9 @@ test.describe('Application Shell', () => {
     const sidebar = page.locator('[data-testid="app-sidebar"]')
     await expect(sidebar).toBeVisible({ timeout: 30_000 })
 
-    // Sidebar has at least 4 navigation links (Dashboard, Screening, Watchlist, EPR)
+    // Sidebar has navigation links (Dashboard, Screening, Watchlist, EPR, Admin for SME_ADMIN)
     const navItems = sidebar.locator('a')
-    await expect(navItems).toHaveCount(4, { timeout: 5_000 })
+    await expect(navItems).toHaveCount(5, { timeout: 5_000 })
 
     // Top bar should be visible
     const topbar = page.locator('[data-testid="app-topbar"]')

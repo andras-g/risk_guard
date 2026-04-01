@@ -47,7 +47,7 @@ class MohuExporterTest {
     // ─── Test 3 — Golden row ──────────────────────────────────────────────
 
     @Test
-    void goldenRow_kartondobozA_1000pcs() {
+    void row_kartondobozA_1000pcs() {
         // 1000 pcs × 120g = 120 kg; fee 25800 HUF
         byte[] bytes = exporter.generate(List.of(kartondobozLine()));
         String[] lines = parseLines(bytes);
@@ -57,7 +57,7 @@ class MohuExporterTest {
     // ─── Test 4 — Rounding edge case ─────────────────────────────────────
 
     @Test
-    void goldenRow_kisDoboz_1pc() {
+    void row_kisDoboz_1pc() {
         // 1 pc × 50g = 0.05 kg; fee 11 HUF
         ExportLineRequest line = new ExportLineRequest(
                 UUID.randomUUID(), "11010202", "Kis doboz", 1,

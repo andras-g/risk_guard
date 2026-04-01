@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Tue Mar 31 2026 — Story 6.4 created; status → ready-for-dev.
+# updated: Wed Apr 01 2026 — Epic 7 started; Story 7.1 enriched with critical dev warnings.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -112,16 +112,17 @@ development_status:
   5-4-export-locale-enforcement-and-ux-notice: done  # code-review R1 2026-03-29 — 1 patch (toast assertion tightened), 3 deferred, 3 dismissed; status → done
   epic-5-retrospective: done  # DONE (2026-03-30) — Retrospective completed. Saved to epic-5-retro-2026-03-30.md. Key decisions: retro action items must be named story tasks (P1); Story 6.0 carries T1 (requireUuidClaim), T2 (ScopedValue), T3 (curated deferred-work cleanup pass).
 
-  epic-6: in-progress  # STARTED (2026-03-30) — Story 6.0 created, epic transitioned backlog → in-progress. Stories 6.1-6.5 were UX stories, moved to Epic 7 (2026-03-31). Epic 6 now implements original admin/integrity plan.
-  6-0-epic-6-foundation-technical-debt-cleanup: review  # Story file created 2026-03-30; dev completed 2026-03-30; T1 requireUuidClaim extraction, T2 ScopedValue HTTP-path migration, T3 curated deferred-work pass; BUILD SUCCESSFUL + 580 frontend tests green; code-review R1 2026-03-30 — 1 patch item (TenantFilter RuntimeException wrapping) fixed 2026-03-30; 5 deferred; 16 dismissed; status → review
-  6-1-data-source-health-dashboard-the-heartbeat: review  # Story file created 2026-03-31; dev completed 2026-03-31; 675 backend + 589 frontend tests green; code-review R1 2026-03-31 — 10 patch items resolved (atomic SQL, DEMO override, N+1 fix, MTBF formula, exception leak, onMounted merge, ariaStatusMessage clear); 10 deferred; BUILD SUCCESSFUL + 589 frontend tests green; status → review
+  epic-6: done  # CLOSED (2026-04-01) — All 5 stories complete, retrospective done. Epic 6 delivered: technical debt cleanup (requireUuidClaim, ScopedValue, deferred-work pass), data source health dashboard, adapter quarantine with circuit breaker control, hot-swappable EPR JSON manager with Monaco editor, GDPR cross-tenant audit viewer.
+  6-0-epic-6-foundation-technical-debt-cleanup: done  # Story file created 2026-03-30; dev completed 2026-03-30; T1 requireUuidClaim extraction, T2 ScopedValue HTTP-path migration, T3 curated deferred-work pass; BUILD SUCCESSFUL + 580 frontend tests green; code-review R1 2026-03-30 — 1 patch item (TenantFilter RuntimeException wrapping) fixed 2026-03-30; 5 deferred; 16 dismissed; status → done
+  6-1-data-source-health-dashboard-the-heartbeat: done  # Story file created 2026-03-31; dev completed 2026-03-31; 675 backend + 589 frontend tests green; code-review R1 2026-03-31 — 10 patch items resolved (atomic SQL, DEMO override, N+1 fix, MTBF formula, exception leak, onMounted merge, ariaStatusMessage clear); 10 deferred; BUILD SUCCESSFUL + 589 frontend tests green; status → done
   6-2-manual-adapter-quarantine: done  # Story file created 2026-03-31; dev completed 2026-03-31; 682 backend + 594 frontend tests green; code-review R1 2026-03-31 — 8 patch items (P1-P8) all resolved; code-review R2 2026-03-31 — 2 patch items (i18n key mismatch, dead code removal) auto-fixed; 683 backend + 594 frontend + 5 e2e all green; status → done
   6-3-hot-swappable-epr-json-manager: done  # Story file created 2026-03-31; dev completed 2026-03-31; 690 backend + 600 frontend + 5 e2e tests green; code-review R1 2026-03-31 — 7 patch items resolved; code-review R2 2026-03-31 — 3 patch items (P1: dead EprConfigValidateResponse.from(), P2: dead EprConfigPublishResponse.from(), P3: unused loading ref); 4 defers; 600 frontend + BUILD SUCCESSFUL backend + 5 e2e all green; status → done
   6-4-gdpr-search-audit-viewer: done  # Story file created 2026-03-31; dev completed 2026-04-01; backend: AuditAdminController, AdminAuditEntry, cross-tenant query, 12 new tests; frontend: audit-search.vue, useAdminAudit, 9 tests, i18n; code-review R1 2026-04-01 — 3 patch items (P1: missing page clamp in AuditAdminController, P2: fragile hasSize(2) in byTenantId repo test, P3: missing page-clamp test); all auto-fixed; 609 frontend + BUILD SUCCESSFUL backend + 5 e2e all green; status → done
-  epic-6-retrospective: optional
+  epic-6-bugfixes-2026-04-01: done  # QA manual test pass 2026-04-01 — Bug 1: admin sidebar link never shown to SME_ADMIN (isAdmin computed used wrong role string 'ADMIN' instead of 'SME_ADMIN'); spec role-gating tests also wrong (tested inline ADMIN logic, documented inverted behavior); both fixed; 30/30 AppSidebar tests green
+  epic-6-retrospective: done  # DONE (2026-04-01) — Retrospective completed. Saved to epic-6-retro-2026-04-01.md. Key decisions: AC-to-task translation pass before implementation (P1), sprint-status update as definition-of-done gate (P2). 1 action item: T1 manual testing of Epic 6 admin features before 7.1.
 
-  epic-7: backlog  # PLANNED (2026-03-31) — UX polish stories moved from Epic 6. Improves SME owner dashboard, watchlist, and accountant flight control UX.
-  7-1-risk-pulse-dashboard-redesign: ready-for-dev  # Story file moved from 6-1 on 2026-03-31
+  epic-7: in-progress  # STARTED (2026-04-01) — Story 7.1 enriched and ready-for-dev. UX polish stories moved from Epic 6. Improves SME owner dashboard, watchlist, and accountant flight control UX.
+  7-1-risk-pulse-dashboard-redesign: review  # Story file moved from 6-1 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — P1 (wrong isAccountant store → authStore), P2 (monaco-editor exclude restored), Decision (v-if="!isAccountant" on template root); 7 deferred; 3 patch items resolved 2026-04-01; 636 frontend tests pass
   7-2-partner-detail-slide-over-drawer: ready-for-dev  # Story file moved from 6-2 on 2026-03-31
   7-3-watchlist-table-enrichment: ready-for-dev  # Story file moved from 6-3 on 2026-03-31
   7-4-flight-control-client-partner-view: ready-for-dev  # Story file moved from 6-4 on 2026-03-31

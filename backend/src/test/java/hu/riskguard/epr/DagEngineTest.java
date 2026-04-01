@@ -222,7 +222,7 @@ class DagEngineTest {
     class ResolveKfCode {
 
         @Test
-        void goldenCase1_nonDepositPaperConsumerPackaging() {
+        void case1_nonDepositPaperConsumerPackaging() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("11010101");
             assertThat(result.feeCode()).isEqualTo("1101");
@@ -231,7 +231,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase2_nonDepositPlasticTransportPackaging() {
+        void case2_nonDepositPlasticTransportPackaging() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "02", "03", "01");
             assertThat(result.kfCode()).isEqualTo("11020301");
             assertThat(result.feeCode()).isEqualTo("1102");
@@ -239,7 +239,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase3_depositPetBottlePlastic() {
+        void case3_depositPetBottlePlastic() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "12", "02", "01", "01");
             assertThat(result.kfCode()).isEqualTo("12020101");
             assertThat(result.feeCode()).isEqualTo("1202");
@@ -247,7 +247,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase4_largeHouseholdApplianceRefrigerator() {
+        void case4_largeHouseholdApplianceRefrigerator() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "21", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("21010101");
             assertThat(result.feeCode()).isEqualTo("2101");
@@ -255,7 +255,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase5_portableBatteryButtonCell() {
+        void case5_portableBatteryButtonCell() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "31", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("31010101");
             assertThat(result.feeCode()).isEqualTo("3101");
@@ -263,7 +263,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase6_singleUsePlasticEPS() {
+        void case6_singleUsePlasticEPS() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "81", "02", "01", "01");
             assertThat(result.kfCode()).isEqualTo("81020101");
             assertThat(result.feeCode()).isEqualTo("8102");
@@ -271,7 +271,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase7_passengerCarTire() {
+        void case7_passengerCarTire() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "41", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("41010101");
             assertThat(result.feeCode()).isEqualTo("4101");
@@ -279,7 +279,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase8_officePaper() {
+        void case8_officePaper() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "61", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("61010101");
             assertThat(result.feeCode()).isEqualTo("6101");
@@ -287,7 +287,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase9_advertisingPaper() {
+        void case9_advertisingPaper() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "71", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("71010101");
             assertThat(result.feeCode()).isEqualTo("7101");
@@ -295,7 +295,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase10_compositePaperPackaging() {
+        void case10_compositePaperPackaging() {
             // Composite mainly paper: material stream is "08" (expanded from "07")
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "08", "01", "01");
             assertThat(result.kfCode()).isEqualTo("11080101");
@@ -304,7 +304,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase11_otherPlasticProduct() {
+        void case11_otherPlasticProduct() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "91", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("91010101");
             assertThat(result.feeCode()).isEqualTo("9101");
@@ -312,7 +312,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase12_vehiclePassengerCar() {
+        void case12_vehiclePassengerCar() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "51", "01", "01", "01");
             assertThat(result.kfCode()).isEqualTo("51010101");
             assertThat(result.feeCode()).isEqualTo("5101");
@@ -320,7 +320,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase13_glassPackaging() {
+        void case13_glassPackaging() {
             // Glass is fee code 06 (not material_stream 05) due to metal expansion
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "06", "01", "01");
             assertThat(result.kfCode()).isEqualTo("11060101");
@@ -329,7 +329,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase14_reusableWoodGroupedPackaging() {
+        void case14_reusableWoodGroupedPackaging() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "13", "03", "02", "01");
             assertThat(result.kfCode()).isEqualTo("13030201");
             assertThat(result.feeCode()).isEqualTo("1303");
@@ -337,7 +337,7 @@ class DagEngineTest {
         }
 
         @Test
-        void goldenCase15_heavyTruckTire() {
+        void case15_heavyTruckTire() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "41", "01", "03", "01");
             assertThat(result.kfCode()).isEqualTo("41010301");
             assertThat(result.feeCode()).isEqualTo("4101");
@@ -357,40 +357,40 @@ class DagEngineTest {
     class ConfidenceScore {
 
         @Test
-        void goldenCase1_standardPackagingPaper_shouldBeHigh() {
+        void case1_standardPackagingPaper_shouldBeHigh() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "01", "01", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.HIGH);
             assertThat(result.confidenceReason()).isEqualTo("full_traversal");
         }
 
         @Test
-        void goldenCase2_standardPackagingPlastic_shouldBeHigh() {
+        void case2_standardPackagingPlastic_shouldBeHigh() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "11", "02", "03", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.HIGH);
         }
 
         @Test
-        void goldenCase3_depositPackaging_shouldBeHigh() {
+        void case3_depositPackaging_shouldBeHigh() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "12", "02", "01", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.HIGH);
         }
 
         @Test
-        void goldenCase4_eeeLargeHousehold_shouldBeMedium() {
+        void case4_eeeLargeHousehold_shouldBeMedium() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "21", "01", "01", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.MEDIUM);
             assertThat(result.confidenceReason()).isEqualTo("ref_only_section");
         }
 
         @Test
-        void goldenCase5_portableBattery_shouldBeMedium() {
+        void case5_portableBattery_shouldBeMedium() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "31", "01", "01", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.MEDIUM);
             assertThat(result.confidenceReason()).isEqualTo("ref_only_section");
         }
 
         @Test
-        void goldenCase7_tire_shouldBeMedium() {
+        void case7_tire_shouldBeMedium() {
             KfCodeResolution result = dagEngine.resolveKfCode(configData, "41", "01", "01", "01");
             assertThat(result.confidence()).isEqualTo(Confidence.MEDIUM);
             assertThat(result.confidenceReason()).isEqualTo("ref_only_section");

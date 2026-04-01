@@ -117,7 +117,7 @@ class EprModuleIntegrationTest {
      * Path: 11 → 01 → 01 → 01 = KF code 11010101, díjkód 1101, 20.44 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase1_nonDepositPaperConsumerPackaging() {
+    void dagEngine_case1_nonDepositPaperConsumerPackaging() {
         int configVersion = eprService.getActiveConfigVersion();
 
         // Start: get product streams
@@ -169,7 +169,7 @@ class EprModuleIntegrationTest {
      * Path: 11 → 02 → 03 → 01 = KF code 11020301, díjkód 1102, 42.89 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase2_nonDepositPlasticTransportPackaging() {
+    void dagEngine_case2_nonDepositPlasticTransportPackaging() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "11", "Csomagolás"),
@@ -189,7 +189,7 @@ class EprModuleIntegrationTest {
      * Path: 12 → 02 → 01 → 01 = KF code 12020101, díjkód 1202, 42.89 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase3_depositPetBottlePlastic() {
+    void dagEngine_case3_depositPetBottlePlastic() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "12", "Kötelező visszaváltás"),
@@ -209,7 +209,7 @@ class EprModuleIntegrationTest {
      * Path: 21 → 01 → 01 → 01 = KF code 21010101, díjkód 2101, 22.26 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase4_largeHouseholdApplianceEee() {
+    void dagEngine_case4_largeHouseholdApplianceEee() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "21", "Nagyhá tartós"),
@@ -229,7 +229,7 @@ class EprModuleIntegrationTest {
      * Path: 31 → 01 → 01 → 01 = KF code 31010101, díjkód 3101, 189.02 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase5_portableBattery() {
+    void dagEngine_case5_portableBattery() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "31", "Hordozható elemek"),
@@ -249,7 +249,7 @@ class EprModuleIntegrationTest {
      * Path: 41 → 01 → 01 → 01 = KF code 41010101, díjkód 4101, 30.62 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase6_passengerCarTire() {
+    void dagEngine_case6_passengerCarTire() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "41", "Gumiabroncs"),
@@ -269,7 +269,7 @@ class EprModuleIntegrationTest {
      * Path: 81 → 02 → 01 → 01 = KF code 81020101, díjkód 8102, 1908.78 Ft/kg
      */
     @Test
-    void dagEngine_goldenCase7_singleUseEpsPlastic() {
+    void dagEngine_case7_singleUseEpsPlastic() {
         int configVersion = eprService.getActiveConfigVersion();
         List<WizardSelection> fullPath = List.of(
                 new WizardSelection("product_stream", "81", "Egyszer használatos"),
