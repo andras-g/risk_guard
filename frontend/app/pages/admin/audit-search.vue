@@ -76,20 +76,22 @@ function formatHash(hash: string): string {
     <!-- Search form -->
     <div class="flex flex-wrap gap-4 items-end">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-slate-700">
+        <label for="audit-tax-number" class="text-sm font-medium text-slate-700">
           {{ t('admin.auditSearch.taxNumberLabel') }}
         </label>
         <InputText
+          id="audit-tax-number"
           v-model="taxNumber"
           :placeholder="t('admin.auditSearch.taxNumberPlaceholder')"
           data-testid="tax-number-input"
         />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-slate-700">
+        <label for="audit-tenant-id" class="text-sm font-medium text-slate-700">
           {{ t('admin.auditSearch.tenantIdLabel') }}
         </label>
         <InputText
+          id="audit-tenant-id"
           v-model="tenantId"
           :placeholder="t('admin.auditSearch.tenantIdPlaceholder')"
           data-testid="tenant-id-input"
