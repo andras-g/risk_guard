@@ -18,6 +18,7 @@
       <span v-if="formatError" class="text-xs text-red-500">{{ formatError }}</span>
     </div>
     <textarea
+      aria-label="JSON editor"
       :value="modelValue"
       :readonly="readonly"
       class="w-full h-96 border border-slate-200 rounded p-3 font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-slate-800"

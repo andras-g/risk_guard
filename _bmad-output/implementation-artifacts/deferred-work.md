@@ -1,5 +1,13 @@
 # Deferred Work
 
+## Deferred from: code review of 7-5-dashboard-empty-onboarding-state (2026-04-01)
+
+- D1: Hero may flicker briefly after successful add — async window between `addEntry` POST and `fetchEntries` resolving; `!watchlistLoading && entries.length === 0` can momentarily be true again; pre-existing store async behavior.
+- D2: `ScreeningSearchBarStub` expose pattern in tests is informal — `setup()` returns `{ focus: vi.fn() }` without `defineExpose`; Vue 3 test-utils ref exposure is not formally tested; tests pass but `focusSearchBar` integration wiring is unverified.
+- D3: No test triggers `focus-search` on `WatchlistOnboardingHeroStub` to verify that `focusSearchBar` is called in `dashboard/index.vue` — integration path untested.
+- D4: `emptyWatchlistHint` i18n key removed from both locale files without a codebase-wide search; low risk as the key was introduced specifically for this story's placeholder and has no other known consumers.
+- D5: Skeleton loading test (`hides onboarding hero while loading`) does not assert `:is-loading="true"` is passed to the DashboardStatBar skeleton — minor AC 7 test gap.
+
 ## Deferred from: code review R1 of 7-4-flight-control-client-partner-view (2026-04-01)
 
 - W1: Rate limiting / audit log absent on `GET /clients/{clientTenantId}/partners` — authenticated accountant can enumerate mandated tenant UUIDs via brute-force; mandate check is correct but no throttling or audit trail; pre-existing concern, out of scope for this story.

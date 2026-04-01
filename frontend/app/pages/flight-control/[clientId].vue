@@ -292,6 +292,7 @@ onMounted(async () => {
           :options="statusFilterOptions"
           option-label="label"
           option-value="value"
+          :aria-label="t('notification.flightControl.partnerStatusFilter')"
           class="w-48"
           data-testid="partner-status-filter"
         />

@@ -14,6 +14,15 @@ const guestSession = useGuestSession()
 
 const taxNumberInput = ref('')
 const validationError = ref('')
+const inputRef = ref<{ $el: HTMLInputElement } | null>(null)
+
+defineExpose({
+  focus() {
+    const el = inputRef.value?.$el
+    const input = el instanceof HTMLInputElement ? el : el?.querySelector('input')
+    input?.focus()
+  },
+})
 
 const isGuest = computed(() => !authStore.isAuthenticated)
 const isLoading = computed(() =>
@@ -74,6 +83,7 @@ const guestProgressPercent = computed(() => {
         </label>
         <InputText
           id="screening-tax-number"
+          ref="inputRef"
           :model-value="taxNumberInput"
           :placeholder="t('screening.search.placeholder')"
           class="w-full"

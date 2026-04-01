@@ -1,11 +1,20 @@
 {
   "dashboard": {
-    "statReliable": "Megbízható",
-    "statAtRisk": "Kockázatos",
-    "statStale": "Elavult / Nem elérhető",
+    "addFirstPartner": "Első partner hozzáadása",
+    "howItWorksStep1Body": "Add hozzá a veled együttműködő cégeket a figyelőlistádhoz.",
+    "howItWorksStep1Title": "Partnerek hozzáadása",
+    "howItWorksStep2Body": "A RiskGuard minden éjjel automatikusan ellenőrzi a NAV státuszukat.",
+    "howItWorksStep2Title": "Automatikus monitoring",
+    "howItWorksStep3Body": "Értesítést kapsz, ha egy partner kockázati státusza megváltozik.",
+    "howItWorksStep3Title": "Maradj tájékozott",
     "needsAttention": "Figyelmet igényel",
-    "recentChanges": "Legutóbbi státuszváltozások",
     "noRecentChanges": "Nincs változás az elmúlt 7 napban",
-    "emptyWatchlistHint": "Adj hozzá partnereket a figyelőlistádhoz, hogy lásd a kockázati összefoglalót."
+    "onboardingSubtitle": "Add hozzá az első partneredet, és kezdd el figyelni a NAV megfelelőségi státuszát.",
+    "onboardingTitle": "A kockázatfigyelőd készen áll",
+    "recentChanges": "Legutóbbi státuszváltozások",
+    "searchByTaxNumber": "Keresés adószám alapján",
+    "statAtRisk": "Kockázatos",
+    "statReliable": "Megbízható",
+    "statStale": "Elavult / Nem elérhető"
   }
 }

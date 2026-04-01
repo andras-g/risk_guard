@@ -17,6 +17,7 @@
       "forbiddenError": "You do not have access to this client.",
       "navLabel": "Flight Control",
       "pageTitle": "Flight Control",
+      "partnerStatusFilter": "Filter partners by status",
       "readOnlyBanner": "Read-only view. To manage partners or trigger screenings, switch to client context.",
       "recentAlerts": "Recent Alerts",
       "summaryAtRisk": "At-Risk",

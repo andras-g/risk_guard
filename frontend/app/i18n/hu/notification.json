@@ -17,6 +17,7 @@
       "forbiddenError": "Nincs hozzáférése ehhez az ügyfélhez.",
       "navLabel": "Repülésvezérlés",
       "pageTitle": "Repülésvezérlés",
+      "partnerStatusFilter": "Partnerek szűrése státusz szerint",
       "readOnlyBanner": "Csak olvasható nézet. A partnerek kezeléséhez vagy szűrések indításához váltson az ügyfél kontextusába.",
       "recentAlerts": "Legutóbbi riasztások",
       "summaryAtRisk": "Kockázatos",

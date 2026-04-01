@@ -1,11 +1,20 @@
 {
   "dashboard": {
-    "statReliable": "Reliable",
-    "statAtRisk": "At Risk",
-    "statStale": "Stale / Unavailable",
+    "addFirstPartner": "Add Your First Partner",
+    "howItWorksStep1Body": "Add the companies you work with to your watchlist.",
+    "howItWorksStep1Title": "Add Partners",
+    "howItWorksStep2Body": "RiskGuard checks their NAV status every night automatically.",
+    "howItWorksStep2Title": "Automatic Monitoring",
+    "howItWorksStep3Body": "Get alerted when a partner's risk status changes.",
+    "howItWorksStep3Title": "Stay Informed",
     "needsAttention": "Needs Attention",
-    "recentChanges": "Recent Status Changes",
     "noRecentChanges": "No changes in the last 7 days",
-    "emptyWatchlistHint": "Add partners to your watchlist to see your risk summary here."
+    "onboardingSubtitle": "Add your first partner to start monitoring their NAV compliance status.",
+    "onboardingTitle": "Your risk monitor is ready",
+    "recentChanges": "Recent Status Changes",
+    "searchByTaxNumber": "Search by Tax Number",
+    "statAtRisk": "At Risk",
+    "statReliable": "Reliable",
+    "statStale": "Stale / Unavailable"
   }
 }

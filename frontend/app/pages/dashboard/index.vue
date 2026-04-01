@@ -19,6 +19,12 @@ const watchlistLoading = computed(() => watchlistStore.isLoading)
 const alerts = computed(() => portfolioStore.alerts)
 const alertsLoading = computed(() => portfolioStore.isLoading)
 
+const searchBarRef = ref<{ focus: () => void } | null>(null)
+
+function focusSearchBar() {
+  searchBarRef.value?.focus()
+}
+
 const isAccountant = computed(() => authStore.isAccountant)
 
 // Clear any previous verdict when the dashboard mounts so the watcher below
@@ -57,42 +63,64 @@ watch(currentVerdict, (verdict) => {
       {{ t('common.nav.dashboard') }}
     </h1>
 
-    <!-- Empty watchlist hint (Story 7.5 replaces with onboarding component) -->
-    <p
-      v-if="watchlistEntries.length === 0 && !watchlistLoading"
-      class="text-slate-400 text-sm"
-      data-testid="empty-watchlist-hint"
-    >
-      {{ t('dashboard.emptyWatchlistHint') }}
-    </p>
-
-    <!-- Stat bar -->
-    <DashboardStatBar
-      :entries="watchlistEntries"
-      :is-loading="watchlistLoading"
+    <!-- Onboarding hero: shown when watchlist is empty and not loading -->
+    <WatchlistOnboardingHero
+      v-if="!watchlistLoading && watchlistEntries.length === 0"
+      @focus-search="focusSearchBar"
     />
 
-    <!-- Two-column: attention list (60%) + alert feed (40%) -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
-      <!-- Needs Attention — 3/5 columns (~60%) -->
-      <div class="md:col-span-3">
-        <DashboardNeedsAttention
-          :entries="watchlistEntries"
-          :is-loading="watchlistLoading"
-        />
-      </div>
+    <!-- Live dashboard: shown when watchlist has entries and not loading -->
+    <template v-else-if="!watchlistLoading">
+      <!-- Stat bar -->
+      <DashboardStatBar
+        :entries="watchlistEntries"
+        :is-loading="watchlistLoading"
+      />
 
-      <!-- Recent Status Changes — 2/5 columns (~40%) -->
-      <div class="md:col-span-2">
-        <DashboardAlertFeed
-          :alerts="alerts"
-          :is-loading="alertsLoading"
-        />
+      <!-- Two-column: attention list (60%) + alert feed (40%) -->
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <!-- Needs Attention — 3/5 columns (~60%) -->
+        <div class="md:col-span-3">
+          <DashboardNeedsAttention
+            :entries="watchlistEntries"
+            :is-loading="watchlistLoading"
+          />
+        </div>
+
+        <!-- Recent Status Changes — 2/5 columns (~40%) -->
+        <div class="md:col-span-2">
+          <DashboardAlertFeed
+            :alerts="alerts"
+            :is-loading="alertsLoading"
+          />
+        </div>
       </div>
-    </div>
+    </template>
+
+    <!-- Loading: skeletons shown while fetching (entries irrelevant while loading) -->
+    <template v-else>
+      <DashboardStatBar
+        :entries="[]"
+        :is-loading="true"
+      />
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div class="md:col-span-3">
+          <DashboardNeedsAttention
+            :entries="[]"
+            :is-loading="true"
+          />
+        </div>
+        <div class="md:col-span-2">
+          <DashboardAlertFeed
+            :alerts="[]"
+            :is-loading="true"
+          />
+        </div>
+      </div>
+    </template>
 
     <!-- Search Bar — always visible, not blocked by loading -->
-    <ScreeningSearchBar />
+    <ScreeningSearchBar ref="searchBarRef" />
 
     <!-- Skeleton Loading UI — shown while search is pending -->
     <ScreeningSkeletonVerdictCard :visible="isSearching" />

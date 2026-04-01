@@ -126,7 +126,7 @@ development_status:
   7-2-partner-detail-slide-over-drawer: done  # Story file moved from 6-2 on 2026-03-31; dev completed 2026-04-01; 642 frontend tests green; code-review R1 2026-04-01 — 2 patch items (P1: drawer closes before confirm resolves, P2: watchlistSince browser locale); 8 deferred; 7 dismissed; both patch items resolved 2026-04-01; code-review R2 2026-04-01 — 2 patch items (P3: onAccept before removeEntry, P4: selectedPartner not cleared on native close); both auto-fixed; 643 frontend + 5 e2e green; status → done
   7-3-watchlist-table-enrichment: done  # Story file moved from 6-3 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — 1 Med finding (P1: missing previousVerdictStatus controller test) resolved; 2 Low findings deferred; 704 backend + 649 frontend tests green; status → done
   7-4-flight-control-client-partner-view: done  # Story file moved from 6-4 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — 4 items resolved; code-review R2 2026-04-01 — 2 patch items (FQN imports in NotificationService, fetchSummary error handling in [clientId].vue); 666 frontend + backend notification suite green + 5 e2e green; status → done
-  7-5-dashboard-empty-onboarding-state: ready-for-dev  # Story file moved from 6-5 on 2026-03-31
+  7-5-dashboard-empty-onboarding-state: review  # Story file moved from 6-5 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — 5 patch items resolved (P1: try/catch + duplicate handling, P2: removed redundant fetchEntries, P3: InputText ref uses $el, P4: addEntry call test added, P5: all 3 step bodies + icons asserted); 5 deferred; 5 dismissed; 673 frontend tests green; status → review
   epic-7-retrospective: optional
 
 # CANCELLED STORIES (2026-03-12):

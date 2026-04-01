@@ -64,11 +64,14 @@ const mockFetchEntries = vi.fn()
 const mockFetchAlerts = vi.fn()
 const mockClearSearch = vi.fn()
 
+const mockAddEntry = vi.fn()
+
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({
     get entries() { return mockWatchlistEntries },
     get isLoading() { return mockWatchlistLoading },
     fetchEntries: mockFetchEntries,
+    addEntry: mockAddEntry,
   }),
 }))
 
@@ -117,6 +120,16 @@ const DashboardAlertFeedStub = {
 const ScreeningSearchBarStub = {
   name: 'ScreeningSearchBar',
   template: '<div data-testid="search-bar-stub" />',
+  expose: ['focus'],
+  setup() {
+    return { focus: vi.fn() }
+  },
+}
+
+const WatchlistOnboardingHeroStub = {
+  name: 'WatchlistOnboardingHero',
+  template: '<div data-testid="onboarding-hero-stub" />',
+  emits: ['focus-search'],
 }
 
 const ScreeningSkeletonVerdictCardStub = {
@@ -134,6 +147,7 @@ function mountPage() {
         DashboardAlertFeed: DashboardAlertFeedStub,
         ScreeningSearchBar: ScreeningSearchBarStub,
         ScreeningSkeletonVerdictCard: ScreeningSkeletonVerdictCardStub,
+        WatchlistOnboardingHero: WatchlistOnboardingHeroStub,
         ClientOnly: { template: '<slot />' },
       },
     },
@@ -202,6 +216,7 @@ describe('dashboard/index.vue', () => {
 
   it('passes alerts to alert feed', async () => {
     mockAlerts = sampleAlerts
+    mockWatchlistEntries = sampleEntries // entries needed to show live dashboard branch
     const wrapper = mountPage()
     await flushPromises()
     const feed = wrapper.find('[data-testid="alert-feed-stub"]')
@@ -218,40 +233,48 @@ describe('dashboard/index.vue', () => {
 
   // ── AC 5: loading state propagated to child components ────────────────────
 
-  it('passes watchlistLoading=true to stat bar and needs attention when loading', () => {
+  it('passes watchlistLoading=true to stat bar, needs attention, and alert feed when loading', () => {
     mockWatchlistLoading = true
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="stat-bar-stub"]').attributes('data-loading')).toBe('true')
     expect(wrapper.find('[data-testid="needs-attention-stub"]').attributes('data-loading')).toBe('true')
+    expect(wrapper.find('[data-testid="alert-feed-stub"]').attributes('data-loading')).toBe('true')
   })
 
   it('passes alertsLoading=true to alert feed when loading', () => {
     mockAlertsLoading = true
+    mockWatchlistEntries = sampleEntries // entries needed to show live dashboard branch
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="alert-feed-stub"]').attributes('data-loading')).toBe('true')
   })
 
-  // ── AC 6: empty watchlist hint ────────────────────────────────────────────
+  // ── AC 1: onboarding hero vs live dashboard ───────────────────────────────
 
-  it('shows empty watchlist hint when entries empty and not loading', () => {
+  it('shows onboarding hero when entries empty and not loading', () => {
     mockWatchlistEntries = []
     mockWatchlistLoading = false
     const wrapper = mountPage()
-    expect(wrapper.find('[data-testid="empty-watchlist-hint"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="onboarding-hero-stub"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="needs-attention-stub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="alert-feed-stub"]').exists()).toBe(false)
   })
 
-  it('hides empty watchlist hint when entries exist', async () => {
+  it('hides onboarding hero and shows live dashboard when entries exist', async () => {
     mockWatchlistEntries = sampleEntries
+    mockWatchlistLoading = false
     const wrapper = mountPage()
     await flushPromises()
-    expect(wrapper.find('[data-testid="empty-watchlist-hint"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="onboarding-hero-stub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').exists()).toBe(true)
   })
 
-  it('hides empty watchlist hint while loading', () => {
+  it('hides onboarding hero while loading (shows skeleton placeholders)', () => {
     mockWatchlistEntries = []
     mockWatchlistLoading = true
     const wrapper = mountPage()
-    expect(wrapper.find('[data-testid="empty-watchlist-hint"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="onboarding-hero-stub"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').exists()).toBe(true)
   })
 
   // ── Accountant redirect ────────────────────────────────────────────────────
@@ -276,6 +299,102 @@ describe('dashboard/index.vue', () => {
     await flushPromises()
     expect(mockFetchEntries).not.toHaveBeenCalled()
     expect(mockFetchAlerts).not.toHaveBeenCalled()
+  })
+})
+
+// ── WatchlistOnboardingHero unit tests ───────────────────────────────────────
+
+import WatchlistOnboardingHero from '~/components/dashboard/WatchlistOnboardingHero.vue'
+
+describe('WatchlistOnboardingHero', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAddEntry.mockResolvedValue({ duplicate: false })
+  })
+
+  const mountHero = () =>
+    mount(WatchlistOnboardingHero, {
+      global: {
+        stubs: {
+          DashboardStatBar: DashboardStatBarStub,
+          WatchlistAddDialog: {
+            name: 'WatchlistAddDialog',
+            template: '<div data-testid="add-dialog-stub" :data-visible="visible" />',
+            props: ['visible'],
+            emits: ['update:visible', 'submit'],
+          },
+          Button: {
+            template: '<button :data-testid="$attrs[\'data-testid\']" @click="$emit(\'click\')"><slot /></button>',
+            emits: ['click'],
+            inheritAttrs: false,
+          },
+        },
+      },
+    })
+
+  it('renders muted stat bar with empty entries', () => {
+    const wrapper = mountHero()
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').attributes('data-count')).toBe('0')
+    expect(wrapper.find('[data-testid="stat-bar-stub"]').attributes('data-loading')).toBe('false')
+  })
+
+  it('renders onboarding title and subtitle', () => {
+    const wrapper = mountHero()
+    expect(wrapper.find('[data-testid="onboarding-title"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="onboarding-subtitle"]').exists()).toBe(true)
+  })
+
+  it('"Add Your First Partner" button opens WatchlistAddDialog', async () => {
+    const wrapper = mountHero()
+    const addBtn = wrapper.find('[data-testid="add-first-partner-btn"]')
+    expect(addBtn.exists()).toBe(true)
+    await addBtn.trigger('click')
+    expect(wrapper.find('[data-testid="add-dialog-stub"]').attributes('data-visible')).toBe('true')
+  })
+
+  it('"Search by Tax Number" button emits focus-search', async () => {
+    const wrapper = mountHero()
+    const searchBtn = wrapper.find('[data-testid="search-by-tax-btn"]')
+    expect(searchBtn.exists()).toBe(true)
+    await searchBtn.trigger('click')
+    expect(wrapper.emitted('focus-search')).toBeTruthy()
+  })
+
+  it('renders 3 how-it-works steps', () => {
+    const wrapper = mountHero()
+    const steps = wrapper.findAll('[data-testid="how-it-works-step"]')
+    expect(steps).toHaveLength(3)
+  })
+
+  it('each step shows icon, title, and body i18n key', () => {
+    const wrapper = mountHero()
+    const steps = wrapper.findAll('[data-testid="how-it-works-step"]')
+
+    expect(steps[0]?.text()).toContain('dashboard.howItWorksStep1Title')
+    expect(steps[0]?.text()).toContain('dashboard.howItWorksStep1Body')
+    expect(steps[0]?.find('.pi-plus-circle').exists()).toBe(true)
+
+    expect(steps[1]?.text()).toContain('dashboard.howItWorksStep2Title')
+    expect(steps[1]?.text()).toContain('dashboard.howItWorksStep2Body')
+    expect(steps[1]?.find('.pi-sync').exists()).toBe(true)
+
+    expect(steps[2]?.text()).toContain('dashboard.howItWorksStep3Title')
+    expect(steps[2]?.text()).toContain('dashboard.howItWorksStep3Body')
+    expect(steps[2]?.find('.pi-bell').exists()).toBe(true)
+  })
+
+  it('calls addEntry with submitted data and closes dialog on successful submit (AC 3)', async () => {
+    mockAddEntry.mockResolvedValue({ duplicate: false })
+    const wrapper = mountHero()
+    // open the dialog first
+    await wrapper.find('[data-testid="add-first-partner-btn"]').trigger('click')
+    expect(wrapper.find('[data-testid="add-dialog-stub"]').attributes('data-visible')).toBe('true')
+    // simulate dialog emitting submit
+    await wrapper.findComponent({ name: 'WatchlistAddDialog' }).vm.$emit('submit', '12345678', 'Test Co', 'RELIABLE')
+    await flushPromises()
+    expect(mockAddEntry).toHaveBeenCalledWith('12345678', 'Test Co', 'RELIABLE')
+    expect(wrapper.find('[data-testid="add-dialog-stub"]').attributes('data-visible')).toBe('false')
   })
 })
 
