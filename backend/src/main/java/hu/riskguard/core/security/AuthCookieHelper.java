@@ -30,7 +30,7 @@ public class AuthCookieHelper {
                 .maxAge(properties.getSecurity().getJwtExpirationMs() / 1000)
                 .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
-                .sameSite("Lax")
+                .sameSite(properties.getSecurity().getCookieSameSite())
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
@@ -39,7 +39,7 @@ public class AuthCookieHelper {
                 .maxAge(properties.getSecurity().getRefreshTokenExpirationDays() * 24 * 60 * 60)
                 .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
-                .sameSite("Lax")
+                .sameSite(properties.getSecurity().getCookieSameSite())
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
@@ -67,14 +67,14 @@ public class AuthCookieHelper {
                 .maxAge(0)
                 .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
-                .sameSite("Lax")
+                .sameSite(properties.getSecurity().getCookieSameSite())
                 .build();
         ResponseCookie refreshDeletion = ResponseCookie.from(properties.getIdentity().getRefreshCookieName(), "")
                 .path("/")
                 .maxAge(0)
                 .secure(properties.getSecurity().isCookieSecure())
                 .httpOnly(true)
-                .sameSite("Lax")
+                .sameSite(properties.getSecurity().getCookieSameSite())
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessDeletion.toString());
         response.addHeader(HttpHeaders.SET_COOKIE, refreshDeletion.toString());

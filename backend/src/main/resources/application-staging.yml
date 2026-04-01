@@ -102,6 +102,7 @@ risk-guard:
     refresh-token-expiration-days: 30
     frontend-base-url: ${FRONTEND_URL}
     cookie-secure: true
+    cookie-same-site: None  # Frontend and backend are on different Cloud Run origins in staging
   identity:
     default-user-role: SME_ADMIN
     refresh-cookie-name: refresh_token

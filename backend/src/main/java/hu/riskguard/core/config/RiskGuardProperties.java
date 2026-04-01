@@ -114,6 +114,7 @@ public class RiskGuardProperties {
         private long jwtExpirationMs = 3600000; // 1 hour
         private String frontendBaseUrl = "http://localhost:3000";
         private boolean cookieSecure = false; // Set to true behind TLS-terminating reverse proxy
+        private String cookieSameSite = "Lax"; // Use "None" when frontend and backend are on different origins
         /** Refresh token validity in days. Default: 30 days. */
         private long refreshTokenExpirationDays = 30;
         /** Cron expression for refresh token cleanup job. Default: 3:15 AM daily. */
