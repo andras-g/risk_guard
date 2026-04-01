@@ -7,5 +7,7 @@ import java.time.Instant;
  */
 public record EprConfigPublishResponse(int version, Instant activatedAt) {
 
-
+    public static EprConfigPublishResponse from(int version, Instant activatedAt) {
+        return new EprConfigPublishResponse(version, activatedAt);
+    }
 }

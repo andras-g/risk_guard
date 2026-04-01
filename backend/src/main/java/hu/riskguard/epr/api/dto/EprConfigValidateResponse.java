@@ -14,4 +14,8 @@ public record EprConfigValidateResponse(boolean valid, List<String> errors) {
     public static EprConfigValidateResponse failed(List<String> errors) {
         return new EprConfigValidateResponse(false, errors);
     }
+
+    public static EprConfigValidateResponse from(boolean valid, List<String> errors) {
+        return new EprConfigValidateResponse(valid, errors);
+    }
 }

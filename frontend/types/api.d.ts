@@ -214,3 +214,29 @@ export interface AuditHashVerifyResponse {
   storedHash: string
   unavailable: boolean
 }
+
+// ─── Admin Audit DTOs (Story 6.4) ────────────────────────────────────────────
+// TODO: Remove manual definitions below once CI OpenAPI pipeline regenerates types
+// from AdminAuditEntryResponse.java / AdminAuditPageResponse.java.
+
+export interface AdminAuditEntryResponse {
+  id: string
+  tenantId: string
+  userId: string | null
+  taxNumber: string
+  verdictStatus: 'RELIABLE' | 'AT_RISK' | 'INCOMPLETE' | 'TAX_SUSPENDED' | 'UNAVAILABLE' | null
+  verdictConfidence: 'FRESH' | 'STALE' | 'UNAVAILABLE' | null
+  searchedAt: string
+  sha256Hash: string
+  dataSourceMode: 'DEMO' | 'LIVE'
+  checkSource: 'MANUAL' | 'AUTOMATED'
+  sourceUrls: string[]
+  companyName: string | null
+}
+
+export interface AdminAuditPageResponse {
+  content: AdminAuditEntryResponse[]
+  totalElements: number
+  page: number
+  size: number
+}

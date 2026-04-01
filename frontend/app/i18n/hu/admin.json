@@ -1,5 +1,29 @@
 {
   "admin": {
+    "auditSearch": {
+      "title": "GDPR Napló Kereső",
+      "subtitle": "Keressen az audit naplóban jogi vagy felhasználói megkeresésekhez szükséges kockázat-ellenőrzési bizonyítékért.",
+      "taxNumberLabel": "Adószám",
+      "taxNumberPlaceholder": "12345678-9-01",
+      "tenantIdLabel": "Bérlői azonosító (UUID)",
+      "tenantIdPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "searchButton": "Keresés",
+      "noRecords": "Nincs találat a megadott keresési feltételekre",
+      "atLeastOneRequired": "Adjon meg adószámot vagy bérlői azonosítót a kereséshez",
+      "columns": {
+        "searchedAt": "Keresés ideje",
+        "taxNumber": "Adószám",
+        "sha256Hash": "SHA-256 hash",
+        "sourceUrls": "Forrás URL-ek",
+        "userId": "Felhasználó ID",
+        "tenantId": "Bérlői ID",
+        "checkSource": "Forrás",
+        "verdictStatus": "Verdict"
+      },
+      "errors": {
+        "loadFailed": "Keresés sikertelen"
+      }
+    },
     "eprConfig": {
       "title": "EPR Konfig kezelő",
       "subtitle": "Szerkessze az EPR díjtáblákat és KF-kód struktúrát. Közzététel előtt validálja.",

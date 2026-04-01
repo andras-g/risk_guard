@@ -1,5 +1,5 @@
 # generated: Mon Mar 10 2026
-# updated: Tue Mar 31 2026 — Story 6.3 created; status → ready-for-dev.
+# updated: Tue Mar 31 2026 — Story 6.4 created; status → ready-for-dev.
 # project: risk_guard
 # project_key: RG
 # tracking_system: file-system
@@ -117,7 +117,7 @@ development_status:
   6-1-data-source-health-dashboard-the-heartbeat: review  # Story file created 2026-03-31; dev completed 2026-03-31; 675 backend + 589 frontend tests green; code-review R1 2026-03-31 — 10 patch items resolved (atomic SQL, DEMO override, N+1 fix, MTBF formula, exception leak, onMounted merge, ariaStatusMessage clear); 10 deferred; BUILD SUCCESSFUL + 589 frontend tests green; status → review
   6-2-manual-adapter-quarantine: done  # Story file created 2026-03-31; dev completed 2026-03-31; 682 backend + 594 frontend tests green; code-review R1 2026-03-31 — 8 patch items (P1-P8) all resolved; code-review R2 2026-03-31 — 2 patch items (i18n key mismatch, dead code removal) auto-fixed; 683 backend + 594 frontend + 5 e2e all green; status → done
   6-3-hot-swappable-epr-json-manager: done  # Story file created 2026-03-31; dev completed 2026-03-31; 690 backend + 600 frontend + 5 e2e tests green; code-review R1 2026-03-31 — 7 patch items resolved; code-review R2 2026-03-31 — 3 patch items (P1: dead EprConfigValidateResponse.from(), P2: dead EprConfigPublishResponse.from(), P3: unused loading ref); 4 defers; 600 frontend + BUILD SUCCESSFUL backend + 5 e2e all green; status → done
-  6-4-gdpr-search-audit-viewer: backlog
+  6-4-gdpr-search-audit-viewer: done  # Story file created 2026-03-31; dev completed 2026-04-01; backend: AuditAdminController, AdminAuditEntry, cross-tenant query, 12 new tests; frontend: audit-search.vue, useAdminAudit, 9 tests, i18n; code-review R1 2026-04-01 — 3 patch items (P1: missing page clamp in AuditAdminController, P2: fragile hasSize(2) in byTenantId repo test, P3: missing page-clamp test); all auto-fixed; 609 frontend + BUILD SUCCESSFUL backend + 5 e2e all green; status → done
   epic-6-retrospective: optional
 
   epic-7: backlog  # PLANNED (2026-03-31) — UX polish stories moved from Epic 6. Improves SME owner dashboard, watchlist, and accountant flight control UX.

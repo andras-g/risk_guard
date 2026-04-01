@@ -4,6 +4,7 @@ import hu.riskguard.core.security.TenantContext;
 import hu.riskguard.jooq.enums.VerdictConfidence;
 import hu.riskguard.jooq.enums.VerdictStatus;
 import hu.riskguard.screening.domain.AuditHistoryFilter;
+import hu.riskguard.screening.internal.ScreeningRepository.AdminAuditHistoryRow;
 import hu.riskguard.screening.internal.ScreeningRepository.AuditHistoryRow;
 import hu.riskguard.screening.internal.ScreeningRepository.AuditVerifyRow;
 import org.jooq.DSLContext;
@@ -265,6 +266,97 @@ class ScreeningRepositoryTest {
 
         // Then — empty (tenant isolation enforced)
         assertThat(result).isEmpty();
+    }
+
+    // ─── Admin Audit Query Tests (Story 6.4) ────────────────────────────────
+
+    @Test
+    void findAdminAuditPage_byTaxNumber_returnsAcrossAllTenants() {
+        // Use unique tax numbers to avoid collisions with rows from other tests in the shared DB
+        String uniqueTax = "A" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+        String otherTax  = "B" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+
+        // Given — same tax number searched by two different tenants
+        insertAuditRow(tenantA, userA, uniqueTax, "MANUAL", "DEMO", OffsetDateTime.now().minusHours(2));
+        insertAuditRow(tenantB, userB, uniqueTax, "AUTOMATED", "DEMO", OffsetDateTime.now().minusHours(1));
+        insertAuditRow(tenantA, userA, otherTax, "MANUAL", "DEMO", OffsetDateTime.now());
+
+        // When — admin queries by taxNumber (cross-tenant, no tenantId filter)
+        List<AdminAuditHistoryRow> rows = screeningRepository.findAdminAuditPage(uniqueTax, null, 0, 100);
+
+        // Then — both tenants' rows are returned
+        assertThat(rows).hasSize(2);
+        assertThat(rows).extracting(AdminAuditHistoryRow::taxNumber).containsOnly(uniqueTax);
+        assertThat(rows).extracting(AdminAuditHistoryRow::tenantId)
+                .containsExactlyInAnyOrder(tenantA, tenantB);
+    }
+
+    @Test
+    void findAdminAuditPage_byTenantId_returnsOnlyThatTenant() {
+        String tax1 = "T1" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        String tax2 = "T2" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+        String tax3 = "T3" + UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+
+        // Given
+        insertAuditRow(tenantA, userA, tax1, "MANUAL", "DEMO", OffsetDateTime.now().minusHours(1));
+        insertAuditRow(tenantA, userA, tax2, "MANUAL", "DEMO", OffsetDateTime.now());
+        insertAuditRow(tenantB, userB, tax3, "MANUAL", "DEMO", OffsetDateTime.now());
+
+        // When
+        List<AdminAuditHistoryRow> rows = screeningRepository.findAdminAuditPage(null, tenantA, 0, 100);
+
+        // Then — only tenantA's rows; use hasSizeGreaterThanOrEqualTo because the shared
+        // Testcontainer DB accumulates rows across test methods (other tests also insert for tenantA).
+        assertThat(rows).hasSizeGreaterThanOrEqualTo(2);
+        assertThat(rows).extracting(AdminAuditHistoryRow::taxNumber).contains(tax1, tax2);
+        assertThat(rows).extracting(AdminAuditHistoryRow::tenantId).containsOnly(tenantA);
+    }
+
+    @Test
+    void findAdminAuditPage_combined_filtersByBothCriteria() {
+        String sharedTax = "C" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+        String otherTax  = "D" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+
+        // Given — tenantA and tenantB both have sharedTax
+        insertAuditRow(tenantA, userA, sharedTax, "MANUAL", "DEMO", OffsetDateTime.now().minusHours(1));
+        insertAuditRow(tenantB, userB, sharedTax, "MANUAL", "DEMO", OffsetDateTime.now());
+        insertAuditRow(tenantA, userA, otherTax, "MANUAL", "DEMO", OffsetDateTime.now());
+
+        // When — admin queries by both taxNumber AND tenantId
+        List<AdminAuditHistoryRow> rows = screeningRepository.findAdminAuditPage(sharedTax, tenantA, 0, 100);
+
+        // Then — only the intersection (tenantA + sharedTax)
+        assertThat(rows).hasSize(1);
+        assertThat(rows.get(0).taxNumber()).isEqualTo(sharedTax);
+        assertThat(rows.get(0).tenantId()).isEqualTo(tenantA);
+    }
+
+    @Test
+    void findAdminAuditPage_noMatchingRows_returnsEmptyList() {
+        String noMatchTax = "Z" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+
+        // When — no rows were inserted for this tax number
+        List<AdminAuditHistoryRow> rows = screeningRepository.findAdminAuditPage(noMatchTax, null, 0, 100);
+
+        // Then
+        assertThat(rows).isEmpty();
+    }
+
+    @Test
+    void countAdminAudit_byTaxNumber_countsAcrossAllTenants() {
+        String uniqueTax = "E" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+        String otherTax  = "F" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
+
+        // Given — two tenants each with one row for the same unique tax number
+        insertAuditRow(tenantA, userA, uniqueTax, "MANUAL", "DEMO", OffsetDateTime.now().minusHours(1));
+        insertAuditRow(tenantB, userB, uniqueTax, "MANUAL", "DEMO", OffsetDateTime.now());
+        insertAuditRow(tenantA, userA, otherTax, "MANUAL", "DEMO", OffsetDateTime.now());
+
+        // When
+        long count = screeningRepository.countAdminAudit(uniqueTax, null);
+
+        // Then — both tenants counted (cross-tenant)
+        assertThat(count).isEqualTo(2);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

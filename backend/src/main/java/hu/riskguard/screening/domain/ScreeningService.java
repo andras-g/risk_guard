@@ -15,6 +15,7 @@ import hu.riskguard.screening.api.dto.ProvenanceResponse;
 import hu.riskguard.screening.domain.events.PartnerSearchCompleted;
 import hu.riskguard.core.events.PartnerStatusChanged;
 import hu.riskguard.screening.internal.ScreeningRepository;
+import hu.riskguard.screening.internal.ScreeningRepository.AdminAuditHistoryRow;
 import hu.riskguard.screening.internal.ScreeningRepository.AuditHistoryRow;
 import hu.riskguard.screening.internal.ScreeningRepository.AuditVerifyRow;
 import hu.riskguard.screening.internal.ScreeningRepository.FreshSnapshot;
@@ -587,6 +588,57 @@ public class ScreeningService {
             int page,
             int size
     ) {}
+
+    // ─── Admin Audit Facade (Story 6.4) ─────────────────────────────────────
+
+    /**
+     * Page result for admin audit queries (cross-tenant).
+     *
+     * @param entries       entries on this page
+     * @param totalElements total number of matching rows
+     * @param page          zero-based page number
+     * @param size          page size requested
+     */
+    public record AdminAuditPage(
+            List<AdminAuditEntry> entries,
+            long totalElements,
+            int page,
+            int size
+    ) {}
+
+    /**
+     * Retrieve a paginated admin audit log, cross-tenant, filtered by taxNumber and/or tenantId.
+     * At least one criterion must be provided (validated here; also enforced at controller layer).
+     *
+     * <p>No TenantContext required — admin method reads cross-tenant. Security enforced at controller.
+     *
+     * @param taxNumber filter by tax number (nullable)
+     * @param tenantId  filter by tenant (nullable)
+     * @param page      zero-based page number
+     * @param size      page size
+     * @return paginated result
+     */
+    public AdminAuditPage getAdminAuditLog(String taxNumber, UUID tenantId, int page, int size) {
+        if (taxNumber == null && tenantId == null) {
+            throw new IllegalArgumentException("At least one criterion required");
+        }
+        long offset = (long) page * size;
+        List<AdminAuditHistoryRow> rows = screeningRepository.findAdminAuditPage(taxNumber, tenantId, offset, size);
+        long total = screeningRepository.countAdminAudit(taxNumber, tenantId);
+
+        List<AdminAuditEntry> entries = new ArrayList<>(rows.size());
+        for (AdminAuditHistoryRow row : rows) {
+            List<String> sourceUrls = parseSourceUrls(row.sourceUrlsJson());
+            entries.add(new AdminAuditEntry(
+                    row.id(), row.tenantId(), row.userId(),
+                    row.companyName(), row.taxNumber(),
+                    row.verdictStatus(), row.verdictConfidence(),
+                    row.searchedAt(), row.sha256Hash(),
+                    row.dataSourceMode(), row.checkSource(),
+                    sourceUrls, row.disclaimerText()));
+        }
+        return new AdminAuditPage(entries, total, page, size);
+    }
 
     private List<String> parseSourceUrls(String sourceUrlsJson) {
         if (sourceUrlsJson == null || sourceUrlsJson.isBlank() || "[]".equals(sourceUrlsJson)) {

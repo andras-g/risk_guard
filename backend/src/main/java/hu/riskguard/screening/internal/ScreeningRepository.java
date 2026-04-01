@@ -186,6 +186,115 @@ public class ScreeningRepository extends BaseRepository {
         return hash;
     }
 
+    // ─── Admin Audit Query Methods (Story 6.4) ───────────────────────────────
+
+    /**
+     * Internal record for raw admin audit query results.
+     * Joins search_audit_log → verdicts → company_snapshots. Cross-tenant — no tenant filter.
+     */
+    public record AdminAuditHistoryRow(
+            UUID id,
+            UUID tenantId,
+            UUID userId,
+            String taxNumber,
+            String verdictStatus,
+            String verdictConfidence,
+            OffsetDateTime searchedAt,
+            String sha256Hash,
+            String dataSourceMode,
+            String checkSource,
+            String companyName,
+            String sourceUrlsJson,
+            String disclaimerText
+    ) {}
+
+    /**
+     * Fetch a paginated list of admin audit entries, optionally filtered by taxNumber and/or tenantId.
+     * Intentionally cross-tenant — no global tenant_id filter is applied.
+     *
+     * @param taxNumber filter by exact tax number (nullable — no filter if null)
+     * @param tenantId  filter by tenant (nullable — no filter if null)
+     * @param offset    pagination offset
+     * @param size      page size
+     * @return list of raw admin audit rows
+     */
+    public List<AdminAuditHistoryRow> findAdminAuditPage(String taxNumber, UUID tenantId, long offset, int size) {
+        var salAlias = SEARCH_AUDIT_LOG.as("sal");
+        var csAlias  = COMPANY_SNAPSHOTS.as("cs");
+
+        var searchedByField   = field(name("sal", "searched_by"), UUID.class);
+        var checkSourceField   = field(name("sal", "check_source"), String.class);
+        var dataSourceModeField = field(name("sal", "data_source_mode"), String.class);
+        var sourceUrlsField    = field("cs.source_urls", org.jooq.JSONB.class);
+        var snapshotDataField  = field("cs.snapshot_data", org.jooq.JSONB.class);
+
+        Condition where = trueCondition();
+        if (taxNumber != null) {
+            where = where.and(field(name("sal", "tax_number"), String.class).eq(taxNumber));
+        }
+        if (tenantId != null) {
+            where = where.and(field(name("sal", "tenant_id"), UUID.class).eq(tenantId));
+        }
+
+        return dsl.select(
+                        field(name("sal", "id"), UUID.class),
+                        field(name("sal", "tenant_id"), UUID.class),
+                        searchedByField,
+                        field(name("sal", "tax_number"), String.class),
+                        VERDICTS.STATUS,
+                        VERDICTS.CONFIDENCE,
+                        field(name("sal", "searched_at"), OffsetDateTime.class),
+                        field(name("sal", "sha256_hash"), String.class),
+                        dataSourceModeField,
+                        checkSourceField,
+                        snapshotDataField,
+                        sourceUrlsField,
+                        field(name("sal", "disclaimer_text"), String.class))
+                .from(SEARCH_AUDIT_LOG.as("sal"))
+                .leftJoin(VERDICTS).on(VERDICTS.ID.eq(field(name("sal", "verdict_id"), UUID.class)))
+                .leftJoin(COMPANY_SNAPSHOTS.as("cs")).on(field("cs.id", UUID.class).eq(VERDICTS.SNAPSHOT_ID))
+                .where(where)
+                .orderBy(field(name("sal", "searched_at"), OffsetDateTime.class).desc())
+                .offset(offset)
+                .limit(size)
+                .fetch(r -> new AdminAuditHistoryRow(
+                        r.get(field(name("sal", "id"), UUID.class)),
+                        r.get(field(name("sal", "tenant_id"), UUID.class)),
+                        r.get(searchedByField),
+                        r.get(field(name("sal", "tax_number"), String.class)),
+                        r.get(VERDICTS.STATUS) != null ? r.get(VERDICTS.STATUS).getLiteral() : null,
+                        r.get(VERDICTS.CONFIDENCE) != null ? r.get(VERDICTS.CONFIDENCE).getLiteral() : null,
+                        r.get(field(name("sal", "searched_at"), OffsetDateTime.class)),
+                        r.get(field(name("sal", "sha256_hash"), String.class)),
+                        r.get(dataSourceModeField),
+                        r.get(checkSourceField),
+                        extractCompanyName(r.get(snapshotDataField)),
+                        r.get(sourceUrlsField) != null ? r.get(sourceUrlsField).data() : null,
+                        r.get(field(name("sal", "disclaimer_text"), String.class))));
+    }
+
+    /**
+     * Count admin audit rows for pagination — same WHERE conditions as {@link #findAdminAuditPage}.
+     *
+     * @param taxNumber filter by tax number (nullable)
+     * @param tenantId  filter by tenant (nullable)
+     * @return total matching row count
+     */
+    public long countAdminAudit(String taxNumber, UUID tenantId) {
+        Condition where = trueCondition();
+        if (taxNumber != null) {
+            where = where.and(SEARCH_AUDIT_LOG.TAX_NUMBER.eq(taxNumber));
+        }
+        if (tenantId != null) {
+            where = where.and(SEARCH_AUDIT_LOG.TENANT_ID.eq(tenantId));
+        }
+
+        return dsl.selectCount()
+                .from(SEARCH_AUDIT_LOG)
+                .where(where)
+                .fetchOne(0, long.class);
+    }
+
     // ─── Audit History Query Methods (Story 5.1a) ────────────────────────────
 
     /**
