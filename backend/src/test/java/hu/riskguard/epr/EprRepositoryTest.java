@@ -17,6 +17,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -181,17 +182,24 @@ class EprRepositoryTest {
 
     @Test
     void findByTenantAndQuarterShouldFilterByCreatedAt() {
-        // Insert template — it will have created_at = now() which is Q1 2026
-        UUID id = eprRepository.insertTemplate(TENANT_A, "Q1 Template", new BigDecimal("10"), true);
+        // Insert template — it will have created_at = now()
+        UUID id = eprRepository.insertTemplate(TENANT_A, "Current Quarter Template", new BigDecimal("10"), true);
 
-        // Current date is 2026-03-26, so created_at is in Q1 2026
-        List<EprMaterialTemplatesRecord> q1Results = eprRepository.findByTenantAndQuarter(TENANT_A, 2026, 1);
-        assertThat(q1Results).isNotEmpty();
-        assertThat(q1Results).anyMatch(r -> r.getId().equals(id));
+        // Determine the current quarter dynamically so this test remains valid regardless of when it runs
+        LocalDate today = LocalDate.now();
+        int currentYear = today.getYear();
+        int currentQuarter = (today.getMonthValue() - 1) / 3 + 1;
 
-        // Q2 2026 should not contain this template
-        List<EprMaterialTemplatesRecord> q2Results = eprRepository.findByTenantAndQuarter(TENANT_A, 2026, 2);
-        assertThat(q2Results).noneMatch(r -> r.getId().equals(id));
+        // The template's created_at is in the current quarter
+        List<EprMaterialTemplatesRecord> currentResults = eprRepository.findByTenantAndQuarter(TENANT_A, currentYear, currentQuarter);
+        assertThat(currentResults).isNotEmpty();
+        assertThat(currentResults).anyMatch(r -> r.getId().equals(id));
+
+        // The adjacent quarter should not contain this template
+        int otherQuarter = (currentQuarter % 4) + 1;
+        int otherYear = (currentQuarter == 4) ? currentYear + 1 : currentYear;
+        List<EprMaterialTemplatesRecord> otherResults = eprRepository.findByTenantAndQuarter(TENANT_A, otherYear, otherQuarter);
+        assertThat(otherResults).noneMatch(r -> r.getId().equals(id));
     }
 
     @Test
