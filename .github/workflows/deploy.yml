@@ -141,7 +141,7 @@ jobs:
             --min-instances=0 \
             --max-instances=10 \
             --set-secrets="NEON_DATABASE_URL=NEON_DATABASE_URL_STAGING:latest,JWT_SECRET=JWT_SECRET_STAGING:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET_STAGING:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID_STAGING:latest,MICROSOFT_CLIENT_SECRET=MICROSOFT_CLIENT_SECRET_STAGING:latest,MICROSOFT_CLIENT_ID=MICROSOFT_CLIENT_ID_STAGING:latest,RESEND_API_KEY=RESEND_API_KEY_STAGING:latest" \
-            --set-env-vars="SPRING_PROFILES_ACTIVE=staging,FRONTEND_URL=https://storage.googleapis.com/${{ vars.FRONTEND_BUCKET_STAGING }}" \
+            --set-env-vars="SPRING_PROFILES_ACTIVE=staging,FRONTEND_URL=https://${{ vars.FRONTEND_BUCKET_STAGING }}.storage.googleapis.com" \
             --service-account="${{ secrets.CLOUD_RUN_SA_EMAIL }}" \
             --allow-unauthenticated \
             --project="${{ secrets.GCP_PROJECT_ID }}"
@@ -180,12 +180,13 @@ jobs:
         run: |
           gsutil -m rsync -r -d frontend/.output/public gs://${{ vars.FRONTEND_BUCKET_STAGING }}
           gsutil iam ch allUsers:objectViewer gs://${{ vars.FRONTEND_BUCKET_STAGING }}
+          gsutil web set -m index.html -e index.html gs://${{ vars.FRONTEND_BUCKET_STAGING }}
 
       - name: Print staging URLs
         run: |
           echo "### Staging is UP" >> "$GITHUB_STEP_SUMMARY"
           echo "**Backend:** ${{ steps.backend-url.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Frontend:** https://storage.googleapis.com/${{ vars.FRONTEND_BUCKET_STAGING }}/index.html" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Frontend:** https://${{ vars.FRONTEND_BUCKET_STAGING }}.storage.googleapis.com/" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "Run \`staging-down\` when done to stop the Cloud Run service." >> "$GITHUB_STEP_SUMMARY"
 

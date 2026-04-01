@@ -20,7 +20,7 @@ gcloud run deploy "$SERVICE" \
   --min-instances=0 \
   --max-instances=10 \
   --set-secrets="NEON_DATABASE_URL=NEON_DATABASE_URL_STAGING:latest,JWT_SECRET=JWT_SECRET_STAGING:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET_STAGING:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID_STAGING:latest,MICROSOFT_CLIENT_SECRET=MICROSOFT_CLIENT_SECRET_STAGING:latest,MICROSOFT_CLIENT_ID=MICROSOFT_CLIENT_ID_STAGING:latest,RESEND_API_KEY=RESEND_API_KEY_STAGING:latest" \
-  --set-env-vars="SPRING_PROFILES_ACTIVE=staging,FRONTEND_URL=https://storage.googleapis.com/${BUCKET}" \
+  --set-env-vars="SPRING_PROFILES_ACTIVE=staging,FRONTEND_URL=https://${BUCKET}.storage.googleapis.com" \
   --service-account="risk-guard-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
   --allow-unauthenticated \
   --project="$PROJECT_ID"
@@ -46,10 +46,14 @@ echo ""
 echo "==> Uploading frontend to GCS..."
 gsutil -m rsync -r -d .output/public "gs://${BUCKET}"
 gsutil iam ch allUsers:objectViewer "gs://${BUCKET}"
+# Configure the bucket as a static website so the XML API endpoint
+# (https://BUCKET.storage.googleapis.com/) serves index.html and
+# routes 404s back to index.html for client-side navigation.
+gsutil web set -m index.html -e index.html "gs://${BUCKET}"
 
 echo ""
 echo "======================================"
 echo "Staging is UP"
 echo "  Backend:  $BACKEND_URL"
-echo "  Frontend: https://storage.googleapis.com/${BUCKET}/index.html"
+echo "  Frontend: https://${BUCKET}.storage.googleapis.com/"
 echo "======================================"
