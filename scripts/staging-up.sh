@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Spin up the staging environment.
 #
-# Backend:  deploys latest image from Artifact Registry to Cloud Run
-# Frontend: builds Nuxt static files locally, packages into nginx Docker image,
-#           pushes to Artifact Registry, deploys to Cloud Run
+# Builds backend and frontend from local source, pushes both images to
+# Artifact Registry, and deploys them as Cloud Run services.
 #
 # Prerequisites: gcloud authenticated, npm + node 20+, Docker running
 set -euo pipefail
@@ -13,13 +12,26 @@ REGION="europe-west3"
 REGISTRY="europe-west3-docker.pkg.dev/${PROJECT_ID}/risk-guard"
 BACKEND_SERVICE="risk-guard-backend-staging"
 FRONTEND_SERVICE="risk-guard-frontend-staging"
-BACKEND_IMAGE="${REGISTRY}/backend:latest"
+GIT_SHA=$(git rev-parse --short HEAD)
+BACKEND_IMAGE="${REGISTRY}/backend:${GIT_SHA}"
 FRONTEND_IMAGE="${REGISTRY}/frontend:staging"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="$SCRIPT_DIR/../backend"
 FRONTEND_DIR="$SCRIPT_DIR/../frontend"
 
+gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
 # ── Backend ────────────────────────────────────────────────────────────────
+echo "==> Building backend (Flyway + jOOQ + Docker)..."
+cd "$BACKEND_DIR"
+./gradlew flywayMigrate generateJooq --no-daemon -q
+docker build --tag "$BACKEND_IMAGE" --tag "${REGISTRY}/backend:latest" .
+
+echo "==> Pushing backend image..."
+docker push "$BACKEND_IMAGE"
+docker push "${REGISTRY}/backend:latest"
+
 echo "==> Deploying backend to Cloud Run..."
 gcloud run deploy "$BACKEND_SERVICE" \
   --image="$BACKEND_IMAGE" \
@@ -41,13 +53,6 @@ BACKEND_URL=$(gcloud run services describe "$BACKEND_SERVICE" \
 echo ""
 echo "==> Backend is live: $BACKEND_URL"
 
-# Patch FRONTEND_URL now that we have the backend URL
-gcloud run services update "$BACKEND_SERVICE" \
-  --region="$REGION" \
-  --project="$PROJECT_ID" \
-  --update-env-vars="FRONTEND_URL=__PLACEHOLDER__" > /dev/null 2>&1 || true
-# (will be set properly once frontend URL is known — see below)
-
 # ── Frontend ───────────────────────────────────────────────────────────────
 echo ""
 echo "==> Building frontend (Nuxt static generation)..."
@@ -57,7 +62,6 @@ NUXT_PUBLIC_API_BASE="$BACKEND_URL" NODE_OPTIONS="--max-old-space-size=4096" npm
 
 echo ""
 echo "==> Building frontend Docker image..."
-gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 docker build \
   --file Dockerfile.staging \
   --tag "$FRONTEND_IMAGE" \
