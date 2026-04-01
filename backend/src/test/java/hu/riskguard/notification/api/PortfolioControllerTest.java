@@ -2,9 +2,11 @@ package hu.riskguard.notification.api;
 
 import hu.riskguard.notification.api.dto.FlightControlResponse;
 import hu.riskguard.notification.api.dto.PortfolioAlertResponse;
+import hu.riskguard.notification.api.dto.WatchlistEntryResponse;
 import hu.riskguard.notification.domain.FlightControlTenantSummary;
 import hu.riskguard.notification.domain.NotificationService;
 import hu.riskguard.notification.domain.PortfolioAlert;
+import hu.riskguard.notification.domain.WatchlistEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -303,6 +305,77 @@ class PortfolioControllerTest {
 
         assertThat(response.tenants()).isEmpty();
         assertThat(response.totals().totalClients()).isEqualTo(0);
+    }
+
+    // --- Client Partners Tests (Story 7.4) ---
+
+    @Test
+    void accountantGetsClientPartnersForMandatedTenant() {
+        Jwt jwt = buildAccountantJwt();
+        mockUserResolution();
+
+        List<WatchlistEntry> entries = List.of(
+                buildWatchlistEntry(TENANT_A, "12345678", "Alpha Kft", "RELIABLE", null),
+                buildWatchlistEntry(TENANT_A, "99887766", "Beta Bt", "AT_RISK", "RELIABLE"));
+        when(notificationService.getClientPartners(eq(USER_ID), eq(TENANT_A))).thenReturn(entries);
+
+        List<WatchlistEntryResponse> result = controller.getClientPartners(TENANT_A, jwt);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).taxNumber()).isEqualTo("12345678");
+        assertThat(result.get(0).currentVerdictStatus()).isEqualTo("RELIABLE");
+        assertThat(result.get(1).taxNumber()).isEqualTo("99887766");
+        assertThat(result.get(1).previousVerdictStatus()).isEqualTo("RELIABLE");
+        verify(notificationService).getClientPartners(USER_ID, TENANT_A);
+    }
+
+    @Test
+    void clientPartnersNonMandatedTenantPropagates403FromService() {
+        Jwt jwt = buildAccountantJwt();
+        mockUserResolution();
+
+        UUID nonMandatedTenantId = UUID.randomUUID();
+        when(notificationService.getClientPartners(eq(USER_ID), eq(nonMandatedTenantId)))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "No mandate over requested tenant"));
+
+        assertThatThrownBy(() -> controller.getClientPartners(nonMandatedTenantId, jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> {
+                    ResponseStatusException rse = (ResponseStatusException) e;
+                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                });
+    }
+
+    @Test
+    void clientPartnersSmeAdminGets403() {
+        Jwt jwt = buildJwtWithRole("SME_ADMIN");
+
+        assertThatThrownBy(() -> controller.getClientPartners(TENANT_A, jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> {
+                    ResponseStatusException rse = (ResponseStatusException) e;
+                    assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+                });
+    }
+
+    @Test
+    void clientPartnersEmptyListReturnsEmptyArray() {
+        Jwt jwt = buildAccountantJwt();
+        mockUserResolution();
+        when(notificationService.getClientPartners(eq(USER_ID), eq(TENANT_A))).thenReturn(List.of());
+
+        List<WatchlistEntryResponse> result = controller.getClientPartners(TENANT_A, jwt);
+
+        assertThat(result).isEmpty();
+    }
+
+    private WatchlistEntry buildWatchlistEntry(UUID tenantId, String taxNumber,
+                                                String companyName, String verdictStatus,
+                                                String previousVerdictStatus) {
+        return new WatchlistEntry(
+                UUID.randomUUID(), tenantId, taxNumber, companyName, null,
+                OffsetDateTime.now(), OffsetDateTime.now(), verdictStatus,
+                OffsetDateTime.now(), null, previousVerdictStatus);
     }
 
     private FlightControlTenantSummary buildTenantSummary(UUID tenantId, String name,

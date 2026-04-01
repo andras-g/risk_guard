@@ -1,5 +1,24 @@
 # Deferred Work
 
+## Deferred from: code review R1 of 7-4-flight-control-client-partner-view (2026-04-01)
+
+- W1: Rate limiting / audit log absent on `GET /clients/{clientTenantId}/partners` — authenticated accountant can enumerate mandated tenant UUIDs via brute-force; mandate check is correct but no throttling or audit trail; pre-existing concern, out of scope for this story.
+- W2: `getActiveMandateTenantIds` null-return NPE in `getClientPartners` — `mandatedTenantIds.contains(clientTenantId)` would throw NullPointerException if service ever returns null; same unguarded pattern as pre-existing `getFlightControlSummary`; guard when the mandate service contract is hardened.
+- W3: `confirmViewPartner`/Escape key race — Dialog emits `update:visible` on Escape while `await switchTenant` is in flight; `pendingTaxNumber` set to null mid-await could cause `/screening/null` redirect; very narrow timing window; address if confirmed by QA.
+- W4: No integration test for `findByTenantId` with `previousVerdictStatus` — `NotificationRepositoryIntegrationTest` exercises `findAllWatchlistEntries` and `findByTenantIdAndTaxNumber` but not `findByTenantId`; typo in jOOQ field mapping would be invisible until runtime; add test in next integration test pass.
+- W5: `trendDirection` returns `'stable'` for two unknown status strings — unknown values both map to severity 99; `c === p` → `'stable'` arrow instead of `—`; only manifests for future enum values not in `STATUS_SEVERITY`; add unknown-status guard when new verdict states are introduced.
+
+## Deferred from: code review R1 of 7-2-partner-detail-slide-over-drawer (2026-04-01)
+
+- D1: `taxNumber` not URL-encoded in route paths (`/screening/${taxNumber}`) and query strings (`?taxNumber=${taxNumber}`) — Hungarian tax numbers are numeric+hyphen (safe in practice); add `encodeURIComponent` if foreign entities with special chars are ever supported.
+- D2: `watchlistSince` shows "Invalid Date" for malformed `createdAt` — field is non-nullable and backend-controlled; add a guard if data provenance ever becomes untrusted.
+- D3: `onRowClick` guard is a static allow-list (`.p-checkbox`, `[data-testid="remove-entry-button"]`) — any future interactive cell added to the table will fall through and open the drawer unintentionally; consider a generic `a, button, input` ancestor check.
+- D4: `STATUS_SEVERITY` map duplicated from `DashboardNeedsAttention.vue` — divergence risk when a new verdict status is added; extract to a shared composable when a third consumer appears.
+- D5: `AuditDispatcher` receives inline `[entry]` arrays (new reference on every render) — no observable impact currently; compute a stable ref if AuditDispatcher is ever observed to re-trigger unnecessarily.
+- D6: Drawer does not close after PDF export via `AuditDispatcher` — spec doesn't require it; acceptable UX (user stays on watchlist); revisit if UX feedback requests close-on-export.
+- D7: Row lacks `cursor: pointer` visual affordance — no functional impact; add in UX polish pass.
+- D8: `selectedPartner` not cleared when drawer closes via X/Escape/overlay — stale ref never displayed (drawer is hidden and ref is overwritten on next row click); add a `watch(drawerVisible)` cleanup if stale data flash ever manifests.
+
 ## Deferred from: code review R1 of 6-3-hot-swappable-epr-json-manager (2026-03-31)
 
 - W1: Concurrent publish race — `getMaxConfigVersion()` + `insertConfig()` not locked; spec accepts negligible risk (SME_ADMIN only, UNIQUE constraint as hard stop); revisit if publish is ever opened to more roles.

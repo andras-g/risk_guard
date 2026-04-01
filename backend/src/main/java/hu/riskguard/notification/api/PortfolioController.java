@@ -2,8 +2,10 @@ package hu.riskguard.notification.api;
 
 import hu.riskguard.notification.api.dto.FlightControlResponse;
 import hu.riskguard.notification.api.dto.PortfolioAlertResponse;
+import hu.riskguard.notification.api.dto.WatchlistEntryResponse;
 import hu.riskguard.notification.domain.NotificationService;
 import hu.riskguard.notification.domain.PortfolioAlert;
+import hu.riskguard.notification.domain.WatchlistEntry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -73,6 +75,27 @@ public class PortfolioController {
 
         NotificationService.FlightControlResult result = notificationService.getFlightControlSummary(userId);
         return FlightControlResponse.from(result);
+    }
+
+    /**
+     * Get all watchlisted partners for a specific client tenant (read-only cross-tenant view).
+     *
+     * <p>Returns the full watchlist of a mandated client tenant without switching context.
+     * Authorization is enforced via mandate check: accountant must have an active mandate
+     * over the requested {@code clientTenantId} — 403 FORBIDDEN otherwise.
+     *
+     * @param clientTenantId the tenant whose partners to list
+     * @param jwt            the authenticated accountant's JWT
+     * @return list of watchlist entry DTOs for the requested client tenant
+     */
+    @GetMapping("/clients/{clientTenantId}/partners")
+    public List<WatchlistEntryResponse> getClientPartners(
+            @PathVariable UUID clientTenantId,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireAccountantRole(jwt);
+        UUID userId = resolveUserId(jwt);
+        List<WatchlistEntry> entries = notificationService.getClientPartners(userId, clientTenantId);
+        return entries.stream().map(WatchlistEntryResponse::from).toList();
     }
 
     /**

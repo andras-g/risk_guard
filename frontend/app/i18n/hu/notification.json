@@ -14,12 +14,18 @@
       "filterAtRisk": "Kockázatos partnerekkel",
       "filterPlaceholder": "Szűrés ügyfélnév szerint...",
       "filterStale": "Elavult partnerekkel",
+      "forbiddenError": "Nincs hozzáférése ehhez az ügyfélhez.",
       "navLabel": "Repülésvezérlés",
       "pageTitle": "Repülésvezérlés",
+      "readOnlyBanner": "Csak olvasható nézet. A partnerek kezeléséhez vagy szűrések indításához váltson az ügyfél kontextusába.",
       "recentAlerts": "Legutóbbi riasztások",
       "summaryAtRisk": "Kockázatos",
       "summaryStale": "Elavult",
-      "summaryTotalClients": "Összes ügyfél"
+      "summaryTotalClients": "Összes ügyfél",
+      "switchConfirmBody": "Váltson {clientName} kontextusába a szűrés megtekintéséhez?",
+      "switchConfirmTitle": "Váltás az ügyfél kontextusába?",
+      "switchToClient": "Váltás az ügyfélre →",
+      "viewPartners": "Partnerek megtekintése →"
     },
     "watchlist": {
       "addButton": "Partner hozzáadása",
@@ -34,8 +40,9 @@
       "columns": {
         "actions": "Műveletek",
         "companyName": "Cégnév",
-        "lastChecked": "Utolsó ellenőrzés",
+        "lastScreened": "Utolsó szűrés",
         "taxNumber": "Adószám",
+        "trend": "Tendencia",
         "verdictStatus": "Verdikt állapot"
       },
       "confirmRemove": "{companyName} eltávolítása a figyelőlistáról?",

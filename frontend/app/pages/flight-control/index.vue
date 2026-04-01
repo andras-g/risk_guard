@@ -268,14 +268,20 @@ function extractErrorType(err: unknown): string | undefined {
         <div
           v-for="tenant in filteredTenants"
           :key="tenant.tenantId"
-          role="button"
-          tabindex="0"
-          class="bg-white rounded-lg border border-slate-200 p-3 cursor-pointer hover:bg-slate-50 transition-colors"
+          class="bg-white rounded-lg border border-slate-200 p-3"
           data-testid="mobile-tenant-card"
-          @click="handleClientClick(tenant)"
-          @keydown.enter="handleClientClick(tenant)"
         >
-          <p class="font-semibold text-slate-900 mb-2 truncate">{{ tenant.tenantName }}</p>
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <p
+              role="button"
+              tabindex="0"
+              class="font-semibold text-slate-900 truncate cursor-pointer hover:text-indigo-600"
+              @click="handleClientClick(tenant)"
+              @keydown.enter="handleClientClick(tenant)"
+            >
+              {{ tenant.tenantName }}
+            </p>
+          </div>
           <div class="flex items-center gap-2 flex-wrap">
             <Tag :value="String(tenant.atRiskCount)" severity="danger" />
             <span class="text-xs text-slate-500">{{ t('notification.flightControl.columnAtRisk') }}</span>
@@ -284,9 +290,18 @@ function extractErrorType(err: unknown): string | undefined {
             <Tag :value="String(tenant.reliableCount)" severity="success" />
             <span class="text-xs text-slate-500">{{ t('notification.flightControl.columnReliable') }}</span>
           </div>
-          <p class="text-xs text-slate-400 mt-2">
-            {{ tenant.lastCheckedAt ? formatRelative(tenant.lastCheckedAt) : '—' }}
-          </p>
+          <div class="flex items-center justify-between mt-2">
+            <p class="text-xs text-slate-400">
+              {{ tenant.lastCheckedAt ? formatRelative(tenant.lastCheckedAt) : '—' }}
+            </p>
+            <NuxtLink
+              :to="`/flight-control/${tenant.tenantId}`"
+              class="text-xs text-indigo-600 hover:underline"
+              data-testid="mobile-view-partners-link"
+            >
+              {{ t('notification.flightControl.viewPartners') }}
+            </NuxtLink>
+          </div>
         </div>
       </div>
 
@@ -300,7 +315,6 @@ function extractErrorType(err: unknown): string | undefined {
           :sort-order="-1"
           row-hover
           data-testid="flight-control-table"
-          @row-click="handleClientClick($event.data)"
         >
           <!-- AC3: Filter header — text search + risk-level dropdown -->
           <template #header>
@@ -332,9 +346,12 @@ function extractErrorType(err: unknown): string | undefined {
             sortable
           >
             <template #body="{ data }">
-              <span class="font-semibold text-slate-900 cursor-pointer hover:text-indigo-600">
+              <NuxtLink
+                :to="`/flight-control/${data.tenantId}`"
+                class="font-semibold text-slate-900 hover:text-indigo-600 hover:underline"
+              >
                 {{ data.tenantName }}
-              </span>
+              </NuxtLink>
             </template>
           </Column>
           <Column
@@ -378,6 +395,27 @@ function extractErrorType(err: unknown): string | undefined {
               <span class="text-sm text-slate-500">
                 {{ data.lastCheckedAt ? formatRelative(data.lastCheckedAt) : '—' }}
               </span>
+            </template>
+          </Column>
+          <Column header="">
+            <template #body="{ data }">
+              <div class="flex items-center gap-2 justify-end">
+                <NuxtLink
+                  :to="`/flight-control/${data.tenantId}`"
+                  class="text-sm text-indigo-600 hover:underline whitespace-nowrap"
+                  data-testid="view-partners-link"
+                >
+                  {{ t('notification.flightControl.viewPartners') }}
+                </NuxtLink>
+                <button
+                  class="p-1 text-slate-500 hover:text-indigo-600"
+                  :title="t('notification.flightControl.switchToClient')"
+                  data-testid="switch-tenant-button"
+                  @click="handleClientClick(data)"
+                >
+                  <i class="pi pi-arrow-right-arrow-left text-sm" />
+                </button>
+              </div>
             </template>
           </Column>
         </DataTable>

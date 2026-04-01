@@ -65,6 +65,19 @@ function verdictLabel(status: string | null): string {
     default: return status
   }
 }
+
+const STATUS_SEVERITY: Record<string, number> = {
+  RELIABLE: 0, INCOMPLETE: 1, UNAVAILABLE: 2, TAX_SUSPENDED: 3, AT_RISK: 4,
+}
+
+function trendDirection(current: string | null, previous: string | null): 'improved' | 'worsened' | 'stable' | null {
+  if (!current || !previous) return null
+  const c = STATUS_SEVERITY[current] ?? 99
+  const p = STATUS_SEVERITY[previous] ?? 99
+  if (c < p) return 'improved'
+  if (c > p) return 'worsened'
+  return 'stable'
+}
 </script>
 
 <template>
@@ -172,13 +185,30 @@ function verdictLabel(status: string | null): string {
 
     <Column
       field="lastCheckedAt"
-      :header="t('notification.watchlist.columns.lastChecked')"
+      :header="t('notification.watchlist.columns.lastScreened')"
       sortable
     >
       <template #body="{ data }">
         <span class="text-sm text-slate-500">
           {{ data.lastCheckedAt ? formatRelative(data.lastCheckedAt) : '—' }}
         </span>
+      </template>
+    </Column>
+
+    <Column :header="t('notification.watchlist.columns.trend')">
+      <template #body="{ data }">
+        <template v-if="data.previousVerdictStatus === null || data.previousVerdictStatus === undefined">
+          <span class="text-sm text-slate-400">—</span>
+        </template>
+        <template v-else-if="trendDirection(data.currentVerdictStatus, data.previousVerdictStatus) === 'improved'">
+          <i class="pi pi-arrow-up text-emerald-600" aria-label="improved" />
+        </template>
+        <template v-else-if="trendDirection(data.currentVerdictStatus, data.previousVerdictStatus) === 'worsened'">
+          <i class="pi pi-arrow-down text-rose-600" aria-label="worsened" />
+        </template>
+        <template v-else>
+          <i class="pi pi-minus text-slate-400" aria-label="stable" />
+        </template>
       </template>
     </Column>
 

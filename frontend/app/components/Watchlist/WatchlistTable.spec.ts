@@ -10,7 +10,7 @@ const DataTableStub = {
   emits: ['update:selection'],
 }
 const ColumnStub = {
-  template: '<div><slot name="body" :data="mockData" /></div>',
+  template: '<div :data-column-header="header"><slot name="body" :data="mockData" /></div>',
   props: ['field', 'header', 'sortable', 'selectionMode'],
   data() { return { mockData: {} } },
 }
@@ -47,6 +47,7 @@ function buildEntry(overrides: Partial<WatchlistEntryResponse> = {}): WatchlistE
     currentVerdictStatus: 'RELIABLE',
     lastCheckedAt: '2026-03-18T12:00:00Z',
     createdAt: '2026-03-18T10:00:00Z',
+    previousVerdictStatus: null,
     ...overrides,
   }
 }
@@ -132,5 +133,175 @@ describe('WatchlistTable', () => {
     await wrapper.setProps({ selection: [entry] })
     // Prop update wires through internalSelection computed — no crash expected
     expect(wrapper.props('selection')).toEqual([entry])
+  })
+
+  // ─── Last Screened column (AC 1) ────────────────────────────────────────────
+
+  it('Last Screened column renders formatRelative when lastCheckedAt is non-null', () => {
+    const ColumnWithDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return { data: { lastCheckedAt: '2026-03-18T12:00:00Z' } }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ lastCheckedAt: '2026-03-18T12:00:00Z' })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.text()).toContain('relative(2026-03-18T12:00:00Z)')
+  })
+
+  it('Last Screened column shows — when lastCheckedAt is null', () => {
+    const ColumnWithNullDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return { data: { lastCheckedAt: null } }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ lastCheckedAt: null })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithNullDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.html()).toContain('—')
+  })
+
+  // ─── Trend column (AC 2, 3) ──────────────────────────────────────────────────
+
+  it('Trend column shows pi-arrow-up when status improved (AT_RISK → RELIABLE)', () => {
+    // ColumnStub exposes mockData via slot; we need a real column stub that passes real data
+    // Use a specialised wrapper that passes data directly
+    const ColumnWithDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return {
+          data: {
+            currentVerdictStatus: 'RELIABLE',
+            previousVerdictStatus: 'AT_RISK',
+          },
+        }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ currentVerdictStatus: 'RELIABLE', previousVerdictStatus: 'AT_RISK' })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.html()).toContain('pi-arrow-up')
+  })
+
+  it('Trend column shows pi-arrow-down when status worsened (RELIABLE → AT_RISK)', () => {
+    const ColumnWithDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return {
+          data: {
+            currentVerdictStatus: 'AT_RISK',
+            previousVerdictStatus: 'RELIABLE',
+          },
+        }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ currentVerdictStatus: 'AT_RISK', previousVerdictStatus: 'RELIABLE' })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.html()).toContain('pi-arrow-down')
+  })
+
+  it('Trend column shows pi-minus when status unchanged', () => {
+    const ColumnWithDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return {
+          data: {
+            currentVerdictStatus: 'RELIABLE',
+            previousVerdictStatus: 'RELIABLE',
+          },
+        }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ currentVerdictStatus: 'RELIABLE', previousVerdictStatus: 'RELIABLE' })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.html()).toContain('pi-minus')
+  })
+
+  it('Trend column shows — when previousVerdictStatus is null', () => {
+    const ColumnWithDataStub = {
+      template: '<div><slot name="body" :data="data" /></div>',
+      props: ['field', 'header', 'sortable', 'selectionMode'],
+      data() {
+        return {
+          data: {
+            currentVerdictStatus: 'RELIABLE',
+            previousVerdictStatus: null,
+          },
+        }
+      },
+    }
+    const wrapper = mount(WatchlistTable, {
+      props: { entries: [buildEntry({ previousVerdictStatus: null })], isLoading: false, selection: [] },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          Column: ColumnWithDataStub,
+          Button: ButtonStub,
+          Skeleton: SkeletonStub,
+          InputText: InputTextStub,
+          NuxtLink: NuxtLinkStub,
+        },
+      },
+    })
+    expect(wrapper.html()).toContain('—')
   })
 })

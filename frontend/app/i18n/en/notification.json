@@ -14,12 +14,18 @@
       "filterAtRisk": "With At-Risk partners",
       "filterPlaceholder": "Filter by client name...",
       "filterStale": "With Stale partners",
+      "forbiddenError": "You do not have access to this client.",
       "navLabel": "Flight Control",
       "pageTitle": "Flight Control",
+      "readOnlyBanner": "Read-only view. To manage partners or trigger screenings, switch to client context.",
       "recentAlerts": "Recent Alerts",
       "summaryAtRisk": "At-Risk",
       "summaryStale": "Stale",
-      "summaryTotalClients": "Total Clients"
+      "summaryTotalClients": "Total Clients",
+      "switchConfirmBody": "Switch to {clientName}'s context to view this screening?",
+      "switchConfirmTitle": "Switch to client context?",
+      "switchToClient": "Switch to Client →",
+      "viewPartners": "View Partners →"
     },
     "watchlist": {
       "addButton": "Add Partner",
@@ -34,8 +40,9 @@
       "columns": {
         "actions": "Actions",
         "companyName": "Company Name",
-        "lastChecked": "Last Checked",
+        "lastScreened": "Last Screened",
         "taxNumber": "Tax Number",
+        "trend": "Trend",
         "verdictStatus": "Verdict Status"
       },
       "confirmRemove": "Remove {companyName} from Watchlist?",

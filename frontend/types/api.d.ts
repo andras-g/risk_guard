@@ -130,6 +130,8 @@ export interface WatchlistEntryResponse {
   createdAt: string
   // TODO: Remove manual addition once CI OpenAPI pipeline regenerates types from backend (Story 5.1)
   latestSha256Hash?: string | null
+  // TODO: Remove manual addition once CI OpenAPI pipeline regenerates types from backend (Story 5.1)
+  previousVerdictStatus?: string | null
 }
 
 export interface AddWatchlistEntryResponse {

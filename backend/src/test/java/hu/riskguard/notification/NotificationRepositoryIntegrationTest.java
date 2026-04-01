@@ -128,6 +128,22 @@ class NotificationRepositoryIntegrationTest {
     }
 
     @Test
+    void updateVerdictStatusWithHash_capturesPreviousVerdictStatus() {
+        // Given — entry with an existing verdict status
+        insertWatchlistEntryWithVerdictStatus(tenantA, "12345678", "RELIABLE");
+
+        // When — verdict changes to AT_RISK
+        notificationRepository.updateVerdictStatusWithHash(
+                tenantA, "12345678", "AT_RISK", OffsetDateTime.now(), null);
+
+        // Then — previous_verdict_status holds the OLD value, current holds the NEW value
+        var entry = notificationRepository.findByTenantIdAndTaxNumber(tenantA, "12345678");
+        assertThat(entry).isPresent();
+        assertThat(entry.get().verdictStatus()).isEqualTo("AT_RISK");
+        assertThat(entry.get().previousVerdictStatus()).isEqualTo("RELIABLE");
+    }
+
+    @Test
     void updateVerdictStatusWithHash_doesNotOverwriteHashWhenNullProvided() {
         // Given — entry with an existing hash
         String existingHash = "b".repeat(64);
@@ -181,6 +197,18 @@ class NotificationRepositoryIntegrationTest {
                 .set(field("id", UUID.class), UUID.randomUUID())
                 .set(field("tenant_id", UUID.class), tenantId)
                 .set(field("tax_number", String.class), taxNumber)
+                .set(field("created_at", OffsetDateTime.class), now)
+                .set(field("updated_at", OffsetDateTime.class), now)
+                .execute();
+    }
+
+    private void insertWatchlistEntryWithVerdictStatus(UUID tenantId, String taxNumber, String verdictStatus) {
+        OffsetDateTime now = OffsetDateTime.now();
+        dsl.insertInto(table("watchlist_entries"))
+                .set(field("id", UUID.class), UUID.randomUUID())
+                .set(field("tenant_id", UUID.class), tenantId)
+                .set(field("tax_number", String.class), taxNumber)
+                .set(field("last_verdict_status", String.class), verdictStatus)
                 .set(field("created_at", OffsetDateTime.class), now)
                 .set(field("updated_at", OffsetDateTime.class), now)
                 .execute();

@@ -13,8 +13,10 @@ import hu.riskguard.notification.internal.NotificationRepository.PortfolioOutbox
 import hu.riskguard.notification.internal.NotificationRepository.WatchlistEntryRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -367,9 +369,30 @@ public class NotificationService {
         }
 
         WatchlistEntry inserted = new WatchlistEntry(
-                id, tenantId, normalizedTaxNumber, companyName, null, now, now, verdictStatus, now, null);
+                id, tenantId, normalizedTaxNumber, companyName, null, now, now, verdictStatus, now, null, null);
 
         return new AddResult(inserted, false);
+    }
+
+    /**
+     * Get all watchlist entries for a specific client tenant (mandate-gated cross-tenant read).
+     *
+     * <p>Verifies the accountant has an active mandate over {@code clientTenantId} before
+     * returning the tenant's watchlist. Returns 403 FORBIDDEN if no mandate exists.
+     *
+     * @param userId        the accountant's user ID (resolved from JWT sub claim by controller)
+     * @param clientTenantId the tenant whose watchlist to read
+     * @return domain watchlist entries for the client tenant
+     */
+    @Transactional(readOnly = true)
+    public List<WatchlistEntry> getClientPartners(UUID userId, UUID clientTenantId) {
+        List<UUID> mandatedTenantIds = identityService.getActiveMandateTenantIds(userId);
+        if (!mandatedTenantIds.contains(clientTenantId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No mandate over requested tenant");
+        }
+        return notificationRepository.findByTenantId(clientTenantId).stream()
+                .map(NotificationService::toDomain)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -532,7 +555,7 @@ public class NotificationService {
         return new WatchlistEntry(
                 rec.id(), rec.tenantId(), rec.taxNumber(), rec.companyName(), rec.label(),
                 rec.createdAt(), rec.updatedAt(), rec.verdictStatus(), rec.lastCheckedAt(),
-                rec.latestSha256Hash());
+                rec.latestSha256Hash(), rec.previousVerdictStatus());
     }
 
     /**

@@ -83,7 +83,7 @@ class WatchlistControllerTest {
         String expectedHash = "a".repeat(64);
         WatchlistEntry entryWithHash = new WatchlistEntry(
                 UUID.randomUUID(), TENANT_ID, "12345678", "Test Company Kft.",
-                null, OffsetDateTime.now(), OffsetDateTime.now(), "RELIABLE", OffsetDateTime.now(), expectedHash);
+                null, OffsetDateTime.now(), OffsetDateTime.now(), "RELIABLE", OffsetDateTime.now(), expectedHash, null);
         when(notificationService.getWatchlistEntries(eq(TENANT_ID))).thenReturn(List.of(entryWithHash));
 
         List<WatchlistEntryResponse> result = controller.listEntries(jwt);
@@ -101,6 +101,20 @@ class WatchlistControllerTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).latestSha256Hash()).isNull();
+    }
+
+    @Test
+    void listEntriesShouldIncludePreviousVerdictStatusInResponse() {
+        Jwt jwt = buildJwt(TENANT_ID);
+        WatchlistEntry entryWithPrevious = new WatchlistEntry(
+                UUID.randomUUID(), TENANT_ID, "12345678", "Test Company Kft.",
+                null, OffsetDateTime.now(), OffsetDateTime.now(), "AT_RISK", OffsetDateTime.now(), null, "RELIABLE");
+        when(notificationService.getWatchlistEntries(eq(TENANT_ID))).thenReturn(List.of(entryWithPrevious));
+
+        List<WatchlistEntryResponse> result = controller.listEntries(jwt);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).previousVerdictStatus()).isEqualTo("RELIABLE");
     }
 
     @Test
