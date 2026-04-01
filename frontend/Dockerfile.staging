@@ -1,0 +1,6 @@
+# Lightweight staging image: copies pre-built Nuxt static output into nginx.
+# Build the static files first with `npm run generate` before running docker build.
+FROM nginx:alpine
+COPY .output/public /usr/share/nginx/html
+COPY nginx.staging.conf /etc/nginx/conf.d/default.conf
+EXPOSE 8080
