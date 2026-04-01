@@ -13,6 +13,20 @@ const watchlistStore = useWatchlistStore()
 
 const showAddDialog = ref(false)
 const selectedEntries = ref<WatchlistEntryResponse[]>([])
+const selectedPartner = ref<WatchlistEntryResponse | null>(null)
+const drawerVisible = ref(false)
+
+function handleRowSelect(entry: WatchlistEntryResponse) {
+  if (watchlistStore.isLoading) return
+  selectedPartner.value = entry
+  drawerVisible.value = true
+}
+
+function handleDrawerRemove() {
+  if (selectedPartner.value) {
+    handleRemove(selectedPartner.value, () => { drawerVisible.value = false })
+  }
+}
 
 // Fetch entries on mount
 onMounted(async () => {
@@ -46,7 +60,7 @@ async function handleAddPartner(taxNumber: string, companyName: string | null, v
   }
 }
 
-function handleRemove(entry: WatchlistEntryResponse) {
+function handleRemove(entry: WatchlistEntryResponse, onAccept?: () => void) {
   confirm.require({
     message: t('notification.watchlist.confirmRemove', { companyName: entry.companyName || entry.taxNumber }),
     header: t('notification.watchlist.removeButton'),
@@ -57,6 +71,7 @@ function handleRemove(entry: WatchlistEntryResponse) {
     accept: async () => {
       try {
         await watchlistStore.removeEntry(entry.id)
+        onAccept?.()
         toast.add({
           severity: 'success',
           summary: t('notification.watchlist.removedToast'),
@@ -102,12 +117,21 @@ function handleRemove(entry: WatchlistEntryResponse) {
       :entries="watchlistStore.entries"
       :is-loading="watchlistStore.isLoading"
       @remove="handleRemove"
+      @row-select="handleRowSelect"
     />
 
     <!-- Add Dialog -->
     <WatchlistAddDialog
       v-model:visible="showAddDialog"
       @submit="handleAddPartner"
+    />
+
+    <!-- Partner Detail Drawer -->
+    <WatchlistPartnerDrawer
+      v-model:visible="drawerVisible"
+      :entry="selectedPartner"
+      @remove="handleDrawerRemove"
+      @hide="selectedPartner = null"
     />
 
     <!-- Confirm Dialog (required by useConfirm) -->

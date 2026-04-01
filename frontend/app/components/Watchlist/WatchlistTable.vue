@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
 import InputText from 'primevue/inputtext'
 import { FilterMatchMode } from '@primevue/core/api'
+import type { DataTableRowClickEvent } from 'primevue/datatable'
 import type { WatchlistEntryResponse } from '~/types/api'
 import { useDateRelative } from '~/composables/formatting/useDateRelative'
 
@@ -21,8 +22,15 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   remove: [entry: WatchlistEntryResponse]
+  'row-select': [entry: WatchlistEntryResponse]
   'update:selection': [entries: WatchlistEntryResponse[]]
 }>()
+
+function onRowClick(event: DataTableRowClickEvent) {
+  const target = event.originalEvent.target as HTMLElement
+  if (target.closest('.p-checkbox') || target.closest('[data-testid="remove-entry-button"]')) return
+  emit('row-select', event.data as WatchlistEntryResponse)
+}
 
 const internalSelection = computed({
   get: () => props.selection,
@@ -112,6 +120,7 @@ function verdictLabel(status: string | null): string {
     selection-mode="multiple"
     striped-rows
     data-testid="watchlist-table"
+    @row-click="onRowClick"
   >
     <template #header>
       <div class="flex justify-end">

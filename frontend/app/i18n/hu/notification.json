@@ -41,6 +41,7 @@
       "confirmRemove": "{companyName} eltávolítása a figyelőlistáról?",
       "confirmYes": "Eltávolítás",
       "confirmNo": "Mégse",
+      "drawerTitle": "Partner adatai",
       "duplicateToast": "A partner már a figyelőlistán van",
       "emptyCta": "Keressen egy partnert a kezdéshez",
       "export": {
@@ -52,13 +53,18 @@
       "emptyDescription": "Adja hozzá a partnereket a keresési eredményekből, vagy használja a fenti Partner hozzáadása gombot.",
       "emptyTitle": "Még nincs partner a figyelőlistáján",
       "lastMonitored": "Utolsó monitorozás",
+      "lastScreened": "Utolsó szűrés",
+      "neverScreened": "Soha",
       "monitoringActive": "Monitorozás aktív",
       "onWatchlist": "Figyelőlistán",
       "removeButton": "Eltávolítás",
       "removedToast": "Partner eltávolítva a figyelőlistáról",
       "searchPlaceholder": "Keresés cégnév vagy adószám alapján...",
       "sidebarLabel": "Figyelőlista",
-      "title": "Figyelőlista"
+      "title": "Figyelőlista",
+      "viewAuditHistory": "Audit előzmények",
+      "viewScreening": "Teljes szűrés megtekintése",
+      "watchlistSince": "Figyelőlistán van"
     },
     "email": {
       "alertsEnabled": "E-mail értesítések engedélyezve",

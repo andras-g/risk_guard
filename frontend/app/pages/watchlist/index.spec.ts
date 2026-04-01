@@ -3,9 +3,12 @@ import { mount } from '@vue/test-utils'
 import WatchlistPage from './index.vue'
 import type { WatchlistEntryResponse } from '~/types/api'
 
+// Module-level mock handles — must be defined before vi.mock() hoisting
+const confirmRequireMock = vi.fn()
+
 // Mock PrimeVue composables (they require a PrimeVue instance when called directly)
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
-vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: vi.fn() }) }))
+vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: confirmRequireMock }) }))
 
 // Mock watchlist store
 const mockEntries: WatchlistEntryResponse[] = [
@@ -25,10 +28,12 @@ const mockFetchEntries = vi.fn()
 const mockAddEntry = vi.fn()
 const mockRemoveEntry = vi.fn()
 
+let mockIsLoading = false
+
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({
-    entries: mockEntries,
-    isLoading: false,
+    get entries() { return mockEntries },
+    get isLoading() { return mockIsLoading },
     fetchEntries: mockFetchEntries,
     addEntry: mockAddEntry,
     removeEntry: mockRemoveEntry,
@@ -42,16 +47,23 @@ vi.stubGlobal('useI18n', () => ({
   },
 }))
 
+vi.stubGlobal('navigateTo', vi.fn())
+
 // Stub child components
 const WatchlistTableStub = {
   template: '<div data-testid="stub-watchlist-table" />',
   props: ['entries', 'isLoading', 'selection'],
-  emits: ['remove', 'update:selection'],
+  emits: ['remove', 'update:selection', 'row-select'],
 }
 const WatchlistAddDialogStub = {
   template: '<div data-testid="stub-add-dialog" />',
   props: ['visible'],
   emits: ['update:visible', 'submit'],
+}
+const WatchlistPartnerDrawerStub = {
+  template: '<div data-testid="stub-partner-drawer" />',
+  props: ['entry', 'visible'],
+  emits: ['update:visible', 'remove', 'hide'],
 }
 const AuditDispatcherStub = {
   template: '<div data-testid="stub-audit-dispatcher" />',
@@ -71,6 +83,7 @@ function mountPage() {
       stubs: {
         WatchlistTable: WatchlistTableStub,
         WatchlistAddDialog: WatchlistAddDialogStub,
+        WatchlistPartnerDrawer: WatchlistPartnerDrawerStub,
         AuditDispatcher: AuditDispatcherStub,
         Button: ButtonStub,
         ConfirmDialog: ConfirmDialogStub,
@@ -82,6 +95,7 @@ function mountPage() {
 describe('Watchlist Page (index.vue)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsLoading = false
     mockFetchEntries.mockResolvedValue(undefined)
   })
 
@@ -127,5 +141,91 @@ describe('Watchlist Page (index.vue)', () => {
   it('renders add partner button', () => {
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="add-partner-button"]').exists()).toBe(true)
+  })
+
+  it('renders WatchlistPartnerDrawer component', () => {
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="stub-partner-drawer"]').exists()).toBe(true)
+  })
+
+  it('drawer is initially hidden (visible=false)', () => {
+    const wrapper = mountPage()
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('visible')).toBe(false)
+  })
+
+  it('drawer entry is initially null', () => {
+    const wrapper = mountPage()
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('entry')).toBeNull()
+  })
+
+  it('row-select from WatchlistTable opens drawer with correct entry', async () => {
+    const wrapper = mountPage()
+    const table = wrapper.findComponent(WatchlistTableStub)
+
+    await table.vm.$emit('row-select', mockEntries[0])
+    await wrapper.vm.$nextTick()
+
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('visible')).toBe(true)
+    expect(drawer.props('entry')).toEqual(mockEntries[0])
+  })
+
+  it('row-select is ignored when store is loading', async () => {
+    mockIsLoading = true
+    const wrapper = mountPage()
+    const table = wrapper.findComponent(WatchlistTableStub)
+
+    await table.vm.$emit('row-select', mockEntries[0])
+    await wrapper.vm.$nextTick()
+
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('visible')).toBe(false)
+  })
+
+  it('drawer @remove opens confirm dialog (drawer stays open until accepted)', async () => {
+    mockRemoveEntry.mockResolvedValue(undefined)
+    const wrapper = mountPage()
+    const table = wrapper.findComponent(WatchlistTableStub)
+
+    // Open drawer with entry
+    await table.vm.$emit('row-select', mockEntries[0])
+    await wrapper.vm.$nextTick()
+
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('visible')).toBe(true)
+
+    // Emit remove from drawer — should open confirm dialog, drawer stays open
+    await drawer.vm.$emit('remove')
+    await wrapper.vm.$nextTick()
+
+    expect(confirmRequireMock).toHaveBeenCalled()
+    expect(drawer.props('visible')).toBe(true)
+
+    // Simulate user accepting the confirmation — drawer closes
+    const options = confirmRequireMock.mock.calls[0]![0]
+    await options.accept()
+    await wrapper.vm.$nextTick()
+
+    expect(drawer.props('visible')).toBe(false)
+  })
+
+  it('drawer @hide clears selectedPartner (entry becomes null)', async () => {
+    const wrapper = mountPage()
+    const table = wrapper.findComponent(WatchlistTableStub)
+
+    // Open drawer with entry
+    await table.vm.$emit('row-select', mockEntries[0])
+    await wrapper.vm.$nextTick()
+
+    const drawer = wrapper.findComponent(WatchlistPartnerDrawerStub)
+    expect(drawer.props('entry')).toEqual(mockEntries[0])
+
+    // Emit hide from drawer — should clear selectedPartner
+    await drawer.vm.$emit('hide')
+    await wrapper.vm.$nextTick()
+
+    expect(drawer.props('entry')).toBeNull()
   })
 })
