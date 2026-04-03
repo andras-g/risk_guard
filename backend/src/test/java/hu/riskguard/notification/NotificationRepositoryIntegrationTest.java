@@ -63,6 +63,9 @@ class NotificationRepositoryIntegrationTest {
         tenantA = UUID.randomUUID();
         tenantB = UUID.randomUUID();
 
+        // Ensure watchlist table is clean before each test (seed data may be present)
+        dsl.deleteFrom(table("watchlist_entries")).execute();
+
         // Insert test tenants (required FK for watchlist_entries.tenant_id)
         OffsetDateTime now = OffsetDateTime.now();
         dsl.insertInto(TENANTS)

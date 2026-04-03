@@ -1,0 +1,70 @@
+import type { InvoiceAutoFillResponse, InvoiceAutoFillLineDto } from '~/types/epr'
+
+/**
+ * Returns the first day of the current quarter.
+ */
+function startOfCurrentQuarter(): Date {
+  const now = new Date()
+  const q = Math.floor(now.getMonth() / 3)
+  return new Date(now.getFullYear(), q * 3, 1)
+}
+
+/**
+ * Returns the last day of the current quarter.
+ */
+function endOfCurrentQuarter(): Date {
+  const now = new Date()
+  const q = Math.floor(now.getMonth() / 3)
+  return new Date(now.getFullYear(), q * 3 + 3, 0)
+}
+
+/**
+ * Composable for the invoice-driven EPR auto-fill feature.
+ * POSTs to /api/v1/epr/filing/invoice-autofill and returns aggregated VTSZ line suggestions.
+ */
+export function useInvoiceAutoFill() {
+  const response = ref<InvoiceAutoFillResponse | null>(null)
+  const pending = ref(false)
+  const error = ref<string | null>(null)
+
+  async function fetchAutoFill(taxNumber: string, from: Date, to: Date): Promise<InvoiceAutoFillResponse> {
+    pending.value = true
+    error.value = null
+    response.value = null
+
+    try {
+      const config = useRuntimeConfig()
+      const toIso = (d: Date) => d.toISOString().slice(0, 10)
+      const data = await $fetch<InvoiceAutoFillResponse>(
+        '/api/v1/epr/filing/invoice-autofill',
+        {
+          method: 'POST',
+          body: { taxNumber, from: toIso(from), to: toIso(to) },
+          baseURL: config.public.apiBase as string,
+          credentials: 'include',
+        },
+      )
+      response.value = data
+      return data
+    }
+    catch (err: unknown) {
+      const message = (err as { message?: string })?.message ?? 'Unknown error'
+      error.value = message
+      throw err
+    }
+    finally {
+      pending.value = false
+    }
+  }
+
+  return {
+    response,
+    pending,
+    error,
+    fetchAutoFill,
+    startOfCurrentQuarter,
+    endOfCurrentQuarter,
+  }
+}
+
+export type { InvoiceAutoFillResponse, InvoiceAutoFillLineDto }

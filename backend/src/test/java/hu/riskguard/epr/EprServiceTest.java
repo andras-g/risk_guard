@@ -1,5 +1,6 @@
 package hu.riskguard.epr;
 
+import hu.riskguard.datasource.domain.DataSourceService;
 import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.EprConfigValidator;
 import hu.riskguard.epr.domain.EprService;
@@ -44,13 +45,16 @@ class EprServiceTest {
     @Mock
     private EprConfigValidator eprConfigValidator;
 
+    @Mock
+    private DataSourceService dataSourceService;
+
     private EprService eprService;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter, eprConfigValidator);
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter, eprConfigValidator, dataSourceService);
     }
 
     @Test

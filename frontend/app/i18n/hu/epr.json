@@ -4,6 +4,28 @@
       "title": "Válasszon ügyfelet",
       "description": "Használja a felső sávban található ügyfélváltót a kezelni kívánt ügyfél EPR adatainak kiválasztásához."
     },
+    "autofill": {
+      "applyButton": "Alkalmazás a bejelentésre",
+      "columns": {
+        "description": "Leírás",
+        "quantity": "Mennyiség",
+        "suggestedKfCode": "Javasolt KF kód",
+        "template": "Sablon",
+        "unit": "Egység",
+        "vtszCode": "VTSZ kód"
+      },
+      "fetchButton": "Számlák lekérdezése",
+      "fetchError": "A számlák lekérdezése sikertelen. Kérjük, próbálja újra.",
+      "fromLabel": "Tól",
+      "navUnavailable": "A NAV Online Számla nem elérhető.",
+      "navUnavailableLink": "Adatforrás beállítása",
+      "noResults": "Nem található számlasor a kiválasztott időszakra.",
+      "panelTitle": "Előtöltés számlákból",
+      "taxNumberLabel": "Szállító adószáma",
+      "taxNumberPlaceholder": "12345678",
+      "templateMatched": "Sablon egyezik",
+      "toLabel": "Ig"
+    },
     "config": {
       "title": "EPR Konfiguráció",
       "version": "Verzió"

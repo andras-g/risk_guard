@@ -4,6 +4,28 @@
       "title": "Select a customer first",
       "description": "Use the customer switcher in the top bar to select which client's EPR data you want to manage."
     },
+    "autofill": {
+      "applyButton": "Apply to Filing",
+      "columns": {
+        "description": "Description",
+        "quantity": "Quantity",
+        "suggestedKfCode": "Suggested KF Code",
+        "template": "Template",
+        "unit": "Unit",
+        "vtszCode": "VTSZ Code"
+      },
+      "fetchButton": "Fetch Invoices",
+      "fetchError": "Failed to fetch invoices. Please try again.",
+      "fromLabel": "From",
+      "navUnavailable": "NAV Online Számla is not available.",
+      "navUnavailableLink": "Configure data source",
+      "noResults": "No invoice lines found for the selected period.",
+      "panelTitle": "Pre-fill from Invoices",
+      "taxNumberLabel": "Supplier Tax Number",
+      "taxNumberPlaceholder": "12345678",
+      "templateMatched": "Template matched",
+      "toLabel": "To"
+    },
     "config": {
       "title": "EPR Configuration",
       "version": "Version"

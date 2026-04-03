@@ -17,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.context.i18n.LocaleContextHolder;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -218,6 +219,25 @@ public class EprController {
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.calculateFiling(request.lines(), tenantId);
+    }
+
+    /**
+     * Pre-populate EPR filing form from outbound invoices fetched via NAV Online Számla.
+     * In demo mode, returns data from {@code DemoInvoiceFixtures}.
+     * On NAV unavailability, returns an empty result with {@code navAvailable=false}.
+     */
+    @PostMapping("/filing/invoice-autofill")
+    public ResponseEntity<InvoiceAutoFillResponse> invoiceAutoFill(
+            @Valid @RequestBody InvoiceAutoFillRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        if (request.from() != null && request.to() != null && request.from().isAfter(request.to())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "'from' date must not be after 'to' date");
+        }
+        InvoiceAutoFillResponse response = eprService.autoFillFromInvoices(
+                request.taxNumber(), request.from(), request.to(), tenantId);
+        return ResponseEntity.ok(response);
     }
 
     /**

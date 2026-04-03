@@ -73,6 +73,32 @@ public final class DemoInvoiceFixtures {
         return INVOICES.getOrDefault(taxNumber8, List.of());
     }
 
+    /**
+     * Get invoices for a given tax number — alias used by {@code DataSourceService} facade.
+     * Normalises the tax number to 8 digits before lookup.
+     *
+     * @param taxNumber tax number (may include dashes or be longer than 8 digits)
+     * @return list of invoices, or empty list for unknown companies
+     */
+    public static List<InvoiceFixture> getForTaxNumber(String taxNumber) {
+        String normalised = taxNumber == null ? "" : taxNumber.replace("-", "");
+        if (normalised.length() > 8) {
+            normalised = normalised.substring(0, 8);
+        }
+        return INVOICES.getOrDefault(normalised, List.of());
+    }
+
+    /**
+     * Get all invoices across all companies (used for invoice-number lookup in queryInvoiceDetails).
+     *
+     * @return flat list of all invoices in the demo dataset
+     */
+    public static List<InvoiceFixture> getAllFixtures() {
+        return INVOICES.values().stream()
+                .flatMap(List::stream)
+                .toList();
+    }
+
     // --- Invoice generators for each company scenario ---
 
     private static List<InvoiceFixture> generateTradeCompanyInvoices(String taxNumber) {

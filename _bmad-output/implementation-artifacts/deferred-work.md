@@ -1,5 +1,27 @@
 # Deferred Work
 
+## Deferred from: code review of 8-3-invoice-driven-epr-auto-fill (2026-04-03)
+
+- W1: `invoiceNumber` logged plain in `DataSourceService.queryInvoiceDetails` warn path — inconsistent with masked `taxNumber`; invoice numbers are not PII; low risk.
+- W2: `toInvoiceSummary` hardcodes `invoiceNetAmount=BigDecimal.ZERO` — demo mode only; EPR auto-fill never reads summary net amounts, so functionally harmless.
+- W3: `toInvoiceDetail` passes `li.netAmount()` twice for `lineNetAmount` and `lineNetAmountHUF` — demo mode only; EPR reads vtszCode/quantity not HUF amounts; live path correctly distinguishes them.
+- W4: `DemoInvoiceFixtures.getForTaxNumber` truncates to 8 chars without validating content is numeric — demo mode only; short/non-numeric strings silently miss in fixture map (safe).
+- W5: `emptyDetail` hardcodes `InvoiceDirection.OUTBOUND` — error-path fallback only; direction field not consumed by any EPR auto-fill logic.
+- W6: N+1 sequential NAV calls in `EprService.autoFillFromInvoices` — one `queryInvoiceDetails` call per invoice summary, blocking; batch/parallel fetch needed for large invoice counts; MVP scope.
+- W7: SQL migration `V20260403_001` UPDATE silently affects 0 rows if no `version=1` config exists — pre-existing system assumption that EPR wizard has been run before auto-fill is used.
+- W8: `InvoiceAutoFillPanel.vue` `handleFetch`: DatePicker can be cleared to null; silent no-op with no user feedback when dates missing.
+- W9: `EprService.autoFillFromInvoices` template match uses `findFirst()` — non-deterministic if two templates share the same `materialName_hu` (case-insensitively); low-probability data quality edge case.
+- W10: No explicit unit test that `EprConfigValidator.validate()` accepts a config containing `vtszMappings` — validator ignores unknown top-level keys by design; regression guard would be useful.
+
+## Deferred from: code review of 8-2-screening-verdict-pdf-export (2026-04-03)
+
+- D1: `URL.revokeObjectURL` 10s `setTimeout` fire-and-forget in `dispatch` — pre-existing pattern from Story 5.1 `useWatchlistPdfExport.ts`; minor memory hold for up to 10s after unmount.
+- D2: `SOURCE_UNAVAILABLE:name` signal split on first `:` only — if source name ever contains a colon, the label is truncated; current backend uses short alphanumeric names so no impact today.
+- D3: `dispatch` download fallback calls `document.createElement`/`body.appendChild` without `typeof document !== 'undefined'` guard — screening page is client-side only, so SSR path is unreachable.
+- D4: Empty `provenance.sources` array (`[]`) produces no "no sources" message in the PDF — spec does not require this; PDF silently skips the section, consistent with spec intent.
+- D5: If provenance fetch fails, `currentProvenance` is null and a user who immediately clicks Export PDF gets a PDF without data sources — null provenance is gracefully handled (section omitted), no crash; acceptable silent omission.
+- D6: `riskSignalLabel` falls through to `t(\`screening.riskSignals.\${signal}\`)` for unknown signals — returns raw key in PDF for future unknown enum values; consistent with the existing VerdictCard UI rendering pattern.
+
 ## Deferred from: code review of 7-5-dashboard-empty-onboarding-state (2026-04-01)
 
 - D1: Hero may flicker briefly after successful add — async window between `addEntry` POST and `fetchEntries` resolving; `!watchlistLoading && entries.length === 0` can momentarily be true again; pre-existing store async behavior.

@@ -130,3 +130,28 @@ export interface KfCodeListResponse {
   configVersion: number
   entries: KfCodeEntry[]
 }
+
+// ─── Invoice Auto-Fill types (Story 8.3) ────────────────────────────────────
+// TODO: Replace with auto-generated types after OpenAPI regen
+
+export interface InvoiceAutoFillRequest {
+  taxNumber: string
+  from: string
+  to: string
+}
+
+export interface InvoiceAutoFillLineDto {
+  vtszCode: string
+  description: string
+  suggestedKfCode: string | null
+  aggregatedQuantity: number
+  unitOfMeasure: string
+  hasExistingTemplate: boolean
+  existingTemplateId: string | null
+}
+
+export interface InvoiceAutoFillResponse {
+  lines: InvoiceAutoFillLineDto[]
+  navAvailable: boolean
+  dataSourceMode: string
+}

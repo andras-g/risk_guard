@@ -3,11 +3,14 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
+import Panel from 'primevue/panel'
+import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useAuthStore } from '~/stores/auth'
 import { useEprStore } from '~/stores/epr'
 import { useEprFilingStore } from '~/stores/eprFiling'
+import type { InvoiceAutoFillLineDto } from '~/composables/api/useInvoiceAutoFill'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -46,6 +49,20 @@ async function handleCalculate() {
       summary: t('epr.filing.calculateError', { message }),
       life: 5000,
     })
+  }
+}
+
+const unmatchedLines = ref<InvoiceAutoFillLineDto[]>([])
+
+function onAutoFillApply(lines: InvoiceAutoFillLineDto[]) {
+  unmatchedLines.value = []
+  for (const line of lines) {
+    if (line.existingTemplateId) {
+      filingStore.updateQuantity(line.existingTemplateId, Math.ceil(line.aggregatedQuantity).toString())
+    }
+    else {
+      unmatchedLines.value.push(line)
+    }
   }
 }
 
@@ -114,6 +131,32 @@ async function handleExport() {
           @click="router.push('/epr')"
         />
       </div>
+    </div>
+
+    <!-- Invoice Auto-Fill Panel -->
+    <Panel
+      :toggleable="true"
+      :collapsed="true"
+      :header="t('epr.autofill.panelTitle')"
+      class="mb-6"
+      data-testid="autofill-panel"
+    >
+      <InvoiceAutoFillPanel @apply="onAutoFillApply" />
+    </Panel>
+
+    <!-- Unmatched lines from auto-fill -->
+    <div
+      v-if="unmatchedLines.length > 0"
+      class="mb-4 flex flex-wrap gap-2"
+      data-testid="unmatched-lines"
+    >
+      <Tag
+        v-for="line in unmatchedLines"
+        :key="line.vtszCode + '-' + line.unitOfMeasure"
+        severity="warning"
+        :value="line.description || line.vtszCode"
+        data-testid="unmatched-tag"
+      />
     </div>
 
     <!-- Loading State -->

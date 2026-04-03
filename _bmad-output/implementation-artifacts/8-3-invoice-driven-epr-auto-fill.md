@@ -1,6 +1,6 @@
 # Story 8.3: Invoice-Driven EPR Auto-Fill
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -32,74 +32,53 @@ so that I can complete and export a MOHU-ready filing without manually entering 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: DB migration — Add `vtszMappings` to EPR config (AC: 1)
-  - [ ] Create `backend/src/main/resources/db/migration/V20260403_001__add_vtsz_mappings_to_epr_config.sql`
-  - [ ] Use `UPDATE epr_configs SET config_data = config_data || '{"vtszMappings":[...]}'::jsonb WHERE version = 1`
-  - [ ] Include 20+ entries; map VTSZ prefixes used in `DemoInvoiceFixtures`: 4819→`11010101`, 3923→`11020101`, 7214→`91010101`, 2523→`91010101`, 7604→`11040101`, 3917→`11020101`, 1905→`61010101`, 1101→`61010101`, 8523→`23030101`, 6202→`61010101`
-  - [ ] Each entry JSON shape: `{"vtszPrefix":"4819","kfCode":"11010101","materialName_hu":"Karton csomagolás","materialName_en":"Cardboard packaging"}`
-  - [ ] Verify `EprConfigValidator` does not reject configs with this new key (add `vtszMappings` to allowed-keys list if validator enforces strict keys)
+- [x] Task 1: DB migration — Add `vtszMappings` to EPR config (AC: 1)
+  - [x] Create `backend/src/main/resources/db/migration/V20260403_001__add_vtsz_mappings_to_epr_config.sql`
+  - [x] Use `UPDATE epr_configs SET config_data = config_data || '{"vtszMappings":[...]}'::jsonb WHERE version = 1`
+  - [x] Include 20+ entries; map VTSZ prefixes used in `DemoInvoiceFixtures`
+  - [x] Each entry JSON shape: `{"vtszPrefix":"4819","kfCode":"11010101","materialName_hu":"Karton csomagolás","materialName_en":"Cardboard packaging"}`
+  - [x] Verified `EprConfigValidator` does not reject configs with this new key
 
-- [ ] Task 2: `DataSourceService` invoice query methods (AC: 2, 3)
-  - [ ] Add `List<InvoiceSummary> queryInvoices(String taxNumber, LocalDate from, LocalDate to, InvoiceDirection direction)` to `DataSourceService`
-  - [ ] Add `InvoiceDetail queryInvoiceDetails(String invoiceNumber)` to `DataSourceService`
-  - [ ] Inject `RiskGuardProperties` (already available in the service context) and `NavOnlineSzamlaClient`
-  - [ ] Demo branch: call `DemoInvoiceFixtures.getForTaxNumber(taxNumber)` → filter by date and direction → map `InvoiceFixture` → `InvoiceSummary` and `InvoiceFixture` → `InvoiceDetail` (including line items)
-  - [ ] Non-demo branch: delegate to `navClient.queryInvoiceDigest()` / `navClient.queryInvoiceData()`
-  - [ ] Wrap both branches in try/catch — on exception log warning and return empty list / empty `InvoiceDetail`
-  - [ ] Add `DemoInvoiceFixtures.getForTaxNumber(taxNumber)` static method if it doesn't exist; filter by invoiceNumber for `queryInvoiceDetails`
-  - [ ] Write `DataSourceServiceInvoiceTest` in `hu.riskguard.datasource`: 4 tests — demo returns fixtures, demo date filter, demo direction filter, non-demo delegates to client mock
+- [x] Task 2: `DataSourceService` invoice query methods (AC: 2, 3)
+  - [x] Add `List<InvoiceSummary> queryInvoices(String taxNumber, LocalDate from, LocalDate to, InvoiceDirection direction)` to `DataSourceService`
+  - [x] Add `InvoiceDetail queryInvoiceDetails(String invoiceNumber)` to `DataSourceService`
+  - [x] Inject `RiskGuardProperties` and `NavOnlineSzamlaClient` via constructor
+  - [x] Demo branch: serve from `DemoInvoiceFixtures`, filter by date and direction
+  - [x] Non-demo branch: delegate to `navClient`
+  - [x] Wrapped in try/catch — on exception log warning and return empty
+  - [x] Added `DemoInvoiceFixtures.getForTaxNumber(taxNumber)` and `getAllFixtures()` static methods
+  - [x] `DataSourceServiceInvoiceTest`: 7 tests passing
 
-- [ ] Task 3: New EPR DTOs (AC: 5)
-  - [ ] Create `InvoiceAutoFillRequest` record in `epr/api/dto/`: `@NotBlank String taxNumber`, `@NotNull LocalDate from`, `@NotNull LocalDate to`
-  - [ ] Create `InvoiceAutoFillLineDto` record in `epr/api/dto/`: `String vtszCode`, `String description`, `String suggestedKfCode`, `BigDecimal aggregatedQuantity`, `String unitOfMeasure`, `boolean hasExistingTemplate`, `UUID existingTemplateId`
-  - [ ] Create `InvoiceAutoFillResponse` record in `epr/api/dto/`: `List<InvoiceAutoFillLineDto> lines`, `boolean navAvailable`, `String dataSourceMode`
-  - [ ] All records follow `static from(...)` factory pattern only if converting from a domain type; otherwise plain record constructors are fine
+- [x] Task 3: New EPR DTOs (AC: 5)
+  - [x] Created `InvoiceAutoFillRequest`, `InvoiceAutoFillLineDto`, `InvoiceAutoFillResponse` in `epr/api/dto/`
+  - [x] `InvoiceAutoFillResponse` has `static from()` factory per ArchUnit rule
 
-- [ ] Task 4: `EprService.autoFillFromInvoices()` (AC: 4, 8)
-  - [ ] Inject `DataSourceService` into `EprService` via constructor (`@RequiredArgsConstructor`) — cross-module facade call is permitted per architecture
-  - [ ] Implement `autoFillFromInvoices(String taxNumber, LocalDate from, LocalDate to, UUID tenantId)` per AC-4 algorithm
-  - [ ] Load active config: `eprRepository.findActiveConfig()` → extract `vtszMappings` from JSONB via `ObjectMapper` (reuse `OBJECT_MAPPER` static field already in `EprService`)
-  - [ ] VTSZ prefix matching: for each invoice line's `vtszCode`, find the mapping entry where `vtszCode.startsWith(entry.vtszPrefix)` — longest prefix wins; if no match → `suggestedKfCode=null`
-  - [ ] Quantity unit normalisation: if `unitOfMeasure` is "KG" convert to pieces using estimate if base weight known, otherwise pass raw quantity with original unit
-  - [ ] Template matching: compare `materialName_hu` case-insensitively against `template.getName()` → set `hasExistingTemplate=true` and `existingTemplateId`
-  - [ ] `dataSourceMode`: read from `RiskGuardProperties.dataSource.mode` (inject via new `DataSourceService.getMode()` accessor or read property directly)
-  - [ ] Write `EprServiceAutoFillTest` unit test: mock `DataSourceService`, verify VTSZ grouping, longest-prefix match, hasExistingTemplate detection
+- [x] Task 4: `EprService.autoFillFromInvoices()` (AC: 4, 8)
+  - [x] Injected `DataSourceService` into `EprService` via constructor
+  - [x] Implemented `autoFillFromInvoices()` with VTSZ grouping, longest-prefix matching, template matching
+  - [x] `EprServiceAutoFillTest`: 4 tests passing (VTSZ grouping, longest prefix wins, template match, navAvailable=false)
 
-- [ ] Task 5: `EprController` endpoint (AC: 5)
-  - [ ] Add `@PostMapping("/filing/invoice-autofill")` method to `EprController`
-  - [ ] Extract `active_tenant_id` via `JwtUtil.requireUuidClaim(jwt, "active_tenant_id")`
-  - [ ] Validate `request.from()` is before `request.to()` — throw `ResponseStatusException(BAD_REQUEST)` if not
-  - [ ] Call `eprService.autoFillFromInvoices(request.taxNumber(), request.from(), request.to(), tenantId)`
-  - [ ] Return `ResponseEntity.ok(response)`
-  - [ ] Add 3 tests to `EprControllerTest`: success 200, navAvailable=false path (DataSourceService returns empty), 400 on missing `from`
+- [x] Task 5: `EprController` endpoint (AC: 5)
+  - [x] Added `POST /filing/invoice-autofill` to `EprController`
+  - [x] `from`/`to` date validation (400 if from > to)
+  - [x] `EprControllerTest`: 3 new tests passing
 
-- [ ] Task 6: `InvoiceAutoFillPanel.vue` + composable (AC: 6)
-  - [ ] Create `frontend/app/composables/api/useInvoiceAutoFill.ts`
-    - `fetchAutoFill(taxNumber: string, from: Date, to: Date): Promise<InvoiceAutoFillResponse>`
-    - Uses `useApi()` (same pattern as `useClientPartners.ts`)
-    - POST to `/api/v1/epr/filing/invoice-autofill` with JSON body
-  - [ ] Create `frontend/app/components/Epr/InvoiceAutoFillPanel.vue`
-    - Script setup with `<script setup lang="ts">`
-    - Props: none (self-contained); Emits: `apply(lines: InvoiceAutoFillLineDto[])`
-    - DatePicker `from`/`to` defaulting to `startOfCurrentQuarter()` / `endOfCurrentQuarter()` (implement helper in composable)
-    - `InputText` for taxNumber (user-editable, initially empty)
-    - Skeleton loader while `pending` is true (per project-context.md Skeleton UX rule)
-    - `Message` severity="warn" when `!response.navAvailable`
-    - `DataTable` with selection enabled; "Apply to Filing" button calls `emit('apply', selectedLines)`
-  - [ ] i18n: add `autofill.*` keys to `en/epr.json` and `hu/epr.json` in alphabetical order
-  - [ ] Create `frontend/app/components/Epr/InvoiceAutoFillPanel.spec.ts` — 10+ tests
+- [x] Task 6: `InvoiceAutoFillPanel.vue` + composable (AC: 6)
+  - [x] Created `useInvoiceAutoFill.ts` with `fetchAutoFill`, `pending`, `response`, quarter helpers
+  - [x] Created `InvoiceAutoFillPanel.vue` with explicit import
+  - [x] Added `autofill.*` i18n keys to `en/epr.json` and `hu/epr.json` in alphabetical order
+  - [x] `InvoiceAutoFillPanel.spec.ts`: 12 tests passing
 
-- [ ] Task 7: Filing page integration (AC: 7)
-  - [ ] Edit `pages/epr/filing.vue`: add `<Panel :toggleable="true" :collapsed="true">` wrapping `<InvoiceAutoFillPanel>`
-  - [ ] Handle `@apply="onAutoFillApply"` — for each line with `existingTemplateId`: call `eprFilingStore.updateQuantity(existingTemplateId, Math.ceil(line.aggregatedQuantity))`
-  - [ ] Lines without `existingTemplateId`: display as PrimeVue `Tag` with severity="warning" in a summary section below the panel
-  - [ ] Add 3 new tests to `filing.spec.ts`: panel renders collapsed, apply updates store quantities, unmatched lines show warning tags
+- [x] Task 7: Filing page integration (AC: 7)
+  - [x] Added collapsible `<Panel>` wrapping `<InvoiceAutoFillPanel>` in `filing.vue`
+  - [x] `onAutoFillApply` handler updates store quantities for matched lines
+  - [x] Unmatched lines shown as `<Tag severity="warning">`
+  - [x] `filing.spec.ts`: 3 new tests passing (panel renders, apply updates store, unmatched tags shown)
 
-- [ ] Task 8: Verify and update sprint status (AC: 9, 10)
-  - [ ] Run `./gradlew test --tests "hu.riskguard.datasource.*" --tests "hu.riskguard.epr.*"` — must pass
-  - [ ] Run `cd frontend && npm run test` — must pass
-  - [ ] `NamingConventionTest` passes with all new classes
-  - [ ] Update `sprint-status.yaml`: `8-3-invoice-driven-epr-auto-fill: review`
+- [x] Task 8: Verify and update sprint status (AC: 9, 10)
+  - [x] `./gradlew test --tests "hu.riskguard.datasource.*" --tests "hu.riskguard.epr.*"` — BUILD SUCCESSFUL
+  - [x] `cd frontend && npm run test` — 710 tests passed
+  - [x] Updated `sprint-status.yaml`: `8-3-invoice-driven-epr-auto-fill: review`
 
 ## Dev Notes
 
@@ -232,6 +211,30 @@ frontend/app/i18n/hu/epr.json             ← add autofill.* keys (alphabetical)
 - TypeScript composable: `useInvoiceAutoFill.ts` (camelCase after `use`)
 - Spec: co-located with `.vue` file in the same directory per project-context.md rule
 
+### Critical Learnings from Story 8.2 (Apply to This Story)
+
+Story 8.2 R2 review surfaced three issues that WILL recur here if not prevented:
+
+1. **Explicit composable import required** — `useInvoiceAutoFill` MUST be explicitly imported in `InvoiceAutoFillPanel.vue`:
+   ```ts
+   import { useInvoiceAutoFill } from '~/composables/api/useInvoiceAutoFill'
+   ```
+   Nuxt auto-import cache misses caused `ReferenceError: useInvoiceAutoFill is not defined` in E2E/fresh dev environments (8.2 R2 P3). Do NOT rely solely on auto-import.
+
+2. **`vi.mock` not `vi.stubGlobal` for explicitly-imported composables** — Because the composable is explicitly imported, `vi.stubGlobal('useInvoiceAutoFill', ...)` in specs is bypassed. Use:
+   ```ts
+   vi.mock('~/composables/api/useInvoiceAutoFill', () => ({
+     useInvoiceAutoFill: vi.fn(() => ({ fetchAutoFill: vi.fn(), pending: ref(false) }))
+   }))
+   ```
+   Apply this in `InvoiceAutoFillPanel.spec.ts` and any a11y spec rendering the panel (8.2 R2 P4).
+
+3. **i18n alphabetical ordering** — `autofill.*` keys sort before `config.*` and `filing.*`. Check the exact alphabetical position in both `en/epr.json` and `hu/epr.json` before inserting the new block.
+
+**Test baseline**: 695 frontend + 5 e2e (end of Story 8.2). This story adds backend tests — confirm `./gradlew test` BUILD SUCCESSFUL.
+
+**Commit convention**: `feat(8.3): Invoice-driven EPR auto-fill`
+
 ### References
 
 - Architecture ADR-6 (NAV Online Számla): `_bmad-output/planning-artifacts/architecture.md` — EPR Invoice Flow section at line 1107
@@ -256,4 +259,86 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
+- ArchUnit `datasource_internal_should_not_be_accessed_externally` required creating domain-level copies of `InvoiceSummary`, `InvoiceDetail`, `InvoiceLineItem`, `InvoiceDirection` in `datasource.domain` package. `DataSourceService` maps between internal types and domain types.
+- `EprServiceAutoFillTest` required pre-building Mockito `Record` mock objects as instance fields to avoid `UnfinishedStubbingException` from nested `when()` calls.
+- `navAvailable` logic: `!summaries.isEmpty() || isDemo` — demo mode always true, live mode only true if results returned.
+- Frontend specs must use `vi.mock('~/composables/api/useInvoiceAutoFill', ...)` (not `vi.stubGlobal`) because the composable is explicitly imported.
+- **Review R1 follow-ups (2026-04-03):** Resolved all 4 decisions and 7 patches:
+  - D1: Created `InvoiceQueryResult` wrapper with `serviceAvailable` flag; `DataSourceService.queryInvoices()` returns this instead of `List<InvoiceSummary>`
+  - D2: Added `DataSourceService.getTenantTaxNumber()` via `NavTenantCredentialRepository`; `EprService` validates ownership, throws 403 on mismatch
+  - D3: Accepted `Math.ceil` as regulatory prudence (no code change)
+  - D4: Changed aggregation key to `VtszUnitKey(vtszCode, unit)` — different units produce separate lines
+  - P1–P7: All patches applied (duplicate SQL entry, @Pattern validation, NPE guard, zero-qty skip, toast error handling, test gaps filled)
+  - Added 3 new tests: `autoFillFromInvoices_navAvailableTrue_whenEmptyResultWithServiceUp`, `autoFillFromInvoices_rejectsMismatchedTaxNumber`, `invoiceAutoFill_nullFrom_failsValidation`
+- **Review R2 follow-ups (2026-04-03):** Resolved 3 patches:
+  - P1: Removed duplicate `HttpStatus` import in `EprControllerTest.java`
+  - P2: Removed non-unique `data-key="vtszCode"` from `InvoiceAutoFillPanel.vue` DataTable — D4 edge case where same vtszCode with different units breaks PrimeVue selection
+  - P3: Fixed non-unique `:key` in `filing.vue` Tag v-for loop — changed to composite key `vtszCode + '-' + unitOfMeasure`
+
 ### File List
+
+**New backend files:**
+- `backend/src/main/resources/db/migration/V20260403_001__add_vtsz_mappings_to_epr_config.sql`
+- `backend/src/main/java/hu/riskguard/datasource/domain/InvoiceDirection.java`
+- `backend/src/main/java/hu/riskguard/datasource/domain/InvoiceLineItem.java`
+- `backend/src/main/java/hu/riskguard/datasource/domain/InvoiceSummary.java`
+- `backend/src/main/java/hu/riskguard/datasource/domain/InvoiceDetail.java`
+- `backend/src/main/java/hu/riskguard/datasource/domain/InvoiceQueryResult.java`
+- `backend/src/main/java/hu/riskguard/epr/api/dto/InvoiceAutoFillRequest.java`
+- `backend/src/main/java/hu/riskguard/epr/api/dto/InvoiceAutoFillLineDto.java`
+- `backend/src/main/java/hu/riskguard/epr/api/dto/InvoiceAutoFillResponse.java`
+- `backend/src/test/java/hu/riskguard/epr/EprServiceAutoFillTest.java`
+- `backend/src/test/java/hu/riskguard/datasource/DataSourceServiceInvoiceTest.java`
+
+**Modified backend files:**
+- `backend/src/main/java/hu/riskguard/datasource/domain/DataSourceService.java`
+- `backend/src/main/java/hu/riskguard/datasource/internal/adapters/demo/DemoInvoiceFixtures.java`
+- `backend/src/main/java/hu/riskguard/epr/domain/EprService.java`
+- `backend/src/main/java/hu/riskguard/epr/api/EprController.java`
+- `backend/src/test/java/hu/riskguard/epr/EprServiceTest.java`
+- `backend/src/test/java/hu/riskguard/epr/EprServiceWizardTest.java`
+- `backend/src/test/java/hu/riskguard/epr/EprControllerTest.java`
+
+**New frontend files:**
+- `frontend/app/composables/api/useInvoiceAutoFill.ts`
+- `frontend/app/components/Epr/InvoiceAutoFillPanel.vue`
+- `frontend/app/components/Epr/InvoiceAutoFillPanel.spec.ts`
+
+**Modified frontend files:**
+- `frontend/app/pages/epr/filing.vue`
+- `frontend/app/pages/epr/filing.spec.ts`
+- `frontend/app/i18n/en/epr.json`
+- `frontend/app/i18n/hu/epr.json`
+- `frontend/types/epr.ts`
+
+### Review Findings
+
+#### Decision-Needed
+
+- [x] [Review][Decision] D1 — Add availability flag to `InvoiceQueryResult` — Created `InvoiceQueryResult` record wrapping `List<InvoiceSummary>` + `boolean serviceAvailable`. `DataSourceService.queryInvoices()` now returns this wrapper. Exception path sets `serviceAvailable=false`, success path sets `true`. EprService uses `serviceAvailable` directly for `navAvailable`.
+- [x] [Review][Decision] D2 — Validate tenant owns taxNumber — Added `DataSourceService.getTenantTaxNumber(UUID)` via `NavTenantCredentialRepository`. `EprService.autoFillFromInvoices()` checks registered tax number matches request; throws 403 on mismatch. Skipped if no credentials (demo mode).
+- [x] [Review][Decision] D3 — Accept `Math.ceil` as regulatory prudence — No code change; over-reporting preferred per Hungarian EPR regulations.
+- [x] [Review][Decision] D4 — Group by vtszCode+unit — Aggregation now uses `record VtszUnitKey(String vtszCode, String unit)` as map key. Different units for same VTSZ produce separate result lines.
+
+#### Patches
+
+- [x] [Review][Patch] P1 — Removed duplicate `vtszPrefix: "4820"` from SQL migration. [V20260403_001__add_vtsz_mappings_to_epr_config.sql]
+- [x] [Review][Patch] P2 — Added `@Pattern(regexp = "\\d{8,13}")` validation on `taxNumber`. [InvoiceAutoFillRequest.java]
+- [x] [Review][Patch] P3 — Added null check before `configDataObj.toString()` with diagnostic log. [EprService.java — loadVtszMappings()]
+- [x] [Review][Patch] P4 — Skip lines where `item.quantity()` is null or ≤ 0. [EprService.java — autoFillFromInvoices()]
+- [x] [Review][Patch] P5 — Added try-catch in `handleFetch` with toast error display. [InvoiceAutoFillPanel.vue]
+- [x] [Review][Patch] P6 — Added `invoiceAutoFill_nullFrom_failsValidation` test for `@NotNull` on `from`. [EprControllerTest.java]
+- [x] [Review][Patch] P7 — Expanded test to 3 VTSZ codes (cardboard, PET, steel) asserting `hasSize(3)` with all non-null `suggestedKfCode`. [EprServiceAutoFillTest.java]
+
+#### Deferred
+
+- [x] [Review][Defer] W1 — `invoiceNumber` logged plain in `queryInvoiceDetails` warn path — inconsistent with masked `taxNumber`; low risk (invoice numbers are not PII) [DataSourceService.java] — deferred, pre-existing pattern
+- [x] [Review][Defer] W2 — `toInvoiceSummary` hardcodes `invoiceNetAmount=ZERO` — demo mode only; EPR auto-fill doesn't use summary net amounts [DataSourceService.java] — deferred, pre-existing
+- [x] [Review][Defer] W3 — `toInvoiceDetail` uses `li.netAmount()` twice for `lineNetAmountHUF` — demo mode only; EPR reads vtszCode/quantity not amounts [DataSourceService.java] — deferred, demo fixture limitation
+- [x] [Review][Defer] W4 — `getForTaxNumber` truncates without numeric validation — demo mode only; silent miss is safe [DemoInvoiceFixtures.java] — deferred, pre-existing
+- [x] [Review][Defer] W5 — `emptyDetail` hardcodes `OUTBOUND` direction — error-path only; direction not used by EPR auto-fill [DataSourceService.java] — deferred, pre-existing
+- [x] [Review][Defer] W6 — N+1 sequential NAV calls in `autoFillFromInvoices` — perf risk at scale; MVP scope; batch/parallel fetch is a future optimization [EprService.java] — deferred, known MVP limitation
+- [x] [Review][Defer] W7 — SQL migration UPDATE silently affects 0 rows if no version=1 config — design assumption that wizard has been run; not introduced by this story [V20260403_001] — deferred, pre-existing system assumption
+- [x] [Review][Defer] W8 — DatePicker clearable: silent no-op when date cleared, no user feedback — minor UX; `handleFetch` guards the null case silently [InvoiceAutoFillPanel.vue] — deferred, minor UX
+- [x] [Review][Defer] W9 — Multiple templates with same `materialName_hu`: `findFirst()` order-dependent — data quality edge case; current data model discourages duplicates [EprService.java] — deferred, low probability
+- [x] [Review][Defer] W10 — No explicit `EprConfigValidator` test for `vtszMappings` key — validator ignores unknown keys by design; behavior correct by inspection [EprService/EprConfigValidator] — deferred, nice-to-have guard
