@@ -3,19 +3,26 @@ package hu.riskguard.datasource.api;
 import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.datasource.api.dto.AdapterHealthResponse;
+import hu.riskguard.datasource.api.dto.NavCredentialRequest;
 import hu.riskguard.datasource.api.dto.QuarantineRequest;
 import hu.riskguard.datasource.domain.CompanyDataPort;
 import hu.riskguard.datasource.internal.AdapterHealthRepository;
 import hu.riskguard.datasource.internal.AdapterHealthRepository.AdapterHealthRow;
+import hu.riskguard.datasource.internal.AesFieldEncryptor;
+import hu.riskguard.datasource.internal.NavTenantCredentialRepository;
+import hu.riskguard.datasource.internal.adapters.nav.AuthService;
+import hu.riskguard.datasource.internal.adapters.nav.NavCredentials;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,7 +30,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,13 +42,35 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/v1/admin/datasources")
-@RequiredArgsConstructor
 public class DataSourceAdminController {
+
+    private static final String NAV_ADAPTER_NAME = "nav-online-szamla";
 
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final AdapterHealthRepository adapterHealthRepository;
     private final List<CompanyDataPort> adapters;
     private final RiskGuardProperties riskGuardProperties;
+    private final AuthService authService;
+    private final AesFieldEncryptor aesFieldEncryptor;
+    private final NavTenantCredentialRepository navTenantCredentialRepository;
+
+    public DataSourceAdminController(
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            AdapterHealthRepository adapterHealthRepository,
+            List<CompanyDataPort> adapters,
+            RiskGuardProperties riskGuardProperties,
+            AuthService authService,
+            AesFieldEncryptor aesFieldEncryptor,
+            NavTenantCredentialRepository navTenantCredentialRepository
+    ) {
+        this.circuitBreakerRegistry = circuitBreakerRegistry;
+        this.adapterHealthRepository = adapterHealthRepository;
+        this.adapters = adapters;
+        this.riskGuardProperties = riskGuardProperties;
+        this.authService = authService;
+        this.aesFieldEncryptor = aesFieldEncryptor;
+        this.navTenantCredentialRepository = navTenantCredentialRepository;
+    }
 
     /**
      * Returns health status for all registered data source adapters.
@@ -51,15 +79,17 @@ public class DataSourceAdminController {
     @GetMapping("/health")
     public List<AdapterHealthResponse> getHealth(@AuthenticationPrincipal Jwt jwt) {
         requireAdminRole(jwt);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         String dataSourceMode = riskGuardProperties.getDataSource().getMode().toUpperCase();
         List<AdapterHealthRow> dbRows = adapterHealthRepository.findAll();
 
-        List<String> adapterNames = adapters.stream().map(CompanyDataPort::adapterName).toList();
-        Map<String, String> credentialStatuses = adapterHealthRepository.findAllCredentialStatuses(adapterNames);
+        // Derive NAV credential status from per-tenant nav_tenant_credentials table
+        String navCredentialStatus = navTenantCredentialRepository.existsByTenantId(tenantId)
+                ? "VALID" : "NOT_CONFIGURED";
 
         return adapters.stream()
-                .map(adapter -> buildResponse(adapter, dataSourceMode, dbRows, credentialStatuses))
+                .map(adapter -> buildResponse(adapter, dataSourceMode, dbRows, navCredentialStatus))
                 .toList();
     }
 
@@ -108,17 +138,63 @@ public class DataSourceAdminController {
 
         String dataSourceMode = riskGuardProperties.getDataSource().getMode().toUpperCase();
         List<AdapterHealthRow> dbRows = adapterHealthRepository.findAll();
-        List<String> adapterNames = adapters.stream().map(CompanyDataPort::adapterName).toList();
-        Map<String, String> credentialStatuses = adapterHealthRepository.findAllCredentialStatuses(adapterNames);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        String navCredentialStatus = navTenantCredentialRepository.existsByTenantId(tenantId)
+                ? "VALID" : "NOT_CONFIGURED";
 
-        return buildResponse(adapter, dataSourceMode, dbRows, credentialStatuses);
+        return buildResponse(adapter, dataSourceMode, dbRows, navCredentialStatus);
+    }
+
+    /**
+     * Saves or updates NAV Online Számla credentials for the currently active tenant.
+     * Verifies the credentials via the NAV {@code /tokenExchange} endpoint before persisting.
+     * Returns {@code 422 Unprocessable Entity} if verification fails.
+     */
+    @PutMapping("/credentials")
+    public void saveCredentials(
+            @RequestBody @Valid NavCredentialRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        requireAdminRole(jwt);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+
+        String passwordHash = authService.hashPassword(request.password());
+        String loginEnc = aesFieldEncryptor.encrypt(request.login());
+        String signingKeyEnc = aesFieldEncryptor.encrypt(request.signingKey());
+        String exchangeKeyEnc = aesFieldEncryptor.encrypt(request.exchangeKey());
+
+        NavCredentials credentials = new NavCredentials(
+                request.login(), passwordHash, request.signingKey(),
+                request.exchangeKey(), request.taxNumber()
+        );
+
+        boolean valid = authService.verifyCredentials(credentials);
+        if (!valid) {
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "NAV credential verification failed — check login, password, signingKey, and exchangeKey");
+        }
+
+        navTenantCredentialRepository.upsert(tenantId, loginEnc, passwordHash,
+                signingKeyEnc, exchangeKeyEnc, request.taxNumber());
+    }
+
+    /**
+     * Removes NAV Online Számla credentials for the currently active tenant.
+     * Resets the credential status to {@code NOT_CONFIGURED}.
+     */
+    @DeleteMapping("/credentials")
+    public void deleteCredentials(@AuthenticationPrincipal Jwt jwt) {
+        requireAdminRole(jwt);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+
+        navTenantCredentialRepository.deleteByTenantId(tenantId);
     }
 
     private AdapterHealthResponse buildResponse(
             CompanyDataPort adapter,
             String dataSourceMode,
             List<AdapterHealthRow> dbRows,
-            Map<String, String> credentialStatuses
+            String navCredentialStatus
     ) {
         String name = adapter.adapterName();
         Optional<CircuitBreaker> cbOpt = circuitBreakerRegistry.find(name);
@@ -156,9 +232,10 @@ public class DataSourceAdminController {
         Double mtbfHours = dbRow != null ? dbRow.mtbfHours() : null;
 
         // AC#2: Demo mode credential status is always NOT_CONFIGURED (no real credentials)
+        // P3 fix: credential status derived from per-tenant nav_tenant_credentials table
         String credentialStatus = "DEMO".equals(dataSourceMode)
                 ? "NOT_CONFIGURED"
-                : credentialStatuses.getOrDefault(name, "NOT_CONFIGURED");
+                : (NAV_ADAPTER_NAME.equals(name) ? navCredentialStatus : "NOT_CONFIGURED");
 
         return AdapterHealthResponse.from(
                 name,

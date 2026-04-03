@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import AppBreadcrumb from './AppBreadcrumb.vue'
 
 /**
@@ -121,6 +122,7 @@ describe('AppBreadcrumb — component mount smoke test', () => {
     const NuxtLinkStub = { template: '<a :href="to"><slot /></a>', props: ['to'] }
     const wrapper = mount(AppBreadcrumb, {
       global: {
+        plugins: [createPinia()],
         stubs: {
           NuxtLink: NuxtLinkStub
         }
@@ -134,7 +136,7 @@ describe('AppBreadcrumb — accessibility (Story 3.0c)', () => {
   function mountBreadcrumb() {
     const NuxtLinkStub = { template: '<a :href="to"><slot /></a>', props: ['to'] }
     return mount(AppBreadcrumb, {
-      global: { stubs: { NuxtLink: NuxtLinkStub } }
+      global: { plugins: [createPinia()], stubs: { NuxtLink: NuxtLinkStub } }
     })
   }
 

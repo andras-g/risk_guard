@@ -86,5 +86,10 @@ onUnmounted(() => {
       :quarantining="quarantining"
       @quarantine="handleQuarantine"
     />
+
+    <!-- NAV credential manager — only shown in test/live mode -->
+    <AdminNavCredentialManager
+      v-if="healthStore.adapters.length > 0 && healthStore.adapters[0].dataSourceMode !== 'DEMO'"
+    />
   </div>
 </template>

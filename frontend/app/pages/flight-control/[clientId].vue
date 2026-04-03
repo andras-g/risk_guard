@@ -13,8 +13,6 @@ import { useClientPartners } from '~/composables/api/useClientPartners'
 import { useApiError } from '~/composables/api/useApiError'
 import type { WatchlistEntryResponse } from '~/types/api'
 
-definePageMeta({ middleware: 'auth' })
-
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
@@ -115,11 +113,10 @@ function verdictLabel(status: string | null): string {
 // Switch to client (AC 5)
 async function handleSwitchToClient() {
   try {
-    sessionStorage.setItem('postSwitchRedirect', '/dashboard')
     await authStore.switchTenant(clientId.value)
+    router.push('/dashboard')
   }
   catch (err: unknown) {
-    sessionStorage.removeItem('postSwitchRedirect')
     const errorType = extractErrorType(err)
     toast.add({ severity: 'error', summary: mapErrorType(errorType), life: 5000 })
   }
@@ -137,12 +134,12 @@ function handleViewPartner(partner: WatchlistEntryResponse) {
 async function confirmViewPartner() {
   if (!pendingTaxNumber.value) return
   showConfirmModal.value = false
+  const taxNumber = pendingTaxNumber.value
   try {
-    sessionStorage.setItem('postSwitchRedirect', `/screening/${pendingTaxNumber.value}`)
     await authStore.switchTenant(clientId.value)
+    router.push(`/screening/${taxNumber}`)
   }
   catch (err: unknown) {
-    sessionStorage.removeItem('postSwitchRedirect')
     const errorType = extractErrorType(err)
     toast.add({ severity: 'error', summary: mapErrorType(errorType), life: 5000 })
   }

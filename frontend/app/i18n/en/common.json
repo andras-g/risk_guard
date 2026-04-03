@@ -30,6 +30,8 @@
       "admin": "Admin",
       "dashboard": "Dashboard",
       "epr": "EPR",
+      "filing": "Quarterly Filing",
+      "flightControl": "Client Portfolio",
       "screening": "Screening",
       "watchlist": "Watchlist"
     },

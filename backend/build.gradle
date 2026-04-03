@@ -105,6 +105,11 @@ dependencies {
 	implementation 'org.springframework:spring-aspects'
 	implementation 'org.aspectj:aspectjweaver'
 
+	// Story 8.1: NAV Online Számla client — JAXB runtime + Bouncy Castle SHA3-512
+	implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
+	runtimeOnly 'com.sun.xml.bind:jaxb-impl:4.0.5'
+	implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
+
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
@@ -213,6 +218,55 @@ tasks.named('test') {
 
 tasks.named('compileJava') {
 	dependsOn tasks.named('generateJooq')
+	dependsOn tasks.named('xjc')
+}
+
+// XJC: generate JAXB classes from NAV Online Számla XSD schemas.
+// Uses JavaExec with jaxb-xjc directly (bypasses bjornvester plugin catalog limitation).
+// Generated classes land in build/generated-sources/jaxb/ — never committed to git.
+configurations {
+	xjcTool
+}
+
+dependencies {
+	xjcTool 'com.sun.xml.bind:jaxb-xjc:4.0.5'
+	xjcTool 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.2'
+	xjcTool 'com.sun.xml.bind:jaxb-impl:4.0.5'
+}
+
+def xjcOutputDir = layout.buildDirectory.dir('generated-sources/jaxb')
+def xjcNavXsdDir = layout.projectDirectory.dir('src/main/resources/xsd/nav')
+
+tasks.register('xjc', JavaExec) {
+	description = 'Generate JAXB classes from NAV Online Számla XSD schemas'
+	classpath = configurations.xjcTool
+	mainClass.set('com.sun.tools.xjc.XJCFacade')
+
+	doFirst {
+		mkdir xjcOutputDir.get().asFile
+	}
+
+	args = [
+		'-catalog', xjcNavXsdDir.file('catalog.xml').asFile.absolutePath,
+		'-p', 'hu.riskguard.datasource.internal.generated.nav',
+		'-d', xjcOutputDir.get().asFile.absolutePath,
+		xjcNavXsdDir.file('invoiceApi.xsd').asFile.absolutePath,
+		xjcNavXsdDir.file('invoiceBase.xsd').asFile.absolutePath,
+		xjcNavXsdDir.file('invoiceData.xsd').asFile.absolutePath,
+		xjcNavXsdDir.file('invoiceAnnulment.xsd').asFile.absolutePath,
+		xjcNavXsdDir.file('common.xsd').asFile.absolutePath,
+	]
+
+	inputs.dir(xjcNavXsdDir)
+	outputs.dir(xjcOutputDir)
+}
+
+sourceSets {
+	main {
+		java {
+			srcDir xjcOutputDir
+		}
+	}
 }
 
 tasks.named('generateJooq') {

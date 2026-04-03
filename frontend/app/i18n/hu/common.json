@@ -28,8 +28,10 @@
     },
     "breadcrumb": {
       "admin": "Admin",
-      "dashboard": "Irányítópult",
+      "dashboard": "Főoldal",
       "epr": "EPR",
+      "filing": "Negyedéves bejelentés",
+      "flightControl": "Ügyfélportfólió",
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"
     },
@@ -45,7 +47,7 @@
     },
     "nav": {
       "admin": "Admin",
-      "dashboard": "Irányítópult",
+      "dashboard": "Főoldal",
       "epr": "EPR",
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"

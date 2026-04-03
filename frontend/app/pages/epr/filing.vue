@@ -5,6 +5,7 @@ import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
 import { useToast } from 'primevue/usetoast'
 import { useTierGate } from '~/composables/auth/useTierGate'
+import { useAuthStore } from '~/stores/auth'
 import { useEprStore } from '~/stores/epr'
 import { useEprFilingStore } from '~/stores/eprFiling'
 
@@ -12,10 +13,17 @@ const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
+const authStore = useAuthStore()
 const eprStore = useEprStore()
 const filingStore = useEprFilingStore()
 
+// Accountant with home tenant active = no client selected yet
+const needsClientSelection = computed(() =>
+  authStore.isAccountant && authStore.activeTenantId === authStore.homeTenantId,
+)
+
 onMounted(async () => {
+  if (needsClientSelection.value) return
   if (hasAccess.value) {
     await eprStore.fetchMaterials()
     filingStore.initFromTemplates(eprStore.materials)
@@ -27,7 +35,18 @@ function formatHuf(value: number): string {
 }
 
 async function handleCalculate() {
-  await filingStore.calculate()
+  try {
+    await filingStore.calculate()
+  }
+  catch (e: unknown) {
+    const message = (e as { data?: { detail?: string } })?.data?.detail
+      ?? (e instanceof Error ? e.message : 'Unknown error')
+    toast.add({
+      severity: 'error',
+      summary: t('epr.filing.calculateError', { message }),
+      life: 5000,
+    })
+  }
 }
 
 async function handleExport() {
@@ -52,8 +71,23 @@ async function handleExport() {
 </script>
 
 <template>
+  <!-- Accountant with no client selected -->
+  <div
+    v-if="needsClientSelection"
+    class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto"
+    data-testid="epr-select-customer"
+  >
+    <i class="pi pi-info-circle text-6xl text-indigo-300 mb-4" aria-hidden="true" />
+    <h2 class="text-xl font-bold text-slate-800 mb-2">
+      {{ t('epr.selectCustomer.title') }}
+    </h2>
+    <p class="text-sm text-slate-500 mb-4">
+      {{ t('epr.selectCustomer.description') }}
+    </p>
+  </div>
+
   <!-- Tier Gate -->
-  <div v-if="!hasAccess" class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
+  <div v-else-if="!hasAccess" class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
     <i class="pi pi-lock text-6xl text-slate-300 mb-4" aria-hidden="true" />
     <h2 class="text-xl font-bold text-slate-800 mb-2">
       {{ t('epr.materialLibrary.tierGate.title') }}
@@ -104,7 +138,12 @@ async function handleExport() {
           <Column field="name" :header="t('epr.filing.table.name')" />
           <Column field="kfCode" :header="t('epr.filing.table.kfCode')" />
           <Column field="baseWeightGrams" :header="t('epr.filing.table.baseWeight')" />
-          <Column field="feeRateHufPerKg" :header="t('epr.filing.table.feeRate')" />
+          <Column :header="t('epr.filing.table.feeRate')">
+            <template #body="{ data: line }">
+              <span v-if="line.feeRateHufPerKg !== null">{{ line.feeRateHufPerKg }}</span>
+              <span v-else class="text-slate-400">—</span>
+            </template>
+          </Column>
           <Column :header="t('epr.filing.table.quantity')">
             <template #body="{ data: line }">
               <div class="flex flex-col gap-1">

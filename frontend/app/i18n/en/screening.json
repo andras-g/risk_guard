@@ -48,10 +48,10 @@
     "actions": {
       "addToWatchlist": "Add to Watchlist",
       "addToWatchlistTooltip": "Add this partner to your Watchlist for monitoring",
-      "backToDashboard": "Back to Dashboard",
+      "backToDashboard": "Back to Screening",
       "copyHash": "Copy audit hash to clipboard",
       "exportPdf": "Export PDF",
-      "exportPdfTooltip": "Coming in a future release – PDF Export (Story 5.1)",
+      "exportPdfTooltip": "Coming in a future release – PDF Export",
       "searchNow": "Search now"
     },
     "company": {

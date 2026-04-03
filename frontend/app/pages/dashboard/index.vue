@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { useScreeningStore } from '~/stores/screening'
-import { useAuthStore } from '~/stores/auth'
 import { useWatchlistStore } from '~/stores/watchlist'
 import { usePortfolioStore } from '~/stores/portfolio'
 
 const { t } = useI18n()
 const router = useRouter()
 const screeningStore = useScreeningStore()
-const authStore = useAuthStore()
 const watchlistStore = useWatchlistStore()
 const portfolioStore = usePortfolioStore()
 
@@ -25,24 +23,12 @@ function focusSearchBar() {
   searchBarRef.value?.focus()
 }
 
-const isAccountant = computed(() => authStore.isAccountant)
-
 // Clear any previous verdict when the dashboard mounts so the watcher below
 // does not immediately redirect back to the detail page if the user navigated here
 // from /screening/[taxNumber] and the store still holds the previous result.
 onMounted(async () => {
   screeningStore.clearSearch()
-
-  // Redirect accountants to flight-control — this guard was not present before Story 7.1.
-  if (isAccountant.value) {
-    router.push('/flight-control')
-    return
-  }
-
-  await Promise.all([
-    watchlistStore.fetchEntries(),
-    portfolioStore.fetchAlerts(7),
-  ])
+  await watchlistStore.fetchEntries()
 })
 
 // Navigate to Verdict Detail page as soon as a verdict arrives.
@@ -58,7 +44,7 @@ watch(currentVerdict, (verdict) => {
 </script>
 
 <template>
-  <div v-if="!isAccountant" class="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+  <div class="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
     <h1 class="text-2xl font-bold text-slate-800">
       {{ t('common.nav.dashboard') }}
     </h1>

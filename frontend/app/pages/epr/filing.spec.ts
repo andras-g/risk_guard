@@ -51,6 +51,14 @@ vi.mock('~/composables/auth/useTierGate', () => ({
   }),
 }))
 
+vi.mock('~/stores/auth', () => ({
+  useAuthStore: () => ({
+    isAccountant: false,
+    activeTenantId: 'tenant-1',
+    homeTenantId: 'tenant-1',
+  }),
+}))
+
 const mockFetchMaterials = vi.fn().mockResolvedValue(undefined)
 const mockCalculate = vi.fn().mockResolvedValue(undefined)
 const mockExportMohu = vi.fn().mockResolvedValue(undefined)

@@ -144,3 +144,24 @@
 - W5: 10-entry cap in `DashboardNeedsAttention` with no overflow indicator — silent truncation in a risk-monitoring context; add "and N more..." affordance if stakeholder feedback requests it.
 - W6: 5-alert cap in `DashboardAlertFeed` with no overflow indicator — spec says "up to 5"; add view-all link if needed.
 - W7: `INCOMPLETE` classified as "At Risk" (red) in stat bar but "warn" (yellow) in attention list — intentional per spec; may confuse users who see the same entity coloured differently; consolidate in UX pass.
+
+## Deferred from: code review of 8-1-nav-online-szamla-client-implementation (2026-04-03)
+
+- D1: New `HttpClient` created per HTTP call — no connection pooling [`NavOnlineSzamlaClient.java:236`, `AuthService.java:121`]; inject shared instance for performance under load.
+- D2: PBKDF2 uses hardcoded salt `"nav-cred-salt"` [`AesFieldEncryptor.java:32`]; acceptable for app-level encryption but per-record salt would be stronger.
+- D3: `NavCredentialManager.vue` uses raw `fetch()` instead of project `useApi` composable; works with cookie auth but bypasses centralized interceptors.
+- D4: No page cap on `queryInvoiceDigest` pagination loop [`NavOnlineSzamlaClient.java:167`]; NAV responses bounded in practice.
+- D5: No FK constraint `nav_tenant_credentials.tenant_id → tenants(id)` [`V20260402_001__add_nav_tenant_credentials.sql`]; consistent with existing patterns.
+- D6: `XmlMarshaller.unmarshal` not type-directed — JAXB root element mapping used [`XmlMarshaller.java:76`]; works for all current response types.
+- D7: GZIP decompression `readAllBytes()` with no size cap [`NavOnlineSzamlaClient.java:503`]; NAV invoices bounded in practice.
+- D8: `NavOnlineSzamlaAdapter` hardcodes live production URL as provenance metadata [`NavOnlineSzamlaAdapter.java:47`]; cosmetic audit log issue.
+- D9: `AuthService.verifyCredentials` treats NAV `WARN` funcCode as failure [`AuthService.java:133`]; conservative; loosen if real users hit WARN.
+
+## Deferred from: code review R2 of 8-1-nav-online-szamla-client-implementation (2026-04-03)
+
+- D10: `switchTenant` removed `window.location.reload()` — Pinia stores may retain stale data from previous tenant. `app.vue` pageKey mitigates via NuxtPage re-mount; needs targeted cross-tenant testing.
+- D11: Credential status is binary VALID/NOT_CONFIGURED — no background validation. Expired NAV credentials still show VALID. Needs background verification job.
+- D12: `TenantJooqListener` AUTH_LOOKUP_PATTERN regex uses greedy `.*` — could match non-auth queries. Tight enough for current codebase.
+- D13: `queryInvoiceData` hardcodes OUTBOUND direction — add direction parameter when inbound queries needed.
+- D14: `nav_tenant_credentials` not in `TenantJooqListener.isTenantAwareQuery()` table list — add when new query patterns emerge.
+- D15: `EprService.copyTemplates` name dedup (non-story bugfix) has no test coverage for the new filter path.

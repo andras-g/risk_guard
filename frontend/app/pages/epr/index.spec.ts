@@ -52,6 +52,14 @@ vi.mock('~/composables/api/useApiError', () => ({
   }),
 }))
 
+vi.mock('~/stores/auth', () => ({
+  useAuthStore: () => ({
+    isAccountant: false,
+    activeTenantId: 'tenant-1',
+    homeTenantId: 'tenant-1',
+  }),
+}))
+
 const mockFetchMaterials = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('~/stores/epr', () => ({

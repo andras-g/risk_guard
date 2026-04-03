@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QueryInvoiceDigestResponse xmlns="http://schemas.nav.gov.hu/OSA/3.0/api">
+  <header>
+    <requestId>WIREMOCK00000000000000000000003</requestId>
+    <timestamp>2026-04-02T10:00:00.000Z</timestamp>
+    <requestVersion>3.0</requestVersion>
+    <headerVersion>1.0</headerVersion>
+  </header>
+  <result>
+    <funcCode>OK</funcCode>
+  </result>
+  <invoiceDigestResult>
+    <currentPage>1</currentPage>
+    <availablePage>2</availablePage>
+    <invoiceDigest>
+      <invoiceNumber>INV-2026-001</invoiceNumber>
+      <invoiceOperation>CREATE</invoiceOperation>
+      <invoiceCategory>NORMAL</invoiceCategory>
+      <invoiceIssueDate>2026-03-01</invoiceIssueDate>
+      <supplierTaxNumber>12345678</supplierTaxNumber>
+      <supplierName>Teszt Szállító Kft.</supplierName>
+      <customerTaxNumber>87654321</customerTaxNumber>
+      <customerName>Teszt Vevő Kft.</customerName>
+      <currency>HUF</currency>
+      <invoiceNetAmount>100000.00</invoiceNetAmount>
+      <invoiceNetAmountHUF>100000.00</invoiceNetAmountHUF>
+      <invoiceVatAmount>27000.00</invoiceVatAmount>
+    </invoiceDigest>
+    <invoiceDigest>
+      <invoiceNumber>INV-2026-002</invoiceNumber>
+      <invoiceOperation>CREATE</invoiceOperation>
+      <invoiceCategory>NORMAL</invoiceCategory>
+      <invoiceIssueDate>2026-03-05</invoiceIssueDate>
+      <supplierTaxNumber>12345678</supplierTaxNumber>
+      <supplierName>Teszt Szállító Kft.</supplierName>
+      <customerTaxNumber>87654321</customerTaxNumber>
+      <customerName>Teszt Vevő Kft.</customerName>
+      <currency>HUF</currency>
+      <invoiceNetAmount>200000.00</invoiceNetAmount>
+      <invoiceNetAmountHUF>200000.00</invoiceNetAmountHUF>
+      <invoiceVatAmount>54000.00</invoiceVatAmount>
+    </invoiceDigest>
+    <invoiceDigest>
+      <invoiceNumber>INV-2026-003</invoiceNumber>
+      <invoiceOperation>CREATE</invoiceOperation>
+      <invoiceCategory>NORMAL</invoiceCategory>
+      <invoiceIssueDate>2026-03-10</invoiceIssueDate>
+      <supplierTaxNumber>12345678</supplierTaxNumber>
+      <supplierName>Teszt Szállító Kft.</supplierName>
+      <customerTaxNumber>87654321</customerTaxNumber>
+      <customerName>Teszt Vevő Kft.</customerName>
+      <currency>HUF</currency>
+      <invoiceNetAmount>150000.00</invoiceNetAmount>
+      <invoiceNetAmountHUF>150000.00</invoiceNetAmountHUF>
+      <invoiceVatAmount>40500.00</invoiceVatAmount>
+    </invoiceDigest>
+  </invoiceDigestResult>
+</QueryInvoiceDigestResponse>

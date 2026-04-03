@@ -1,5 +1,9 @@
 {
   "epr": {
+    "selectCustomer": {
+      "title": "Select a customer first",
+      "description": "Use the customer switcher in the top bar to select which client's EPR data you want to manage."
+    },
     "config": {
       "title": "EPR Configuration",
       "version": "Version"
@@ -65,7 +69,7 @@
       "title": "Material Library",
       "toast": {
         "copied": "{count} templates copied successfully",
-        "copiedEmpty": "No templates found for Q{quarter} {year}",
+        "copiedEmpty": "No new templates to copy from Q{quarter} {year} — they may already exist in your library",
         "created": "Material template created successfully",
         "deleted": "Material template deleted successfully",
         "updated": "Material template updated successfully"
@@ -79,6 +83,7 @@
     "filing": {
       "backToLibrary": "Back to Library",
       "calculateButton": "Calculate Totals",
+      "calculateError": "Calculation failed: {message}",
       "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
       "exportButton": "Export for MOHU",
       "exportError": "Export failed: {message}",

@@ -16,8 +16,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.jooq.impl.SQLDataType;
+
 import static org.jooq.impl.DSL.field;
 import static org.jooq.impl.DSL.table;
+import static org.jooq.impl.DSL.val;
 
 /**
  * jOOQ repository for {@code adapter_health} and {@code nav_credentials} tables.
@@ -138,7 +141,7 @@ public class AdapterHealthRepository extends BaseRepository {
                     last_success_at = EXCLUDED.last_success_at,
                     updated_at      = EXCLUDED.updated_at
                 """,
-                adapterName, odt, odt
+                val(adapterName), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
         );
     }
 
@@ -164,7 +167,7 @@ public class AdapterHealthRepository extends BaseRepository {
                                       END,
                     updated_at      = EXCLUDED.updated_at
                 """,
-                adapterName, odt, odt
+                val(adapterName), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
         );
     }
 
@@ -182,7 +185,7 @@ public class AdapterHealthRepository extends BaseRepository {
                     status     = EXCLUDED.status,
                     updated_at = EXCLUDED.updated_at
                 """,
-                adapterName, status, odt
+                val(adapterName), val(status), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
         );
     }
 
@@ -216,13 +219,13 @@ public class AdapterHealthRepository extends BaseRepository {
                         quarantined = EXCLUDED.quarantined,
                         updated_at  = EXCLUDED.updated_at
                     """,
-                    adapterName, quarantined, odt
+                    val(adapterName), val(quarantined), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
             );
             DSL.using(config).execute("""
                     INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at)
                     VALUES (?, ?, ?, ?::jsonb, ?)
                     """,
-                    actorUserId, actionName, adapterName, details, odt
+                    val(actorUserId), val(actionName), val(adapterName), val(details), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
             );
         });
     }

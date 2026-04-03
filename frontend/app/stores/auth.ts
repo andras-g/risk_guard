@@ -170,11 +170,9 @@ export const useAuthStore = defineStore('auth', {
           baseURL: config.public.apiBase as string,
           credentials: 'include'
         })
-
-        // Reset switching state before reload — if reload fails or is cancelled,
-        // the ContextGuard overlay will not permanently block the UI.
+        // Refresh auth state — backend updated the HttpOnly cookie, fetchMe() picks it up
+        await this.fetchMe()
         this.isSwitchingTenant = false
-        window.location.reload()
       } catch (error) {
         this.isSwitchingTenant = false
         this.switchError = error instanceof Error ? error.message : String(error)

@@ -184,12 +184,11 @@ describe('dashboard/index.vue', () => {
 
   // ── AC 1/2/3: store fetches called on mount ────────────────────────────────
 
-  it('calls clearSearch, fetchEntries, and fetchAlerts on mount for SME_OWNER', async () => {
+  it('calls clearSearch and fetchEntries on mount for SME_OWNER', async () => {
     mountPage()
     await flushPromises()
     expect(mockClearSearch).toHaveBeenCalledOnce()
     expect(mockFetchEntries).toHaveBeenCalledOnce()
-    expect(mockFetchAlerts).toHaveBeenCalledWith(7)
   })
 
   // ── AC 1: stat bar receives watchlist data ─────────────────────────────────
@@ -277,29 +276,8 @@ describe('dashboard/index.vue', () => {
     expect(wrapper.find('[data-testid="stat-bar-stub"]').exists()).toBe(true)
   })
 
-  // ── Accountant redirect ────────────────────────────────────────────────────
-
-  it('redirects ACCOUNTANT to /flight-control on mount', async () => {
-    mockUserRole = 'ACCOUNTANT'
-    mountPage()
-    await flushPromises()
-    expect(mockRouterPush).toHaveBeenCalledWith('/flight-control')
-  })
-
-  it('does NOT redirect SME_OWNER to /flight-control', async () => {
-    mockUserRole = 'SME_OWNER'
-    mountPage()
-    await flushPromises()
-    expect(mockRouterPush).not.toHaveBeenCalledWith('/flight-control')
-  })
-
-  it('does NOT call fetchEntries or fetchAlerts for accountant', async () => {
-    mockUserRole = 'ACCOUNTANT'
-    mountPage()
-    await flushPromises()
-    expect(mockFetchEntries).not.toHaveBeenCalled()
-    expect(mockFetchAlerts).not.toHaveBeenCalled()
-  })
+  // NOTE: Accountant redirect to /flight-control is now handled by auth.global.ts
+  // middleware, not by the dashboard page component. See middleware tests for coverage.
 })
 
 // ── WatchlistOnboardingHero unit tests ───────────────────────────────────────

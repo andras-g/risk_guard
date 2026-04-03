@@ -129,6 +129,11 @@ development_status:
   7-5-dashboard-empty-onboarding-state: done  # Story file moved from 6-5 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — 5 patch items resolved; code-review R2 2026-04-01 — 4 patch items resolved (P1: querySelector('input') focus fix, P2: alert-feed loading assertion, P3: dialog-closes assertion, P4: beforeEach isolation); 5 deferred; CI lint fix (MonacoEditor a11y, [clientId].vue Select a11y); 673 frontend + 5 e2e green; status → done
   epic-7-retrospective: optional
 
+  epic-8: in-progress  # STARTED (2026-04-02) — Real Data Integration + UX polish bugs. NAV Online Számla client; screening verdict PDF export.
+  8-1-nav-online-szamla-client-implementation: done  # Story file created 2026-04-02; dev completed 2026-04-02; code-review R1 2026-04-03 — 11 findings resolved; code-review R2 2026-04-03 — 2 patch items (P11: baseURL fix, P12: dead code removal), 6 deferred, 4 dismissed; 5 test fixes (stale assertions); 684 frontend + 5 e2e all green; status → done
+  8-2-screening-verdict-pdf-export: ready-for-dev  # Story file created 2026-04-02; client-side jsPDF, single-verdict audit-proof PDF, mobile share/desktop download, sha256Hash included. No backend changes needed.
+  8-3-invoice-driven-epr-auto-fill: ready-for-dev  # Story file created 2026-04-02; invoice auto-fill for EPR filing from NAV Online Számla (queryInvoiceDigest+queryInvoiceData), vtszMappings in EPR config, DataSourceService facade extension, EprService.autoFillFromInvoices(), InvoiceAutoFillPanel.vue. Depends on Story 8.1 for live mode; works in demo mode standalone.
+
 # CANCELLED STORIES (2026-03-12):
 # ================================
 # - reCAPTCHA spike (was in 2.2.1 scope) — cancelled, owner decision: no CAPTCHA bypass

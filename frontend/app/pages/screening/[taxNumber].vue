@@ -36,7 +36,7 @@ onUnmounted(() => {
 })
 
 function goBack() {
-  router.push('/dashboard')
+  router.push('/screening')
 }
 </script>
 

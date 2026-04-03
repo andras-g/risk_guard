@@ -138,8 +138,13 @@ public class EprService {
         List<EprMaterialTemplatesRecord> sourceTemplates =
                 eprRepository.findByTenantAndQuarter(tenantId, sourceYear, sourceQuarter);
 
+        Set<String> existingNames = eprRepository.findAllByTenant(tenantId).stream()
+                .map(EprMaterialTemplatesRecord::getName)
+                .collect(Collectors.toSet());
+
         List<TemplateCopyData> toCopy = sourceTemplates.stream()
                 .filter(t -> includeNonRecurring || t.getRecurring())
+                .filter(t -> !existingNames.contains(t.getName()))
                 .map(t -> new TemplateCopyData(t.getName(), t.getBaseWeightGrams(), t.getRecurring()))
                 .toList();
 

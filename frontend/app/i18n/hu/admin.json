@@ -76,6 +76,27 @@
       },
       "subtitle": "Minden regisztrált adatforrás-adapter élő állapota",
       "title": "Adatforrások"
+    },
+    "navCredentials": {
+      "title": "NAV Online Számla hitelesítő adatok",
+      "description": "Adja meg a NAV technikai felhasználó adatait. Mentés előtt ellenőrizzük és titkosítva tároljuk.",
+      "login": "Bejelentkezési név",
+      "password": "Jelszó",
+      "signingKey": "Aláírási kulcs",
+      "exchangeKey": "Cserekulcs",
+      "taxNumber": "Adószám (8 számjegy)",
+      "saveButton": "Mentés & Ellenőrzés",
+      "deleteButton": "Hitelesítő adatok törlése",
+      "saveSuccess": "NAV hitelesítő adatok mentve és ellenőrizve",
+      "saveError": "NAV hitelesítő adatok mentése sikertelen",
+      "deleteSuccess": "NAV hitelesítő adatok törölve",
+      "deleteError": "NAV hitelesítő adatok törlése sikertelen",
+      "status": {
+        "not_configured": "Nincs konfigurálva",
+        "valid": "Érvényes",
+        "expired": "Lejárt",
+        "invalid": "Érvénytelen"
+      }
     }
   }
 }

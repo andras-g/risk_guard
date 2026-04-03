@@ -106,6 +106,8 @@ public class RiskGuardProperties {
         private int connectTimeoutMs = 8000;
         private int readTimeoutMs = 8000;
         private int globalDeadlineSeconds = 20;
+        /** Overrides the NAV API base URL (e.g., for WireMock in tests). Empty = use mode-based default. */
+        private String navApiBaseUrl = "";
     }
 
     @Data

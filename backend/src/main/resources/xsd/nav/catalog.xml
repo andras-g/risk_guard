@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<catalog xmlns='urn:oasis:names:tc:entity:xmlns:xml:catalog' prefer="public">
+    <uri name="http://schemas.nav.gov.hu/NTCA/1.0/common"  uri="file:/home/andras/dev/risk_guard/backend/src/main/resources/xsd/nav/common.xsd"/>
+    <uri name="http://schemas.nav.gov.hu/OSA/3.0/base"     uri="file:/home/andras/dev/risk_guard/backend/src/main/resources/xsd/nav/invoiceBase.xsd"/>
+    <uri name="http://schemas.nav.gov.hu/OSA/3.0/data"     uri="file:/home/andras/dev/risk_guard/backend/src/main/resources/xsd/nav/invoiceData.xsd"/>
+    <uri name="http://schemas.nav.gov.hu/OSA/3.0/annulment" uri="file:/home/andras/dev/risk_guard/backend/src/main/resources/xsd/nav/invoiceAnnulment.xsd"/>
+</catalog>

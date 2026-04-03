@@ -16,9 +16,10 @@ export function useClientPartners() {
     error.value = null
     partners.value = []
     try {
+      const config = useRuntimeConfig()
       const data = await $fetch<WatchlistEntryResponse[]>(
         `/api/v1/portfolio/clients/${clientTenantId}/partners`,
-        { credentials: 'include' },
+        { baseURL: config.public.apiBase as string, credentials: 'include' },
       )
       partners.value = data
     }

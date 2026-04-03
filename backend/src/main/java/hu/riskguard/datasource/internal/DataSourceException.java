@@ -19,6 +19,11 @@ public class DataSourceException extends RuntimeException {
         this.adapterName = adapterName;
     }
 
+    public DataSourceException(String adapterName, String message, Throwable cause) {
+        super("Data source fetch failed for adapter: " + adapterName + " — " + message, cause);
+        this.adapterName = adapterName;
+    }
+
     public String getAdapterName() {
         return adapterName;
     }

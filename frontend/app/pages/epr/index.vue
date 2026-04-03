@@ -5,6 +5,7 @@ import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useApiError } from '~/composables/api/useApiError'
+import { useAuthStore } from '~/stores/auth'
 import { useEprStore } from '~/stores/epr'
 import { useEprWizardStore } from '~/stores/eprWizard'
 import type { MaterialTemplateResponse } from '~/types/epr'
@@ -14,16 +15,23 @@ const toast = useToast()
 const confirm = useConfirm()
 const { mapErrorType } = useApiError()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
+const authStore = useAuthStore()
 const eprStore = useEprStore()
 const wizardStore = useEprWizardStore()
+
+// Accountant with home tenant active = no client selected yet
+const needsClientSelection = computed(() =>
+  authStore.isAccountant && authStore.activeTenantId === authStore.homeTenantId,
+)
 
 const showFormDialog = ref(false)
 const showCopyDialog = ref(false)
 const showOverrideDialog = ref(false)
 const editingTemplate = ref<MaterialTemplateResponse | null>(null)
 
-// Fetch materials on mount (only if tier allows)
+// Fetch materials on mount (only if tier allows and a client is selected)
 onMounted(async () => {
+  if (needsClientSelection.value) return
   if (hasAccess.value) {
     try {
       await eprStore.fetchMaterials()
@@ -145,8 +153,23 @@ async function handleCopyFromQuarter(data: { sourceYear: number; sourceQuarter: 
 </script>
 
 <template>
+  <!-- Accountant with no client selected -->
+  <div
+    v-if="needsClientSelection"
+    class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto"
+    data-testid="epr-select-customer"
+  >
+    <i class="pi pi-info-circle text-6xl text-indigo-300 mb-4" aria-hidden="true" />
+    <h2 class="text-xl font-bold text-slate-800 mb-2">
+      {{ t('epr.selectCustomer.title') }}
+    </h2>
+    <p class="text-sm text-slate-500 mb-4">
+      {{ t('epr.selectCustomer.description') }}
+    </p>
+  </div>
+
   <!-- Tier Gate: Upgrade Prompt -->
-  <div v-if="!hasAccess" class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
+  <div v-else-if="!hasAccess" class="flex flex-col items-center justify-center py-16 text-center max-w-lg mx-auto">
     <i class="pi pi-lock text-6xl text-slate-300 mb-4" aria-hidden="true" />
     <h2 class="text-xl font-bold text-slate-800 mb-2">
       {{ t('epr.materialLibrary.tierGate.title') }}

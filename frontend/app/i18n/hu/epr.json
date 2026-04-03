@@ -1,5 +1,9 @@
 {
   "epr": {
+    "selectCustomer": {
+      "title": "Válasszon ügyfelet",
+      "description": "Használja a felső sávban található ügyfélváltót a kezelni kívánt ügyfél EPR adatainak kiválasztásához."
+    },
     "config": {
       "title": "EPR Konfiguráció",
       "version": "Verzió"
@@ -65,7 +69,7 @@
       "title": "Anyagkönyvtár",
       "toast": {
         "copied": "{count} sablon sikeresen másolva",
-        "copiedEmpty": "Nem található sablon a(z) Q{quarter} {year} negyedévben",
+        "copiedEmpty": "Nincs új másolható sablon a(z) Q{quarter} {year} negyedévből — lehet, hogy már léteznek a könyvtárában",
         "created": "Anyagsablon sikeresen létrehozva",
         "deleted": "Anyagsablon sikeresen törölve",
         "updated": "Anyagsablon sikeresen frissítve"
@@ -79,6 +83,7 @@
     "filing": {
       "backToLibrary": "Vissza a könyvtárhoz",
       "calculateButton": "Összesítés kiszámítása",
+      "calculateError": "Számítás sikertelen: {message}",
       "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
       "exportButton": "Exportálás MOHU-ba",
       "exportError": "Exportálás sikertelen: {message}",

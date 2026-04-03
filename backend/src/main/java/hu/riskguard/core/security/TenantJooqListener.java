@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Component
 public class TenantJooqListener extends DefaultVisitListener implements RecordListener {
@@ -61,7 +62,7 @@ public class TenantJooqListener extends DefaultVisitListener implements RecordLi
             try {
                 RENDERING.set(Boolean.TRUE);
                 String sql = query.getSQL();
-                if (isTenantAwareQuery(sql)) {
+                if (isTenantAwareQuery(sql) && !isAllowedCrossTenantQuery(sql)) {
                     if (!containsTenantCondition(sql)) {
                         log.warn("SECURITY: Potential tenant isolation bypass detected. "
                                 + "Query references tenant-aware table but may be missing tenant_id condition. SQL: {}",
@@ -90,5 +91,24 @@ public class TenantJooqListener extends DefaultVisitListener implements RecordLi
     private boolean containsTenantCondition(String sql) {
         String sqlLower = sql.toLowerCase();
         return sqlLower.contains("tenant_id");
+    }
+
+    /**
+     * Pattern matching the Spring Security UserDetailsService auth lookup:
+     * {@code select ... from "users" ... where ... "email" = ?}
+     * Uses regex to prevent broad substring matching from accidentally allowing
+     * unrelated queries that happen to mention both "users" and "email".
+     */
+    private static final Pattern AUTH_LOOKUP_PATTERN = Pattern.compile(
+            "(?i)from\\s+\"users\".*\"email\"\\s*=");
+
+    /**
+     * Allowlist of legitimate cross-tenant query patterns that do not require a tenant_id condition.
+     * These are intentional global lookups — not isolation bypasses.
+     */
+    private boolean isAllowedCrossTenantQuery(String sql) {
+        // Spring Security UserDetailsService: looks up user by email for authentication.
+        // This is a global lookup — the user may belong to any tenant.
+        return AUTH_LOOKUP_PATTERN.matcher(sql).find();
     }
 }

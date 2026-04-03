@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QueryTaxpayerResponse xmlns="http://schemas.nav.gov.hu/OSA/3.0/api">
+  <header>
+    <requestId>WIREMOCK00000000000000000000001</requestId>
+    <timestamp>2026-04-02T10:00:00.000Z</timestamp>
+    <requestVersion>3.0</requestVersion>
+    <headerVersion>1.0</headerVersion>
+  </header>
+  <result>
+    <funcCode>OK</funcCode>
+  </result>
+  <taxpayerValidity>true</taxpayerValidity>
+  <taxpayerData>
+    <taxpayerName>Példa Kereskedelmi Kft.</taxpayerName>
+    <taxNumberDetail>
+      <taxpayerId>12345678</taxpayerId>
+      <vatCode>2</vatCode>
+      <countyCode>41</countyCode>
+    </taxNumberDetail>
+    <incorporation>ORGANIZATION</incorporation>
+    <taxpayerAddressList>
+      <taxpayerAddressItem>
+        <taxpayerAddressType>HQ</taxpayerAddressType>
+        <taxpayerAddress>
+          <countryCode>HU</countryCode>
+          <postalCode>1234</postalCode>
+          <city>Budapest</city>
+          <streetName>Teszt utca</streetName>
+          <publicPlaceCategory>utca</publicPlaceCategory>
+          <number>1</number>
+        </taxpayerAddress>
+      </taxpayerAddressItem>
+    </taxpayerAddressList>
+  </taxpayerData>
+</QueryTaxpayerResponse>

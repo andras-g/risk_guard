@@ -46,14 +46,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return navigateTo('/auth/login')
   }
 
-  // Handle post-tenant-switch redirect: after switchTenant() reloads the page,
-  // navigate to the stored target instead of staying on the current URL.
-  // This is consumed once and removed from sessionStorage immediately.
-  if (import.meta.client) {
-    const redirect = sessionStorage.getItem('postSwitchRedirect')
-    if (redirect) {
-      sessionStorage.removeItem('postSwitchRedirect')
-      return navigateTo(redirect)
-    }
+  // Accountants have no regular dashboard — redirect to flight control
+  if (authStore.isAccountant && to.path === '/dashboard') {
+    return navigateTo('/flight-control')
   }
+
 })

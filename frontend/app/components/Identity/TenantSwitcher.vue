@@ -2,6 +2,7 @@
 import { useAuthStore } from '~/stores/auth'
 import { storeToRefs } from 'pinia'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const { activeTenantId, mandates, isAccountant } = storeToRefs(authStore)
 
@@ -21,8 +22,8 @@ async function onTenantChange() {
   if (selectedTenantId.value && selectedTenantId.value !== activeTenantId.value) {
     try {
       await authStore.switchTenant(selectedTenantId.value)
+      router.push('/flight-control')
     } catch {
-      // ContextGuard handles the error display and retry/logout options.
       // Revert selectedTenantId so the dropdown shows the still-active tenant.
       selectedTenantId.value = activeTenantId.value
     }

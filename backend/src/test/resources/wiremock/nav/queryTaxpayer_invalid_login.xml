@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QueryTaxpayerResponse xmlns="http://schemas.nav.gov.hu/OSA/3.0/api">
+  <header>
+    <requestId>WIREMOCK00000000000000000000002</requestId>
+    <timestamp>2026-04-02T10:00:00.000Z</timestamp>
+    <requestVersion>3.0</requestVersion>
+    <headerVersion>1.0</headerVersion>
+  </header>
+  <result>
+    <funcCode>ERROR</funcCode>
+    <errorCode>INVALID_USER_RELATION</errorCode>
+    <message>Invalid login credentials</message>
+  </result>
+</QueryTaxpayerResponse>

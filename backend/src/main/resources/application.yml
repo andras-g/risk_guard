@@ -84,6 +84,12 @@ resilience4j:
       demo:
         # Inherits slidingWindowSize:10, failureRateThreshold:50, waitDurationInOpenState:60s from default config
         registerHealthIndicator: true
+      nav-online-szamla:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        registerHealthIndicator: true
   retry:
     configs:
       default:

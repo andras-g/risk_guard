@@ -76,6 +76,27 @@
       },
       "subtitle": "Live health status of all registered data source adapters",
       "title": "Data Sources"
+    },
+    "navCredentials": {
+      "title": "NAV Online Számla Credentials",
+      "description": "Enter your NAV technical user credentials. They are verified and encrypted before storage.",
+      "login": "Login",
+      "password": "Password",
+      "signingKey": "Signing Key",
+      "exchangeKey": "Exchange Key",
+      "taxNumber": "Tax Number (8 digits)",
+      "saveButton": "Save & Verify",
+      "deleteButton": "Remove Credentials",
+      "saveSuccess": "NAV credentials saved and verified",
+      "saveError": "Failed to save NAV credentials",
+      "deleteSuccess": "NAV credentials removed",
+      "deleteError": "Failed to remove NAV credentials",
+      "status": {
+        "not_configured": "Not Configured",
+        "valid": "Valid",
+        "expired": "Expired",
+        "invalid": "Invalid"
+      }
     }
   }
 }

@@ -48,10 +48,10 @@
     "actions": {
       "addToWatchlist": "Figyelőlistára",
       "addToWatchlistTooltip": "Partner hozzáadása a Figyelőlistához felügyelethez",
-      "backToDashboard": "Vissza a vezérlőpulthoz",
+      "backToDashboard": "Vissza az Átvilágításhoz",
       "copyHash": "Audit hash másolása vágólapra",
       "exportPdf": "PDF exportálás",
-      "exportPdfTooltip": "Hamarosan elérhető – PDF export (5.1 sztori)",
+      "exportPdfTooltip": "Hamarosan elérhető – PDF exportálás",
       "searchNow": "Keresés most"
     },
     "company": {

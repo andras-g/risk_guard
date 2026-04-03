@@ -16,8 +16,6 @@ import { useApiError } from '~/composables/api/useApiError'
 import type { FlightControlTenantSummaryResponse } from '~/types/api'
 import type { PortfolioAlertResponse } from '~/types/api'
 
-definePageMeta({ middleware: 'auth' })
-
 const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
@@ -82,24 +80,16 @@ onMounted(async () => {
 const isEmpty = computed(() => !isLoading.value && !error.value && totals.value?.totalClients === 0)
 
 /**
- * Handle click on a client row — switch tenant context and navigate to dashboard.
- * Follows the exact pattern from PortfolioPulse.vue (Story 3.9 learning).
+ * Handle click on a client row — switch tenant context and navigate to client detail.
  */
 async function handleClientClick(tenant: FlightControlTenantSummaryResponse) {
   try {
     if (authStore.activeTenantId !== tenant.tenantId) {
-      // switchTenant() triggers window.location.reload() after the HTTP call,
-      // so router.push would be dead code. Store the redirect target in
-      // sessionStorage so the app can navigate after the reload completes.
-      sessionStorage.setItem('postSwitchRedirect', '/dashboard')
       await authStore.switchTenant(tenant.tenantId)
-      // If we reach here, the page is reloading — code below is unreachable.
-      return
     }
-    router.push('/dashboard')
+    router.push(`/flight-control/${tenant.tenantId}`)
   }
   catch (err: unknown) {
-    sessionStorage.removeItem('postSwitchRedirect')
     const errorType = extractErrorType(err)
     toast.add({
       severity: 'error',
@@ -115,15 +105,11 @@ async function handleClientClick(tenant: FlightControlTenantSummaryResponse) {
 async function handleAlertClick(alert: PortfolioAlertResponse) {
   try {
     if (authStore.activeTenantId !== alert.tenantId) {
-      // switchTenant() triggers window.location.reload() — store redirect target
-      sessionStorage.setItem('postSwitchRedirect', `/screening/${alert.taxNumber}`)
       await authStore.switchTenant(alert.tenantId)
-      return
     }
     router.push(`/screening/${alert.taxNumber}`)
   }
   catch (err: unknown) {
-    sessionStorage.removeItem('postSwitchRedirect')
     const errorType = extractErrorType(err)
     toast.add({
       severity: 'error',

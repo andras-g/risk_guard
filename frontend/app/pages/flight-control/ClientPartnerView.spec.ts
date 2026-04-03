@@ -215,7 +215,7 @@ describe('ClientPartnerView Page ([clientId].vue)', () => {
     expect(mockFetchClientPartners).toHaveBeenCalledWith('tenant-abc')
   })
 
-  it('"Switch to Client →" triggers switchTenant with clientId and sets postSwitchRedirect', async () => {
+  it('"Switch to Client →" triggers switchTenant and navigates to dashboard', async () => {
     mockPartners.value = [buildPartner()]
     const wrapper = mountPage()
     await flushPromises()
@@ -223,8 +223,8 @@ describe('ClientPartnerView Page ([clientId].vue)', () => {
     const page = wrapper.vm as any
     await page.handleSwitchToClient()
 
-    expect(sessionStorage.getItem('postSwitchRedirect')).toBe('/dashboard')
     expect(mockSwitchTenant).toHaveBeenCalledWith('tenant-abc')
+    expect(mockRouterPush).toHaveBeenCalledWith('/dashboard')
   })
 
   it('"View →" opens confirmation modal', async () => {
@@ -239,7 +239,7 @@ describe('ClientPartnerView Page ([clientId].vue)', () => {
     expect(wrapper.find('[data-testid="switch-confirm-modal"]').exists()).toBe(true)
   })
 
-  it('confirming "View →" triggers switchTenant with postSwitchRedirect to screening', async () => {
+  it('confirming "View →" triggers switchTenant and navigates to screening', async () => {
     mockPartners.value = [buildPartner({ taxNumber: '12345678' })]
     const wrapper = mountPage()
     await flushPromises()
@@ -249,8 +249,8 @@ describe('ClientPartnerView Page ([clientId].vue)', () => {
     await nextTick()
     await page.confirmViewPartner()
 
-    expect(sessionStorage.getItem('postSwitchRedirect')).toBe('/screening/12345678')
     expect(mockSwitchTenant).toHaveBeenCalledWith('tenant-abc')
+    expect(mockRouterPush).toHaveBeenCalledWith('/screening/12345678')
   })
 
   it('filters partners by name search', async () => {

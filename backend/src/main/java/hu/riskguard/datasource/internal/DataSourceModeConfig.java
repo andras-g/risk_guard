@@ -3,9 +3,12 @@ package hu.riskguard.datasource.internal;
 import hu.riskguard.core.config.RiskGuardProperties;
 import hu.riskguard.datasource.domain.CompanyDataPort;
 import hu.riskguard.datasource.internal.adapters.demo.DemoCompanyDataAdapter;
+import hu.riskguard.datasource.internal.adapters.nav.NavOnlineSzamlaAdapter;
+import hu.riskguard.datasource.internal.adapters.nav.NavOnlineSzamlaClient;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +38,13 @@ public class DataSourceModeConfig {
     public CompanyDataPort demoCompanyDataAdapter() {
         log.info("Data source mode: demo — registering DemoCompanyDataAdapter with in-memory fixtures");
         return new DemoCompanyDataAdapter();
+    }
+
+    @Bean
+    @ConditionalOnExpression("'${riskguard.data-source.mode:demo}' == 'test' or '${riskguard.data-source.mode:demo}' == 'live'")
+    public CompanyDataPort navOnlineSzamlaAdapter(NavOnlineSzamlaClient navClient) {
+        log.info("Data source mode: {} — registering NavOnlineSzamlaAdapter", navClient.getClass().getSimpleName());
+        return new NavOnlineSzamlaAdapter(navClient);
     }
 
     /**

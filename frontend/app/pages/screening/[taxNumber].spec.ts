@@ -201,12 +201,12 @@ describe('Verdict Detail Page — navigation', () => {
     Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true })
   })
 
-  it('should navigate back to dashboard when back button is clicked', async () => {
+  it('should navigate back to screening when back button is clicked', async () => {
     const wrapper = mountPage()
     await nextTick()
 
     await wrapper.find('[data-testid="back-to-dashboard"]').trigger('click')
-    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    expect(mockPush).toHaveBeenCalledWith('/screening')
   })
 
   it('should have back-to-dashboard button with correct label', async () => {

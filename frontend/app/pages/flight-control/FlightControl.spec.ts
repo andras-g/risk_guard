@@ -207,7 +207,7 @@ describe('FlightControl Page', () => {
     expect(wrapper.find('[data-testid="flight-control-table"]').exists()).toBe(true)
   })
 
-  it('row click stores postSwitchRedirect and calls switchTenant', async () => {
+  it('row click calls switchTenant and navigates to client detail', async () => {
     const tenant = buildTenant({ tenantId: 'tenant-b-id' })
     mockTenants.value = [tenant]
     mockTotals.value = buildTotals()
@@ -217,10 +217,8 @@ describe('FlightControl Page', () => {
     const page = wrapper.vm as any
     await page.handleClientClick(tenant)
 
-    // switchTenant triggers window.location.reload — router.push is skipped.
-    // The redirect target is stored in sessionStorage for post-reload navigation.
-    expect(sessionStorage.getItem('postSwitchRedirect')).toBe('/dashboard')
     expect(mockSwitchTenant).toHaveBeenCalledWith('tenant-b-id')
+    expect(mockRouterPush).toHaveBeenCalledWith('/flight-control/tenant-b-id')
   })
 
   it('empty state renders when no clients', () => {
@@ -311,7 +309,7 @@ describe('FlightControl Page', () => {
     expect(wrapper.findAll('[data-testid="alert-item"]')).toHaveLength(10)
   })
 
-  it('alert click stores postSwitchRedirect and calls switchTenant', async () => {
+  it('alert click calls switchTenant and navigates to screening', async () => {
     mockTenants.value = [buildTenant()]
     mockTotals.value = buildTotals()
     mockSwitchTenant.mockResolvedValue(undefined)
@@ -322,9 +320,8 @@ describe('FlightControl Page', () => {
     const page = wrapper.vm as any
     await page.handleAlertClick(alert)
 
-    // switchTenant triggers reload — redirect stored in sessionStorage
-    expect(sessionStorage.getItem('postSwitchRedirect')).toBe('/screening/99887766')
     expect(mockSwitchTenant).toHaveBeenCalledWith('tenant-c-id')
+    expect(mockRouterPush).toHaveBeenCalledWith('/screening/99887766')
   })
 
   // L2: Filtering tests (AC3, AC10(g))

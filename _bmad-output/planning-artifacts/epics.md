@@ -138,6 +138,10 @@ Administrators can monitor data source health (NAV API connectivity, circuit bre
 SME owners and accountants get a richer, more actionable dashboard experience. Covers the "Morning Risk Pulse" SME flow, watchlist table enrichment, partner detail slide-over, and onboarding state for new users.
 **Stories:** 7.1 (Risk Pulse Dashboard Redesign), 7.2 (Partner Detail Slide-Over Drawer), 7.3 (Watchlist Table Enrichment), 7.4 (Flight Control — Client Partner View), 7.5 (Dashboard Empty & Onboarding State).
 
+### Epic 8: Real Data Integration & Single-Verdict Export
+Activates real NAV Online Számla data fetching for tenants who have entered credentials, and closes the long-standing stub for the screening verdict PDF export.
+**Stories:** 8.1 (NAV Online Számla Client Implementation), 8.2 (Screening Verdict PDF Export).
+
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
 

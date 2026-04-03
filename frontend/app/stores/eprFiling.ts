@@ -62,8 +62,10 @@ export const useEprFilingStore = defineStore('eprFiling', {
 
   actions: {
     initFromTemplates(templates: MaterialTemplateResponse[]) {
+      // Only include templates that are verified AND have a fee rate (completed the wizard).
+      // Templates without a fee rate will cause a 422 from the backend.
       this.lines = templates
-        .filter(t => t.verified)
+        .filter(t => t.verified && t.feeRate != null)
         .map(t => ({
           templateId: t.id,
           name: t.name,

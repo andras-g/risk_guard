@@ -27,7 +27,7 @@
       <ul class="space-y-0.5 px-2">
         <li
           v-for="item in mainNavItems"
-          :key="item.to"
+          :key="item.key"
         >
           <!-- Conditionally render: accountantOnly items are ONLY shown to ACCOUNTANTs (AC8) -->
           <NuxtLink
@@ -120,7 +120,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useWatchlistStore } from '~/stores/watchlist'
 
 const { t: $t } = useI18n()
-const route = useRoute()
+const router = useRouter()
 const layoutStore = useLayoutStore()
 const authStore = useAuthStore()
 const watchlistStore = useWatchlistStore()
@@ -131,13 +131,18 @@ const { role, isAccountant } = storeToRefs(authStore)
 const isAdmin = computed(() => role.value === 'SME_ADMIN')
 const watchlistCount = computed(() => watchlistStore.count)
 
-const mainNavItems = [
-  { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
-  { key: 'flightControl', to: '/flight-control', icon: 'pi-objects-column', accountantOnly: true },
-  { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
-  { key: 'epr', to: '/epr', icon: 'pi-file-export' }
-]
+const mainNavItems = computed(() => {
+  const items = [
+    // For accountants, flightControl IS their dashboard — hide the regular entry to avoid
+    // two sidebar links pointing to the same /flight-control URL (which makes both unclickable).
+    ...(!isAccountant.value ? [{ key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' }] : []),
+    { key: 'flightControl', to: '/flight-control', icon: 'pi-objects-column', accountantOnly: true },
+    { key: 'screening', to: '/screening', icon: 'pi-search' },
+    { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
+    { key: 'epr', to: '/epr', icon: 'pi-file-export' },
+  ]
+  return items
+})
 
 // Fetch watchlist count on mount for sidebar badge
 onMounted(async () => {
@@ -146,13 +151,20 @@ onMounted(async () => {
 
 /** Resolve the display label for a nav item — accountantOnly items use notification namespace. */
 function navLabel(item: { key: string, accountantOnly?: boolean }): string {
+  // For accountants, flightControl IS their "Dashboard" — use the dashboard label
+  if (item.accountantOnly && isAccountant.value) {
+    return $t('common.nav.dashboard')
+  }
   if (item.accountantOnly) {
     return $t('notification.flightControl.navLabel')
   }
   return $t(`common.nav.${item.key}`)
 }
 
+/** Reactive current path — useRoute() is not reactive outside NuxtPage, so read from router ref. */
+const currentPath = computed(() => router.currentRoute.value.path)
+
 function isActive(path: string): boolean {
-  return route.path === path || route.path.startsWith(path + '/')
+  return currentPath.value === path || currentPath.value.startsWith(path + '/')
 }
 </script>
