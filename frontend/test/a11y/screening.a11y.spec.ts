@@ -36,6 +36,14 @@ vi.mock('primevue/usetoast', () => ({
   useToast: () => ({ add: vi.fn() }),
 }))
 
+// Mock useVerdictPdf composable (explicit import in VerdictCard requires vi.mock, not stubGlobal)
+vi.mock('~/composables/api/useVerdictPdf', () => ({
+  useVerdictPdf: () => ({
+    isGenerating: ref(false),
+    exportVerdict: vi.fn(),
+  }),
+}))
+
 const mockVerdict = {
   taxNumber: '12345678',
   companyName: 'Test Kft.',

@@ -77,7 +77,7 @@ function goBack() {
       >
         <!-- VerdictCard: 60% width -->
         <div class="w-3/5">
-          <ScreeningVerdictCard :verdict="currentVerdict" />
+          <ScreeningVerdictCard :verdict="currentVerdict" :provenance="currentProvenance" />
         </div>
         <!-- ProvenanceSidebar: 40% width -->
         <div class="w-2/5">
@@ -96,7 +96,7 @@ function goBack() {
         data-testid="mobile-layout"
       >
         <!-- VerdictCard full-width -->
-        <ScreeningVerdictCard :verdict="currentVerdict" />
+        <ScreeningVerdictCard :verdict="currentVerdict" :provenance="currentProvenance" />
         <!-- ProvenanceSidebar as accordion -->
         <ScreeningProvenanceSidebar
           :provenance="currentProvenance"

@@ -2,8 +2,9 @@
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
-import type { VerdictResponse } from '~/types/api'
+import type { VerdictResponse, SnapshotProvenanceResponse } from '~/types/api'
 import { useWatchlistStore } from '~/stores/watchlist'
+import { useVerdictPdf } from '~/composables/api/useVerdictPdf'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -11,7 +12,10 @@ const watchlistStore = useWatchlistStore()
 
 const props = defineProps<{
   verdict: VerdictResponse
+  provenance?: SnapshotProvenanceResponse | null
 }>()
+
+const { isGenerating, exportVerdict } = useVerdictPdf()
 
 // ─── Freshness Guard ────────────────────────────────────────────────────────
 // Force Grey Shield if confidence is UNAVAILABLE (data > 48h) regardless of status.
@@ -326,9 +330,11 @@ async function addToWatchlist() {
         :label="t('screening.actions.exportPdf')"
         icon="pi pi-file-pdf"
         severity="primary"
-        disabled
+        :disabled="isGenerating"
+        :loading="isGenerating"
         :title="t('screening.actions.exportPdfTooltip')"
         data-testid="export-pdf-button"
+        @click="exportVerdict(props.verdict, props.provenance ?? null, t)"
       />
       <Button
         :label="isOnWatchlist ? t('notification.watchlist.onWatchlist') : t('screening.actions.addToWatchlist')"

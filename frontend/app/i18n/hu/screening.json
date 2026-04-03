@@ -51,7 +51,8 @@
       "backToDashboard": "Vissza az Átvilágításhoz",
       "copyHash": "Audit hash másolása vágólapra",
       "exportPdf": "PDF exportálás",
-      "exportPdfTooltip": "Hamarosan elérhető – PDF exportálás",
+      "exportPdfError": "PDF generálása sikertelen: {message}",
+      "exportPdfTooltip": "Verdikt exportálása PDF-be audit dokumentációhoz",
       "searchNow": "Keresés most"
     },
     "company": {
@@ -80,6 +81,10 @@
       "label": "Adatfrissesség:",
       "stale": "Elavult",
       "unavailable": "Nem elérhető"
+    },
+    "pdf": {
+      "generated": "Generálva",
+      "reportTitle": "Átvilágítási Jelentés"
     },
     "provenance": {
       "checkedAt": "Utolsó ellenőrzés:",

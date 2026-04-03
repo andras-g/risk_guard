@@ -51,7 +51,8 @@
       "backToDashboard": "Back to Screening",
       "copyHash": "Copy audit hash to clipboard",
       "exportPdf": "Export PDF",
-      "exportPdfTooltip": "Coming in a future release – PDF Export",
+      "exportPdfError": "PDF generation failed: {message}",
+      "exportPdfTooltip": "Export verdict as PDF for audit documentation",
       "searchNow": "Search now"
     },
     "company": {
@@ -80,6 +81,10 @@
       "label": "Data Freshness:",
       "stale": "Stale",
       "unavailable": "Unavailable"
+    },
+    "pdf": {
+      "generated": "Generated",
+      "reportTitle": "Screening Report"
     },
     "provenance": {
       "checkedAt": "Last Checked:",

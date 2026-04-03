@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import VerdictCard from './VerdictCard.vue'
 import type { VerdictResponse } from '~/types/api'
@@ -23,6 +24,16 @@ vi.stubGlobal('useI18n', () => ({
     }
     return key
   },
+}))
+
+// Mock useVerdictPdf composable (explicit import in VerdictCard requires vi.mock, not stubGlobal)
+const mockIsGenerating = ref(false)
+const mockExportVerdict = vi.fn()
+vi.mock('~/composables/api/useVerdictPdf', () => ({
+  useVerdictPdf: () => ({
+    isGenerating: mockIsGenerating,
+    exportVerdict: mockExportVerdict,
+  }),
 }))
 
 // Stub risk-guard-tokens import
@@ -309,8 +320,21 @@ describe('VerdictCard — copyHash defensive guard', () => {
 })
 
 describe('VerdictCard — action buttons', () => {
-  it('should show disabled Export PDF button', () => {
+  beforeEach(() => {
+    mockIsGenerating.value = false
+  })
+
+  it('should show enabled Export PDF button when verdict is loaded', () => {
     const wrapper = mountCard(buildVerdict())
+    const pdfBtn = wrapper.find('[data-testid="export-pdf-button"]')
+    expect(pdfBtn.exists()).toBe(true)
+    expect(pdfBtn.attributes('disabled')).toBeUndefined()
+  })
+
+  it('should show disabled Export PDF button when generation is in progress', async () => {
+    mockIsGenerating.value = true
+    const wrapper = mountCard(buildVerdict())
+    await wrapper.vm.$nextTick()
     const pdfBtn = wrapper.find('[data-testid="export-pdf-button"]')
     expect(pdfBtn.exists()).toBe(true)
     expect(pdfBtn.attributes('disabled')).toBeDefined()

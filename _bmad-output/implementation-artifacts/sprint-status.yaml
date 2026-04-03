@@ -131,7 +131,7 @@ development_status:
 
   epic-8: in-progress  # STARTED (2026-04-02) — Real Data Integration + UX polish bugs. NAV Online Számla client; screening verdict PDF export.
   8-1-nav-online-szamla-client-implementation: done  # Story file created 2026-04-02; dev completed 2026-04-02; code-review R1 2026-04-03 — 11 findings resolved; code-review R2 2026-04-03 — 2 patch items (P11: baseURL fix, P12: dead code removal), 6 deferred, 4 dismissed; 5 test fixes (stale assertions); 684 frontend + 5 e2e all green; status → done
-  8-2-screening-verdict-pdf-export: ready-for-dev  # Story file created 2026-04-02; client-side jsPDF, single-verdict audit-proof PDF, mobile share/desktop download, sha256Hash included. No backend changes needed.
+  8-2-screening-verdict-pdf-export: done  # Story file created 2026-04-02; client-side jsPDF, single-verdict audit-proof PDF, mobile share/desktop download, sha256Hash included. No backend changes needed. Dev completed 2026-04-03; 693 frontend tests green. code-review R1 2026-04-03 — 5 patch items resolved (P1: error toast, P2: page-break logic, P3: navigator.share guard, P4: tooltip text, P5: i18n block order); code-review R2 2026-04-03 — 4 patch items resolved (P1: i18n ordering, P2: a11y mock ref, P3: explicit import ReferenceError fix, P4: vi.mock migration); 695 frontend + 5 e2e all green; status → done.
   8-3-invoice-driven-epr-auto-fill: ready-for-dev  # Story file created 2026-04-02; invoice auto-fill for EPR filing from NAV Online Számla (queryInvoiceDigest+queryInvoiceData), vtszMappings in EPR config, DataSourceService facade extension, EprService.autoFillFromInvoices(), InvoiceAutoFillPanel.vue. Depends on Story 8.1 for live mode; works in demo mode standalone.
 
 # CANCELLED STORIES (2026-03-12):
