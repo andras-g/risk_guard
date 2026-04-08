@@ -2,9 +2,22 @@
 import { useAuthStore } from '~/stores/auth'
 import { storeToRefs } from 'pinia'
 
+const { t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { activeTenantId, mandates, isAccountant } = storeToRefs(authStore)
+const { activeTenantId, mandates, isAccountant, homeTenantId, name: userName } = storeToRefs(authStore)
+
+/** Mandates list with the accountant's own (home) tenant prepended. */
+const dropdownOptions = computed(() => {
+  const options = [...mandates.value]
+  if (homeTenantId.value && !options.some(m => m.id === homeTenantId.value)) {
+    options.unshift({
+      id: homeTenantId.value,
+      name: `${userName.value ?? t('identity.tenantSwitcher.ownAccount')}`,
+    })
+  }
+  return options
+})
 
 const selectedTenantId = ref(activeTenantId.value)
 
@@ -47,7 +60,7 @@ async function onTenantChange() {
       v-model="selectedTenantId"
       input-id="tenant-switcher-select"
       aria-labelledby="tenant-switcher-label"
-      :options="mandates"
+      :options="dropdownOptions"
       option-label="name"
       option-value="id"
       filter

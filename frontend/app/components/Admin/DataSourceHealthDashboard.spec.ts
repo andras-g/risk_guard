@@ -55,12 +55,14 @@ function mountDashboard(props: {
   adapters?: AdapterHealth[]
   loading?: boolean
   quarantining?: Record<string, boolean>
+  canQuarantine?: boolean
 } = {}) {
   return mount(DataSourceHealthDashboard, {
     props: {
       adapters: props.adapters ?? [buildAdapter()],
       loading: props.loading ?? false,
       quarantining: props.quarantining ?? {},
+      ...(props.canQuarantine !== undefined ? { canQuarantine: props.canQuarantine } : {}),
     },
     global: {
       stubs: {
@@ -185,6 +187,15 @@ describe('DataSourceHealthDashboard', () => {
     const emitted = wrapper.emitted('quarantine')
     expect(emitted).toBeTruthy()
     expect(emitted![0][0]).toBe('demo')
+  })
+
+  it('hides quarantine toggle when canQuarantine is false', () => {
+    const wrapper = mountDashboard({
+      adapters: [buildAdapter({ adapterName: 'demo' })],
+      canQuarantine: false,
+    })
+
+    expect(wrapper.find('[data-testid="quarantine-toggle"]').exists()).toBe(false)
   })
 
   it('FORCED_OPEN state shows orange badge with Quarantined label', () => {

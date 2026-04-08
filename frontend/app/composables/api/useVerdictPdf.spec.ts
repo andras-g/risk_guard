@@ -22,6 +22,9 @@ let capturedTexts: Array<{ text: string | string[], x: number, y: number }> = []
 
 const mockDoc = {
   setFontSize: vi.fn(),
+  setFont: vi.fn(),
+  addFileToVFS: vi.fn(),
+  addFont: vi.fn(),
   text: vi.fn((text: string | string[], x: number, y: number) => {
     capturedTexts.push({ text, x, y })
   }),
@@ -37,6 +40,10 @@ const mockDoc = {
 
 vi.mock('jspdf', () => ({
   default: vi.fn(() => mockDoc),
+}))
+
+vi.mock('~/composables/formatting/usePdfFont', () => ({
+  registerInterFont: vi.fn().mockResolvedValue(undefined),
 }))
 
 // ─── Navigator mock ─────────────────────────────────────────────────────────────

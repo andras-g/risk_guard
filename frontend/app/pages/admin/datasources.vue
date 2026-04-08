@@ -20,7 +20,7 @@ async function handleQuarantine(adapterName: string, quarantined: boolean) {
 let pollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (authStore.role !== 'SME_ADMIN') {
+  if (authStore.role !== 'SME_ADMIN' && authStore.role !== 'ACCOUNTANT') {
     router.replace('/dashboard')
     return
   }
@@ -84,12 +84,14 @@ onUnmounted(() => {
       :adapters="healthStore.adapters"
       :loading="healthStore.loading"
       :quarantining="quarantining"
+      :can-quarantine="authStore.role === 'SME_ADMIN'"
       @quarantine="handleQuarantine"
     />
 
-    <!-- NAV credential manager — only shown in test/live mode -->
+    <!-- NAV credential manager -->
     <AdminNavCredentialManager
-      v-if="healthStore.adapters.length > 0 && healthStore.adapters[0].dataSourceMode !== 'DEMO'"
+      v-if="healthStore.adapters.length > 0"
+      :data-source-mode="healthStore.adapters[0]?.dataSourceMode ?? ''"
     />
   </div>
 </template>

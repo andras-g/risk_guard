@@ -121,7 +121,7 @@ class DataSourceAdminControllerTest {
 
     @Test
     void nonAdminGets403() {
-        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+        Jwt jwt = buildJwtWithRole("GUEST");
 
         assertThatThrownBy(() -> controller.getHealth(jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -197,13 +197,26 @@ class DataSourceAdminControllerTest {
     }
 
     @Test
-    void demoModeOverridesCredentialStatusToNotConfigured() {
-        // AC#2: credentialStatus must always be NOT_CONFIGURED in DEMO mode,
-        // even if nav_tenant_credentials has entries for this tenant
+    void demoModeDerivesCredentialStatusFromDb() {
+        // AC#3: Demo mode credential status derived from DB — after saving credentials in demo mode,
+        // badge shows VALID (adapter name "demo" treated same as "nav-online-szamla" for credential status)
         Jwt jwt = buildJwtWithRole("SME_ADMIN");
         when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
         when(dataSourceProps.getMode()).thenReturn("demo");
         when(navTenantCredentialRepository.existsByTenantId(any())).thenReturn(true);
+
+        List<AdapterHealthResponse> result = controller.getHealth(jwt);
+
+        assertThat(result.get(0).credentialStatus()).isEqualTo("VALID");
+    }
+
+    @Test
+    void demoModeCredentialStatusNotConfiguredWhenNoCreds() {
+        // AC#3: In demo mode, no credentials stored → NOT_CONFIGURED
+        Jwt jwt = buildJwtWithRole("SME_ADMIN");
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
+        when(dataSourceProps.getMode()).thenReturn("demo");
+        when(navTenantCredentialRepository.existsByTenantId(any())).thenReturn(false);
 
         List<AdapterHealthResponse> result = controller.getHealth(jwt);
 
@@ -326,6 +339,7 @@ class DataSourceAdminControllerTest {
     @Test
     void saveCredentials_smeAdmin_validCredentials_returns200() {
         Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        when(dataSourceProps.getMode()).thenReturn("test");
         var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
                 "testLogin", "rawPass", "signingKey", "exchangeKey", "12345678");
         when(authService.hashPassword("rawPass")).thenReturn("HASHXXX");
@@ -342,6 +356,7 @@ class DataSourceAdminControllerTest {
     @Test
     void saveCredentials_invalidCredentials_returns422() {
         Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        when(dataSourceProps.getMode()).thenReturn("test");
         var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
                 "testLogin", "wrongPass", "signingKey", "exchangeKey", "12345678");
         when(authService.hashPassword(any())).thenReturn("HASH");
@@ -358,7 +373,7 @@ class DataSourceAdminControllerTest {
 
     @Test
     void saveCredentials_nonAdmin_returns403() {
-        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+        Jwt jwt = buildJwtWithRole("GUEST");
         var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
                 "testLogin", "rawPass", "signingKey", "exchangeKey", "12345678");
 
@@ -370,7 +385,7 @@ class DataSourceAdminControllerTest {
 
     @Test
     void deleteCredentials_nonAdmin_returns403() {
-        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+        Jwt jwt = buildJwtWithRole("GUEST");
 
         assertThatThrownBy(() -> controller.deleteCredentials(jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -387,6 +402,69 @@ class DataSourceAdminControllerTest {
         controller.deleteCredentials(jwt);
 
         verify(navTenantCredentialRepository).deleteByTenantId(TENANT_ID);
+    }
+
+    // --- ACCOUNTANT role tests ---
+
+    @Test
+    void getHealth_accountant_returns200() {
+        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
+
+        List<AdapterHealthResponse> result = controller.getHealth(jwt);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void saveCredentials_accountant_returns200() {
+        Jwt jwt = buildJwtWithRoleAndUserId("ACCOUNTANT");
+        when(dataSourceProps.getMode()).thenReturn("test");
+        var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
+                "testLogin", "rawPass", "signingKey", "exchangeKey", "12345678");
+        when(authService.hashPassword("rawPass")).thenReturn("HASHXXX");
+        when(aesFieldEncryptor.encrypt(anyString())).thenReturn("enc");
+        when(authService.verifyCredentials(any())).thenReturn(true);
+
+        controller.saveCredentials(request, jwt);
+
+        verify(navTenantCredentialRepository).upsert(eq(TENANT_ID), anyString(), anyString(), anyString(), anyString(), eq("12345678"));
+    }
+
+    @Test
+    void deleteCredentials_accountant_returns200() {
+        Jwt jwt = buildJwtWithRoleAndUserId("ACCOUNTANT");
+
+        controller.deleteCredentials(jwt);
+
+        verify(navTenantCredentialRepository).deleteByTenantId(TENANT_ID);
+    }
+
+    @Test
+    void quarantine_accountant_returns403() {
+        Jwt jwt = buildJwtWithRole("ACCOUNTANT");
+
+        assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(true), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    // --- Demo mode skip verification test ---
+
+    @Test
+    void saveCredentials_demo_skipsVerification() {
+        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        when(dataSourceProps.getMode()).thenReturn("demo");
+        var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
+                "testLogin", "rawPass", "signingKey", "exchangeKey", "12345678");
+        when(authService.hashPassword("rawPass")).thenReturn("HASHXXX");
+        when(aesFieldEncryptor.encrypt(anyString())).thenReturn("enc");
+
+        controller.saveCredentials(request, jwt);
+
+        verify(authService, never()).verifyCredentials(any());
+        verify(navTenantCredentialRepository).upsert(eq(TENANT_ID), anyString(), anyString(), anyString(), anyString(), eq("12345678"));
     }
 
     private Jwt buildJwtWithRole(String role) {

@@ -29,11 +29,17 @@ const ButtonStub = {
   emits: ['click'],
 }
 
-function mountComponent(credentialStatus = 'NOT_CONFIGURED') {
-  mockAdapters = [{ adapterName: 'nav-online-szamla', credentialStatus, dataSourceMode: 'TEST' }]
+const MessageStub = {
+  template: '<div v-if="true" :data-testid="$attrs[\'data-testid\']"><slot /></div>',
+  props: ['severity', 'closable'],
+}
+
+function mountComponent(credentialStatus = 'NOT_CONFIGURED', dataSourceMode = 'TEST') {
+  mockAdapters = [{ adapterName: 'nav-online-szamla', credentialStatus, dataSourceMode }]
   return mount(NavCredentialManager, {
+    props: { dataSourceMode },
     global: {
-      stubs: { Button: ButtonStub },
+      stubs: { Button: ButtonStub, Message: MessageStub },
     },
   })
 }
@@ -179,5 +185,15 @@ describe('NavCredentialManager', () => {
     const loginInput = wrapper.find('#nav-login')
     expect(loginLabel.exists()).toBe(true)
     expect(loginInput.exists()).toBe(true)
+  })
+
+  it('shows demo mode info message when dataSourceMode is DEMO', () => {
+    const wrapper = mountComponent('NOT_CONFIGURED', 'DEMO')
+    expect(wrapper.find('[data-testid="demo-mode-info"]').exists()).toBe(true)
+  })
+
+  it('hides demo mode info message when dataSourceMode is TEST', () => {
+    const wrapper = mountComponent('NOT_CONFIGURED', 'TEST')
+    expect(wrapper.find('[data-testid="demo-mode-info"]').exists()).toBe(false)
   })
 })

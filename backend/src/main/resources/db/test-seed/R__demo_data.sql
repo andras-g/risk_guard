@@ -682,3 +682,42 @@ INSERT INTO epr_material_templates (
     now() - INTERVAL '5 days', now() - INTERVAL '5 days'
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION: NAV Tenant Credentials (for EPR invoice auto-fill)
+-- =============================================================================
+-- Demo SME tenant — tax_number matches DemoInvoiceFixtures (35 invoices)
+INSERT INTO nav_tenant_credentials (
+    id, tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number
+) VALUES (
+    '00000000-0000-4000-e000-000000000001',
+    '00000000-0000-4000-b000-000000000001',
+    'demo_encrypted_login', 'demo_password_hash_sha512',
+    'demo_encrypted_signing_key', 'demo_encrypted_exchange_key',
+    '12345678'
+)
+ON CONFLICT (tenant_id) DO NOTHING;
+
+-- Accountant client 1: Zöld Élelmiszer Kft. — 28 construction invoices
+INSERT INTO nav_tenant_credentials (
+    id, tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number
+) VALUES (
+    '00000000-0000-4000-e000-000000000002',
+    '00000000-0000-4000-b000-000000000020',
+    'demo_encrypted_login', 'demo_password_hash_sha512',
+    'demo_encrypted_signing_key', 'demo_encrypted_exchange_key',
+    '99887766'
+)
+ON CONFLICT (tenant_id) DO NOTHING;
+
+-- Accountant client 2: Prémium Bútor Zrt. — 42 manufacturing invoices
+INSERT INTO nav_tenant_credentials (
+    id, tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number
+) VALUES (
+    '00000000-0000-4000-e000-000000000003',
+    '00000000-0000-4000-b000-000000000021',
+    'demo_encrypted_login', 'demo_password_hash_sha512',
+    'demo_encrypted_signing_key', 'demo_encrypted_exchange_key',
+    '55667788'
+)
+ON CONFLICT (tenant_id) DO NOTHING;

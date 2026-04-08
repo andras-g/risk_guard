@@ -466,6 +466,17 @@ public class EprService {
     // ─── Invoice auto-fill ──────────────────────────────────────────────────
 
     /**
+     * Returns the tax number stored in NAV credentials for the given tenant, if any.
+     * Used by the frontend to pre-populate the auto-fill tax number field.
+     *
+     * @param tenantId the tenant UUID from JWT
+     * @return the registered 8-digit tax number, or empty if no credentials configured
+     */
+    public Optional<String> getRegisteredTaxNumber(UUID tenantId) {
+        return dataSourceService.getTenantTaxNumber(tenantId);
+    }
+
+    /**
      * Builds a pre-filled EPR filing suggestion from outbound invoices fetched from NAV Online Számla.
      *
      * <p>Algorithm:

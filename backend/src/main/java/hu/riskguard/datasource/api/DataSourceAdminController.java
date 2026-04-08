@@ -78,7 +78,7 @@ public class DataSourceAdminController {
      */
     @GetMapping("/health")
     public List<AdapterHealthResponse> getHealth(@AuthenticationPrincipal Jwt jwt) {
-        requireAdminRole(jwt);
+        requireAdminOrAccountantRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         String dataSourceMode = riskGuardProperties.getDataSource().getMode().toUpperCase();
@@ -155,7 +155,7 @@ public class DataSourceAdminController {
             @RequestBody @Valid NavCredentialRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        requireAdminRole(jwt);
+        requireAdminOrAccountantRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         String passwordHash = authService.hashPassword(request.password());
@@ -163,15 +163,18 @@ public class DataSourceAdminController {
         String signingKeyEnc = aesFieldEncryptor.encrypt(request.signingKey());
         String exchangeKeyEnc = aesFieldEncryptor.encrypt(request.exchangeKey());
 
-        NavCredentials credentials = new NavCredentials(
-                request.login(), passwordHash, request.signingKey(),
-                request.exchangeKey(), request.taxNumber()
-        );
-
-        boolean valid = authService.verifyCredentials(credentials);
-        if (!valid) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "NAV credential verification failed — check login, password, signingKey, and exchangeKey");
+        // Demo mode: skip NAV verification (no live NAV connection available)
+        boolean isDemoMode = "demo".equalsIgnoreCase(riskGuardProperties.getDataSource().getMode());
+        if (!isDemoMode) {
+            NavCredentials credentials = new NavCredentials(
+                    request.login(), passwordHash, request.signingKey(),
+                    request.exchangeKey(), request.taxNumber()
+            );
+            boolean valid = authService.verifyCredentials(credentials);
+            if (!valid) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "NAV credential verification failed — check login, password, signingKey, and exchangeKey");
+            }
         }
 
         navTenantCredentialRepository.upsert(tenantId, loginEnc, passwordHash,
@@ -184,7 +187,7 @@ public class DataSourceAdminController {
      */
     @DeleteMapping("/credentials")
     public void deleteCredentials(@AuthenticationPrincipal Jwt jwt) {
-        requireAdminRole(jwt);
+        requireAdminOrAccountantRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         navTenantCredentialRepository.deleteByTenantId(tenantId);
@@ -231,11 +234,8 @@ public class DataSourceAdminController {
         Instant lastFailureAt = dbRow != null ? dbRow.lastFailureAt() : null;
         Double mtbfHours = dbRow != null ? dbRow.mtbfHours() : null;
 
-        // AC#2: Demo mode credential status is always NOT_CONFIGURED (no real credentials)
-        // P3 fix: credential status derived from per-tenant nav_tenant_credentials table
-        String credentialStatus = "DEMO".equals(dataSourceMode)
-                ? "NOT_CONFIGURED"
-                : (NAV_ADAPTER_NAME.equals(name) ? navCredentialStatus : "NOT_CONFIGURED");
+        String credentialStatus = (NAV_ADAPTER_NAME.equals(name) || "DEMO".equals(dataSourceMode))
+                ? navCredentialStatus : "NOT_CONFIGURED";
 
         return AdapterHealthResponse.from(
                 name,
@@ -254,6 +254,13 @@ public class DataSourceAdminController {
         String role = jwt.getClaimAsString("role");
         if (!"SME_ADMIN".equals(role)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
+    }
+
+    private void requireAdminOrAccountantRole(Jwt jwt) {
+        String role = jwt.getClaimAsString("role");
+        if (!"SME_ADMIN".equals(role) && !"ACCOUNTANT".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin or Accountant access required");
         }
     }
 }

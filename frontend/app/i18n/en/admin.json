@@ -91,6 +91,7 @@
       "saveError": "Failed to save NAV credentials",
       "deleteSuccess": "NAV credentials removed",
       "deleteError": "Failed to remove NAV credentials",
+      "demoModeInfo": "Demo mode: credentials are stored locally without NAV verification. Switch to test/live mode for real validation.",
       "status": {
         "not_configured": "Not Configured",
         "valid": "Valid",

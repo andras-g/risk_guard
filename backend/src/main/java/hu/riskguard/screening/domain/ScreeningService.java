@@ -138,7 +138,7 @@ public class ScreeningService {
                         cached.createdAt(),
                         List.of(),  // Cached results return empty riskSignals — see `cached` flag below.
                         true,       // Mark as cached so frontend can distinguish from fresh results.
-                        null,       // companyName not available for cached results (snapshot not re-parsed).
+                        cached.companyName(),
                         null        // sha256Hash not returned for cached results (original audit entry).
                 ));
             }

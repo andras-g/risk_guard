@@ -1,4 +1,5 @@
 import type { WatchlistEntryResponse } from '~/types/api'
+import { registerInterFont } from '~/composables/formatting/usePdfFont'
 
 export function useWatchlistPdfExport() {
   const isGenerating = ref(false)
@@ -22,6 +23,7 @@ async function buildPdf(entries: WatchlistEntryResponse[]): Promise<Blob> {
   await import('jspdf-autotable')
 
   const doc = new jsPDF({ orientation: 'landscape' })
+  await registerInterFont(doc)
   const today = new Date().toISOString().slice(0, 10)
 
   doc.setFontSize(14)

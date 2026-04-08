@@ -187,3 +187,11 @@
 - D13: `queryInvoiceData` hardcodes OUTBOUND direction — add direction parameter when inbound queries needed.
 - D14: `nav_tenant_credentials` not in `TenantJooqListener.isTenantAwareQuery()` table list — add when new query patterns emerge.
 - D15: `EprService.copyTemplates` name dedup (non-story bugfix) has no test coverage for the new filter path.
+
+## Deferred from: code review of 8-4-accountant-nav-credential-access-and-demo-mode (2026-04-08)
+
+- W1: No delete confirmation dialog on NavCredentialManager — single click permanently deletes credentials with no undo; pre-existing UX gap; add ConfirmDialog when accountant access matures.
+- W2: `requireAdminOrAccountantRole` null-role behavior undocumented — null JWT claim correctly triggers 403 but intent never stated; same pattern as pre-existing `requireAdminRole`; document when refactoring auth helpers.
+- W3: Class-level Javadoc on DataSourceAdminController still says "Restricted to SME_ADMIN only" — update when next touching the class.
+- W4: `adapters[0]` hardcoded in `datasources.vue` — dataSourceMode from first adapter passed to NavCredentialManager; wrong in multi-adapter setups where NAV isn't at index 0; revisit when multi-adapter health view is built.
+- W5: `getHealth` computes `existsByTenantId` DB query on every 30s poll call with no server-side caching — low impact at current scale; add caching if health endpoint becomes a performance hotspot.

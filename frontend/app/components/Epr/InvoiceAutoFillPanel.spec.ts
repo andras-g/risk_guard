@@ -7,15 +7,18 @@ import type { InvoiceAutoFillLineDto } from '~/composables/api/useInvoiceAutoFil
 // ─── Composable mock ────────────────────────────────────────────────────────
 
 const mockFetchAutoFill = vi.fn()
+const mockFetchRegisteredTaxNumber = vi.fn().mockResolvedValue('')
 const mockPending = ref(false)
 const mockResponse = ref<{ lines: InvoiceAutoFillLineDto[]; navAvailable: boolean; dataSourceMode: string } | null>(null)
 
 vi.mock('~/composables/api/useInvoiceAutoFill', () => ({
   useInvoiceAutoFill: vi.fn(() => ({
     fetchAutoFill: mockFetchAutoFill,
+    fetchRegisteredTaxNumber: mockFetchRegisteredTaxNumber,
     pending: mockPending,
     response: mockResponse,
     error: ref(null),
+    registeredTaxNumber: ref(''),
     startOfCurrentQuarter: () => new Date(2026, 0, 1),
     endOfCurrentQuarter: () => new Date(2026, 2, 31),
   })),

@@ -26,6 +26,29 @@ export function useInvoiceAutoFill() {
   const response = ref<InvoiceAutoFillResponse | null>(null)
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const registeredTaxNumber = ref('')
+
+  /**
+   * Fetches the tenant's registered tax number from NAV credentials.
+   * Returns empty string if no credentials are configured.
+   */
+  async function fetchRegisteredTaxNumber(): Promise<string> {
+    try {
+      const config = useRuntimeConfig()
+      const data = await $fetch<{ taxNumber: string }>(
+        '/api/v1/epr/filing/registered-tax-number',
+        {
+          baseURL: config.public.apiBase as string,
+          credentials: 'include',
+        },
+      )
+      registeredTaxNumber.value = data.taxNumber ?? ''
+      return registeredTaxNumber.value
+    }
+    catch {
+      return ''
+    }
+  }
 
   async function fetchAutoFill(taxNumber: string, from: Date, to: Date): Promise<InvoiceAutoFillResponse> {
     pending.value = true
@@ -61,7 +84,9 @@ export function useInvoiceAutoFill() {
     response,
     pending,
     error,
+    registeredTaxNumber,
     fetchAutoFill,
+    fetchRegisteredTaxNumber,
     startOfCurrentQuarter,
     endOfCurrentQuarter,
   }

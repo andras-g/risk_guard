@@ -95,6 +95,48 @@ describe('TenantSwitcher — switching logic', () => {
     expect(selectedTenantId.value).toBe('tenant-a')
   })
 
+  it('should prepend home tenant to mandates when not already present', () => {
+    const homeTenantId = 'home-tenant'
+    const userName = 'Test User'
+    const mandates = [
+      { id: 'client-a', name: 'Client A' },
+      { id: 'client-b', name: 'Client B' },
+    ]
+
+    // Mimic the dropdownOptions computed
+    function buildDropdownOptions() {
+      const options = [...mandates]
+      if (homeTenantId && !options.some(m => m.id === homeTenantId)) {
+        options.unshift({ id: homeTenantId, name: userName })
+      }
+      return options
+    }
+
+    const options = buildDropdownOptions()
+    expect(options).toHaveLength(3)
+    expect(options[0]).toEqual({ id: 'home-tenant', name: 'Test User' })
+  })
+
+  it('should NOT duplicate home tenant if already in mandates', () => {
+    const homeTenantId = 'client-a'
+    const userName = 'Test User'
+    const mandates = [
+      { id: 'client-a', name: 'Client A' },
+      { id: 'client-b', name: 'Client B' },
+    ]
+
+    function buildDropdownOptions() {
+      const options = [...mandates]
+      if (homeTenantId && !options.some(m => m.id === homeTenantId)) {
+        options.unshift({ id: homeTenantId, name: userName })
+      }
+      return options
+    }
+
+    const options = buildDropdownOptions()
+    expect(options).toHaveLength(2)
+  })
+
   it('should sync selectedTenantId when activeTenantId changes externally', () => {
     // Simulate the watch(activeTenantId, ...) behaviour
     const activeTenantId = ref('tenant-a')

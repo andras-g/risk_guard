@@ -19,6 +19,7 @@ import org.springframework.context.i18n.LocaleContextHolder;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -219,6 +220,18 @@ public class EprController {
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         return eprService.calculateFiling(request.lines(), tenantId);
+    }
+
+    /**
+     * Returns the tenant's registered tax number from NAV credentials, if any.
+     * Used by the frontend to pre-populate the auto-fill tax number input.
+     */
+    @GetMapping("/filing/registered-tax-number")
+    public ResponseEntity<Map<String, String>> getRegisteredTaxNumber(
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        String taxNumber = eprService.getRegisteredTaxNumber(tenantId).orElse("");
+        return ResponseEntity.ok(Map.of("taxNumber", taxNumber));
     }
 
     /**

@@ -12,6 +12,7 @@
     },
     "tenantSwitcher": {
       "label": "Jelenlegi ügyfél",
+      "ownAccount": "Saját fiók",
       "placeholder": "Válasszon ügyfelet..."
     }
   }

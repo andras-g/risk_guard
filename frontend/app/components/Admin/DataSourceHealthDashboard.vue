@@ -9,11 +9,12 @@ import { useDateRelative } from '~/composables/formatting/useDateRelative'
 const { t } = useI18n()
 const { formatRelative } = useDateRelative()
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   adapters: AdapterHealth[]
   loading: boolean
   quarantining: Record<string, boolean>
-}>()
+  canQuarantine?: boolean
+}>(), { canQuarantine: true })
 
 const emit = defineEmits<{
   (e: 'quarantine', adapterName: string, quarantined: boolean): void
@@ -141,7 +142,7 @@ function successRateBarClass(pct: number): string {
           </div>
 
           <!-- Quarantine Toggle -->
-          <div class="flex items-center gap-2 mt-3">
+          <div v-if="props.canQuarantine" class="flex items-center gap-2 mt-3">
             <InputSwitch
               :model-value="adapter.circuitBreakerState === 'FORCED_OPEN'"
               :disabled="quarantining[adapter.adapterName]"

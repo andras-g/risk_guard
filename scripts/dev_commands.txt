@@ -1,0 +1,15 @@
+/bmad-code-review review story XXX and fix your findings on your own without further questions. Run E2E tests as well and if they are green then push everything to github 
+
+
+Done. Both users use sso_provider = 'local' now, so the normal login form works:
+
+  ┌─────────────────────────┬───────────┬────────────┐
+  │          Email          │ Password  │    Role    │
+  ├─────────────────────────┼───────────┼────────────┤
+  │ demo@riskguard.hu       │ Demo1234! │ SME_ADMIN  │
+  ├─────────────────────────┼───────────┼────────────┤
+  │ accountant@riskguard.hu │ Demo1234! │ ACCOUNTANT │
+  └─────────────────────────┴───────────┴────────────┘
+
+  Just make sure the backend is started with the test or e2e profile so the seed migrations run (the test-seed/ location is only included in those profiles).
+  

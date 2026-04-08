@@ -12,6 +12,7 @@
     },
     "tenantSwitcher": {
       "label": "Current client",
+      "ownAccount": "Own account",
       "placeholder": "Select client..."
     }
   }

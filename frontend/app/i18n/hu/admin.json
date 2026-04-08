@@ -91,6 +91,7 @@
       "saveError": "NAV hitelesítő adatok mentése sikertelen",
       "deleteSuccess": "NAV hitelesítő adatok törölve",
       "deleteError": "NAV hitelesítő adatok törlése sikertelen",
+      "demoModeInfo": "Demo mód: a hitelesítő adatok helyi tárolása NAV ellenőrzés nélkül történik. Váltson teszt/éles módra a valós érvényesítéshez.",
       "status": {
         "not_configured": "Nincs konfigurálva",
         "valid": "Érvényes",

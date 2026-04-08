@@ -18,9 +18,16 @@ const emit = defineEmits<{
   apply: [lines: InvoiceAutoFillLineDto[]]
 }>()
 
-const { fetchAutoFill, pending, response, startOfCurrentQuarter, endOfCurrentQuarter } = useInvoiceAutoFill()
+const { fetchAutoFill, fetchRegisteredTaxNumber, pending, response, startOfCurrentQuarter, endOfCurrentQuarter } = useInvoiceAutoFill()
 
 const taxNumber = ref('')
+
+onMounted(async () => {
+  const registered = await fetchRegisteredTaxNumber()
+  if (registered && !taxNumber.value) {
+    taxNumber.value = registered
+  }
+})
 const fromDate = ref<Date>(startOfCurrentQuarter())
 const toDate = ref<Date>(endOfCurrentQuarter())
 const selectedLines = ref<InvoiceAutoFillLineDto[]>([])

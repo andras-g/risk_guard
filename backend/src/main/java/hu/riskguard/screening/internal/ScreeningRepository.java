@@ -68,7 +68,8 @@ public class ScreeningRepository extends BaseRepository {
                         VERDICTS.ID,
                         VERDICTS.STATUS,
                         VERDICTS.CONFIDENCE,
-                        VERDICTS.CREATED_AT
+                        VERDICTS.CREATED_AT,
+                        COMPANY_SNAPSHOTS.SNAPSHOT_DATA
                 )
                 .from(COMPANY_SNAPSHOTS)
                 .join(VERDICTS).on(VERDICTS.SNAPSHOT_ID.eq(COMPANY_SNAPSHOTS.ID))
@@ -83,7 +84,8 @@ public class ScreeningRepository extends BaseRepository {
                         r.get(VERDICTS.ID),
                         r.get(VERDICTS.STATUS),
                         r.get(VERDICTS.CONFIDENCE),
-                        r.get(VERDICTS.CREATED_AT)
+                        r.get(VERDICTS.CREATED_AT),
+                        extractCompanyName(r.get(COMPANY_SNAPSHOTS.SNAPSHOT_DATA))
                 ));
     }
 
@@ -819,6 +821,7 @@ public class ScreeningRepository extends BaseRepository {
             UUID verdictId,
             VerdictStatus status,
             VerdictConfidence confidence,
-            OffsetDateTime createdAt
+            OffsetDateTime createdAt,
+            String companyName
     ) {}
 }

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
+import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import { useHealthStore } from '~/stores/health'
+
+const props = defineProps<{
+  dataSourceMode?: string
+}>()
 
 const { t } = useI18n()
 const toast = useToast()
@@ -111,6 +116,10 @@ function credentialStatusClass(status: string): string {
     </div>
 
     <p class="text-sm text-slate-500">{{ t('admin.navCredentials.description') }}</p>
+
+    <Message v-if="props.dataSourceMode === 'DEMO'" severity="info" :closable="false" data-testid="demo-mode-info">
+      {{ t('admin.navCredentials.demoModeInfo') }}
+    </Message>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div class="flex flex-col gap-1">

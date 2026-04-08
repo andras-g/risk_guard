@@ -1,5 +1,6 @@
 import { useToast } from 'primevue/usetoast'
 import type { VerdictResponse, SnapshotProvenanceResponse } from '~/types/api'
+import { registerInterFont } from '~/composables/formatting/usePdfFont'
 
 const HASH_UNAVAILABLE_SENTINEL = 'HASH_UNAVAILABLE'
 
@@ -40,6 +41,7 @@ async function buildPdf(
 ): Promise<File> {
   const { default: jsPDF } = await import('jspdf')
   const doc = new jsPDF({ orientation: 'portrait' })
+  await registerInterFont(doc)
   const today = new Date().toISOString().slice(0, 10)
 
   const pageHeight = doc.internal.pageSize.height
