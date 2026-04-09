@@ -51,11 +51,11 @@ class AuditAdminControllerTest {
         controller = new AuditAdminController(screeningService);
     }
 
-    // ─── smeAdmin + taxNumber ─────────────────────────────────────────────────
+    // ─── platformAdmin + taxNumber ────────────────────────────────────────────
 
     @Test
-    void getAuditLog_smeAdmin_taxNumber_returns200WithPagedResults() {
-        Jwt jwt = buildSmeAdminJwt();
+    void getAuditLog_platformAdmin_taxNumber_returns200WithPagedResults() {
+        Jwt jwt = buildPlatformAdminJwt();
         AdminAuditEntry entry = buildEntry();
         when(screeningService.getAdminAuditLog("12345678", null, 0, 20))
                 .thenReturn(new AdminAuditPage(List.of(entry), 1L, 0, 20));
@@ -67,11 +67,11 @@ class AuditAdminControllerTest {
         assertThat(result.content().get(0).taxNumber()).isEqualTo("12345678");
     }
 
-    // ─── smeAdmin + tenantId ──────────────────────────────────────────────────
+    // ─── platformAdmin + tenantId ─────────────────────────────────────────────
 
     @Test
-    void getAuditLog_smeAdmin_tenantId_returns200WithPagedResults() {
-        Jwt jwt = buildSmeAdminJwt();
+    void getAuditLog_platformAdmin_tenantId_returns200WithPagedResults() {
+        Jwt jwt = buildPlatformAdminJwt();
         AdminAuditEntry entry = buildEntry();
         when(screeningService.getAdminAuditLog(null, TENANT_ID, 0, 20))
                 .thenReturn(new AdminAuditPage(List.of(entry), 1L, 0, 20));
@@ -82,11 +82,11 @@ class AuditAdminControllerTest {
         assertThat(result.content().get(0).tenantId()).isEqualTo(TENANT_ID.toString());
     }
 
-    // ─── smeAdmin + empty results ──────────────────────────────────────────────
+    // ─── platformAdmin + empty results ────────────────────────────────────────
 
     @Test
-    void getAuditLog_smeAdmin_emptyResults_returns200WithEmptyContent() {
-        Jwt jwt = buildSmeAdminJwt();
+    void getAuditLog_platformAdmin_emptyResults_returns200WithEmptyContent() {
+        Jwt jwt = buildPlatformAdminJwt();
         when(screeningService.getAdminAuditLog("99999999", null, 0, 20))
                 .thenReturn(new AdminAuditPage(List.of(), 0L, 0, 20));
 
@@ -94,6 +94,20 @@ class AuditAdminControllerTest {
 
         assertThat(result.totalElements()).isEqualTo(0);
         assertThat(result.content()).isEmpty();
+    }
+
+    // ─── smeAdmin returns 403 ─────────────────────────────────────────────────
+
+    @Test
+    void getAuditLog_smeAdmin_returns403() {
+        Jwt jwt = buildSmeAdminJwt();
+
+        assertThatThrownBy(() -> controller.getAuditLog("12345678", null, 0, 20, jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(screeningService, never()).getAdminAuditLog(any(), any(), anyInt(), anyInt());
     }
 
     // ─── non-admin returns 403 ────────────────────────────────────────────────
@@ -114,7 +128,7 @@ class AuditAdminControllerTest {
 
     @Test
     void getAuditLog_noSearchCriteria_returns400WithProblemDetail() {
-        Jwt jwt = buildSmeAdminJwt();
+        Jwt jwt = buildPlatformAdminJwt();
 
         assertThatThrownBy(() -> controller.getAuditLog(null, null, 0, 20, jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -131,7 +145,7 @@ class AuditAdminControllerTest {
 
     @Test
     void getAuditLog_sizeClamped_to100Max() {
-        Jwt jwt = buildSmeAdminJwt();
+        Jwt jwt = buildPlatformAdminJwt();
         when(screeningService.getAdminAuditLog(eq("12345678"), isNull(), eq(0), eq(100)))
                 .thenReturn(new AdminAuditPage(List.of(), 0L, 0, 100));
 
@@ -144,7 +158,7 @@ class AuditAdminControllerTest {
 
     @Test
     void getAuditLog_negativePage_clampsToZero() {
-        Jwt jwt = buildSmeAdminJwt();
+        Jwt jwt = buildPlatformAdminJwt();
         when(screeningService.getAdminAuditLog(eq("12345678"), isNull(), eq(0), eq(20)))
                 .thenReturn(new AdminAuditPage(List.of(), 0L, 0, 20));
 
@@ -157,7 +171,7 @@ class AuditAdminControllerTest {
 
     @Test
     void getAuditLog_combinedTaxNumberAndTenantId_passesAllParams() {
-        Jwt jwt = buildSmeAdminJwt();
+        Jwt jwt = buildPlatformAdminJwt();
         when(screeningService.getAdminAuditLog("12345678", TENANT_ID, 0, 20))
                 .thenReturn(new AdminAuditPage(List.of(), 0L, 0, 20));
 
@@ -167,6 +181,16 @@ class AuditAdminControllerTest {
     }
 
     // ─── JWT builder helpers ──────────────────────────────────────────────────
+
+    private Jwt buildPlatformAdminJwt() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("platform@test.com")
+                .claim("role", "PLATFORM_ADMIN")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .claim("user_id", USER_ID.toString())
+                .build();
+    }
 
     private Jwt buildSmeAdminJwt() {
         return Jwt.withTokenValue("token")
@@ -182,7 +206,7 @@ class AuditAdminControllerTest {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("user@test.com")
-                .claim("role", "PRO_EPR")
+                .claim("role", "GUEST")
                 .claim("active_tenant_id", TENANT_ID.toString())
                 .build();
     }

@@ -73,7 +73,7 @@ const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
 // ── Auth store mock ───────────────────────────────────────────────────────────
-let mockUserRole = 'SME_ADMIN'
+let mockUserRole = 'PLATFORM_ADMIN'
 vi.mock('~/stores/auth', () => ({
   useAuthStore: () => ({
     get role() { return mockUserRole },
@@ -118,7 +118,7 @@ const emptyPageResponse = {
 describe('audit-search.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUserRole = 'SME_ADMIN'
+    mockUserRole = 'PLATFORM_ADMIN'
   })
 
   // ─── AC 6: search button disabled/enabled logic ────────────────────────────
@@ -210,12 +210,12 @@ describe('audit-search.vue', () => {
     )
   })
 
-  // ─── AC 1: non-admin redirected ──────────────────────────────────────────
+  // ─── AC 1: non-platform-admin redirected ─────────────────────────────────
 
-  it('redirects non-SME_ADMIN user to /', async () => {
+  it('redirects non-PLATFORM_ADMIN user to /dashboard', async () => {
     mockUserRole = 'ACCOUNTANT'
     mountPage()
     await flushPromises()
-    expect(mockRouterReplace).toHaveBeenCalledWith('/')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard')
   })
 })

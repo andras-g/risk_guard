@@ -128,7 +128,7 @@ const watchlistStore = useWatchlistStore()
 const { sidebarExpanded } = storeToRefs(layoutStore)
 const { role, isAccountant } = storeToRefs(authStore)
 
-const isAdmin = computed(() => role.value === 'SME_ADMIN')
+const isAdmin = computed(() => ['SME_ADMIN', 'ACCOUNTANT', 'PLATFORM_ADMIN'].includes(role.value ?? ''))
 const watchlistCount = computed(() => watchlistStore.count)
 
 const mainNavItems = computed(() => {

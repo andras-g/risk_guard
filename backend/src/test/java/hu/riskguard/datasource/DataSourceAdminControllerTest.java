@@ -244,8 +244,8 @@ class DataSourceAdminControllerTest {
     // --- Quarantine endpoint tests ---
 
     @Test
-    void quarantineAdapter_smeAdmin_returns200AndForcedOpen() {
-        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+    void quarantineAdapter_platformAdmin_returns200AndForcedOpen() {
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
         CircuitBreaker mockCb = mock(CircuitBreaker.class);
         CircuitBreaker.Metrics metrics = mock(CircuitBreaker.Metrics.class);
         when(mockCb.getState()).thenReturn(CircuitBreaker.State.FORCED_OPEN);
@@ -264,8 +264,8 @@ class DataSourceAdminControllerTest {
     }
 
     @Test
-    void releaseQuarantine_smeAdmin_returns200AndClosed() {
-        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+    void releaseQuarantine_platformAdmin_returns200AndClosed() {
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
         CircuitBreaker mockCb = mock(CircuitBreaker.class);
         CircuitBreaker.Metrics metrics = mock(CircuitBreaker.Metrics.class);
         // P3 guard checks state first (must be FORCED_OPEN); buildResponse sees CLOSED after transition
@@ -286,7 +286,7 @@ class DataSourceAdminControllerTest {
     @Test
     void releaseQuarantine_notQuarantined_returns409() {
         // P3: CB not in FORCED_OPEN → 409 Conflict; transitionToClosedState must NOT be called
-        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
         CircuitBreaker mockCb = mock(CircuitBreaker.class);
         when(mockCb.getState()).thenReturn(CircuitBreaker.State.CLOSED);
         when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.of(mockCb));
@@ -297,6 +297,18 @@ class DataSourceAdminControllerTest {
                 .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
                         .isEqualTo(HttpStatus.CONFLICT));
         verify(mockCb, never()).transitionToClosedState();
+        verify(adapterHealthRepository, never()).setQuarantinedAndLogAction(
+                anyString(), any(Boolean.class), any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void quarantineAdapter_smeAdmin_returns403() {
+        Jwt jwt = buildJwtWithRole("SME_ADMIN");
+
+        assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(true), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
         verify(adapterHealthRepository, never()).setQuarantinedAndLogAction(
                 anyString(), any(Boolean.class), any(), anyString(), anyString(), any());
     }
@@ -315,7 +327,7 @@ class DataSourceAdminControllerTest {
 
     @Test
     void quarantineAdapter_unknownAdapter_returns404() {
-        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
 
         assertThatThrownBy(() -> controller.quarantine("unknown-adapter", new QuarantineRequest(true), jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -325,7 +337,7 @@ class DataSourceAdminControllerTest {
 
     @Test
     void quarantineAdapter_noCircuitBreaker_returns422() {
-        Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
         when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> controller.quarantine("demo", new QuarantineRequest(true), jwt))
@@ -398,6 +410,42 @@ class DataSourceAdminControllerTest {
     @Test
     void deleteCredentials_smeAdmin_returns200() {
         Jwt jwt = buildJwtWithRoleAndUserId("SME_ADMIN");
+
+        controller.deleteCredentials(jwt);
+
+        verify(navTenantCredentialRepository).deleteByTenantId(TENANT_ID);
+    }
+
+    // --- PLATFORM_ADMIN role tests ---
+
+    @Test
+    void getHealth_platformAdmin_returns200() {
+        Jwt jwt = buildJwtWithRole("PLATFORM_ADMIN");
+        when(circuitBreakerRegistry.find("demo")).thenReturn(Optional.empty());
+
+        List<AdapterHealthResponse> result = controller.getHealth(jwt);
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void saveCredentials_platformAdmin_returns200() {
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
+        when(dataSourceProps.getMode()).thenReturn("test");
+        var request = new hu.riskguard.datasource.api.dto.NavCredentialRequest(
+                "testLogin", "rawPass", "signingKey", "exchangeKey", "12345678");
+        when(authService.hashPassword("rawPass")).thenReturn("HASHXXX");
+        when(aesFieldEncryptor.encrypt(anyString())).thenReturn("enc");
+        when(authService.verifyCredentials(any())).thenReturn(true);
+
+        controller.saveCredentials(request, jwt);
+
+        verify(navTenantCredentialRepository).upsert(eq(TENANT_ID), anyString(), anyString(), anyString(), anyString(), eq("12345678"));
+    }
+
+    @Test
+    void deleteCredentials_platformAdmin_returns200() {
+        Jwt jwt = buildJwtWithRoleAndUserId("PLATFORM_ADMIN");
 
         controller.deleteCredentials(jwt);
 

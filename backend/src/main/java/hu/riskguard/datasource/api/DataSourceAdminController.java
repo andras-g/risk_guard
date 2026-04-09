@@ -35,10 +35,15 @@ import java.util.UUID;
 
 /**
  * Admin REST controller for data source adapter health monitoring.
- * Restricted to {@code SME_ADMIN} role only.
  *
  * <p>Merges live Resilience4j circuit breaker metrics with persisted {@code adapter_health}
  * DB rows to produce a unified health snapshot per adapter.
+ *
+ * <p>Access levels:
+ * <ul>
+ *   <li>{@code PLATFORM_ADMIN}, {@code SME_ADMIN}, {@code ACCOUNTANT}: health, credentials</li>
+ *   <li>{@code PLATFORM_ADMIN} only: quarantine/release</li>
+ * </ul>
  */
 @RestController
 @RequestMapping("/api/v1/admin/datasources")
@@ -74,11 +79,11 @@ public class DataSourceAdminController {
 
     /**
      * Returns health status for all registered data source adapters.
-     * Requires {@code SME_ADMIN} role; returns 403 for all other roles.
+     * Requires {@code PLATFORM_ADMIN}, {@code SME_ADMIN}, or {@code ACCOUNTANT} role.
      */
     @GetMapping("/health")
     public List<AdapterHealthResponse> getHealth(@AuthenticationPrincipal Jwt jwt) {
-        requireAdminOrAccountantRole(jwt);
+        requireAnyAdminRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         String dataSourceMode = riskGuardProperties.getDataSource().getMode().toUpperCase();
@@ -96,7 +101,7 @@ public class DataSourceAdminController {
     /**
      * Manually quarantines or releases an adapter by transitioning its circuit breaker
      * to {@code FORCED_OPEN} (quarantine) or {@code CLOSED} (release).
-     * Restricted to {@code SME_ADMIN} role; returns 404 for unknown adapters,
+     * Restricted to {@code PLATFORM_ADMIN} role; returns 404 for unknown adapters,
      * 422 if no circuit breaker is registered for the adapter.
      */
     @PostMapping("/{adapterName}/quarantine")
@@ -105,7 +110,7 @@ public class DataSourceAdminController {
             @RequestBody QuarantineRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        requireAdminRole(jwt);
+        requirePlatformAdminRole(jwt);
 
         CompanyDataPort adapter = adapters.stream()
                 .filter(a -> a.adapterName().equals(adapterName))
@@ -155,7 +160,7 @@ public class DataSourceAdminController {
             @RequestBody @Valid NavCredentialRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        requireAdminOrAccountantRole(jwt);
+        requireAnyAdminRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         String passwordHash = authService.hashPassword(request.password());
@@ -187,7 +192,7 @@ public class DataSourceAdminController {
      */
     @DeleteMapping("/credentials")
     public void deleteCredentials(@AuthenticationPrincipal Jwt jwt) {
-        requireAdminOrAccountantRole(jwt);
+        requireAnyAdminRole(jwt);
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
 
         navTenantCredentialRepository.deleteByTenantId(tenantId);
@@ -250,17 +255,17 @@ public class DataSourceAdminController {
         );
     }
 
-    private void requireAdminRole(Jwt jwt) {
+    private void requirePlatformAdminRole(Jwt jwt) {
         String role = jwt.getClaimAsString("role");
-        if (!"SME_ADMIN".equals(role)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        if (!"PLATFORM_ADMIN".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Platform admin access required");
         }
     }
 
-    private void requireAdminOrAccountantRole(Jwt jwt) {
+    private void requireAnyAdminRole(Jwt jwt) {
         String role = jwt.getClaimAsString("role");
-        if (!"SME_ADMIN".equals(role) && !"ACCOUNTANT".equals(role)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin or Accountant access required");
+        if (!"PLATFORM_ADMIN".equals(role) && !"SME_ADMIN".equals(role) && !"ACCOUNTANT".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
         }
     }
 }

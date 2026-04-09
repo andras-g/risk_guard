@@ -21,8 +21,8 @@ const publishing = ref(false)
 watch(configData, () => { validationResult.value = null })
 
 onMounted(async () => {
-  if (authStore.role !== 'SME_ADMIN') {
-    router.replace('/')
+  if (authStore.role !== 'PLATFORM_ADMIN') {
+    router.replace('/dashboard')
     return
   }
   await loadConfig()

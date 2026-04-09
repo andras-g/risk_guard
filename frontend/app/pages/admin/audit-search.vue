@@ -27,8 +27,8 @@ const canSearch = computed(
 )
 
 onMounted(() => {
-  if (authStore.role !== 'SME_ADMIN') {
-    router.replace('/')
+  if (authStore.role !== 'PLATFORM_ADMIN') {
+    router.replace('/dashboard')
   }
 })
 

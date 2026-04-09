@@ -53,6 +53,25 @@ ON CONFLICT (id) DO UPDATE SET
     sso_subject   = EXCLUDED.sso_subject,
     password_hash = EXCLUDED.password_hash;
 
+-- password: Admin1234!
+-- PLATFORM_ADMIN demo user — access to EPR config, GDPR audit, and quarantine
+INSERT INTO users (id, tenant_id, email, name, role, preferred_language, sso_provider, sso_subject, password_hash)
+VALUES (
+    '00000000-0000-4000-b000-000000000009',
+    '00000000-0000-4000-b000-000000000001',
+    'platform-admin@riskguard.hu',
+    'Platform Admin',
+    'PLATFORM_ADMIN',
+    'hu',
+    'local',
+    NULL,
+    '$2b$10$7lWn1cbOo0sYdV55eyfXZ.691xj7rdTjB3XaNhYOjtReUpBEGBbIS'
+)
+ON CONFLICT (id) DO UPDATE SET
+    sso_provider  = EXCLUDED.sso_provider,
+    sso_subject   = EXCLUDED.sso_subject,
+    password_hash = EXCLUDED.password_hash;
+
 -- =============================================================================
 -- SECTION 2: Demo SME — Partner Snapshots
 -- =============================================================================

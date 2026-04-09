@@ -28,3 +28,17 @@ VALUES (
     'e2e-test-subject'
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- PLATFORM_ADMIN test user (deterministic UUID a000-000000000003)
+INSERT INTO users (id, tenant_id, email, name, role, preferred_language, sso_provider, sso_subject)
+VALUES (
+    '00000000-0000-4000-a000-000000000003',
+    '00000000-0000-4000-a000-000000000001',
+    'e2e-platform-admin@riskguard.hu',
+    'E2E Platform Admin',
+    'PLATFORM_ADMIN',
+    'hu',
+    'test',
+    'e2e-platform-admin-subject'
+)
+ON CONFLICT (id) DO NOTHING;

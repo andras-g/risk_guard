@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from 'vitest'
-import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import AppSidebar from './AppSidebar.vue'
 
@@ -111,28 +110,28 @@ describe('AppSidebar — active route detection', () => {
 })
 
 describe('AppSidebar — admin section role gating', () => {
+  function isAdmin(roleValue: string | null): boolean {
+    return ['SME_ADMIN', 'ACCOUNTANT', 'PLATFORM_ADMIN'].includes(roleValue ?? '')
+  }
+
   it('admin section is visible when user role is SME_ADMIN', () => {
-    const role = ref('SME_ADMIN')
-    const isAdmin = role.value === 'SME_ADMIN'
-    expect(isAdmin).toBe(true)
+    expect(isAdmin('SME_ADMIN')).toBe(true)
   })
 
-  it('admin section is hidden when user role is ACCOUNTANT', () => {
-    const role = ref('ACCOUNTANT')
-    const isAdmin = role.value === 'SME_ADMIN'
-    expect(isAdmin).toBe(false)
+  it('admin section is visible when user role is ACCOUNTANT', () => {
+    expect(isAdmin('ACCOUNTANT')).toBe(true)
+  })
+
+  it('admin section is visible when user role is PLATFORM_ADMIN', () => {
+    expect(isAdmin('PLATFORM_ADMIN')).toBe(true)
   })
 
   it('admin section is hidden when user role is GUEST', () => {
-    const role = ref('GUEST')
-    const isAdmin = role.value === 'SME_ADMIN'
-    expect(isAdmin).toBe(false)
+    expect(isAdmin('GUEST')).toBe(false)
   })
 
   it('admin section is hidden when role is null', () => {
-    const role = ref(null)
-    const isAdmin = role.value === 'SME_ADMIN'
-    expect(isAdmin).toBe(false)
+    expect(isAdmin(null)).toBe(false)
   })
 })
 

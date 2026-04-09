@@ -54,8 +54,8 @@ class EprAdminControllerTest {
     // ─── GET /config ──────────────────────────────────────────────────────────
 
     @Test
-    void getConfig_smeAdmin_returns200WithVersionAndConfigData() {
-        Jwt jwt = buildSmeAdminJwt();
+    void platformAdmin_getConfig_returns200WithVersionAndConfigData() {
+        Jwt jwt = buildPlatformAdminJwt();
         EprConfigResponse response = new EprConfigResponse(1, "{\"fee_rates\": {}}", Instant.parse("2026-01-01T00:00:00Z"));
         when(eprService.getActiveConfigFull()).thenReturn(response);
 
@@ -67,8 +67,20 @@ class EprAdminControllerTest {
     }
 
     @Test
-    void getConfig_nonAdmin_returns403() {
-        Jwt jwt = buildNonAdminJwt();
+    void smeAdmin_getConfig_returns403() {
+        Jwt jwt = buildSmeAdminJwt();
+
+        assertThatThrownBy(() -> controller.getConfig(jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).getActiveConfigFull();
+    }
+
+    @Test
+    void accountant_getConfig_returns403() {
+        Jwt jwt = buildAccountantJwt();
 
         assertThatThrownBy(() -> controller.getConfig(jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -81,8 +93,8 @@ class EprAdminControllerTest {
     // ─── POST /config/validate ────────────────────────────────────────────────
 
     @Test
-    void validate_validJson_returns200Valid() {
-        Jwt jwt = buildSmeAdminJwt();
+    void validate_platformAdmin_validJson_returns200Valid() {
+        Jwt jwt = buildPlatformAdminJwt();
         EprConfigValidateRequest req = new EprConfigValidateRequest("{\"valid\": true}");
         when(eprService.validateNewConfig(anyString())).thenReturn(EprConfigValidateResponse.ok());
 
@@ -93,8 +105,8 @@ class EprAdminControllerTest {
     }
 
     @Test
-    void validate_invalidJson_returns200WithErrors() {
-        Jwt jwt = buildSmeAdminJwt();
+    void validate_platformAdmin_invalidJson_returns200WithErrors() {
+        Jwt jwt = buildPlatformAdminJwt();
         EprConfigValidateRequest req = new EprConfigValidateRequest("not-json");
         List<String> errors = List.of("Invalid JSON: Unrecognized token 'not'");
         when(eprService.validateNewConfig(anyString())).thenReturn(EprConfigValidateResponse.failed(errors));
@@ -107,8 +119,20 @@ class EprAdminControllerTest {
     }
 
     @Test
-    void validate_nonAdmin_returns403() {
-        Jwt jwt = buildNonAdminJwt();
+    void smeAdmin_validate_returns403() {
+        Jwt jwt = buildSmeAdminJwt();
+
+        assertThatThrownBy(() -> controller.validate(new EprConfigValidateRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).validateNewConfig(anyString());
+    }
+
+    @Test
+    void accountant_validate_returns403() {
+        Jwt jwt = buildAccountantJwt();
 
         assertThatThrownBy(() -> controller.validate(new EprConfigValidateRequest("{}"), jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -121,8 +145,8 @@ class EprAdminControllerTest {
     // ─── POST /config/publish ─────────────────────────────────────────────────
 
     @Test
-    void publish_smeAdmin_returns200WithNewVersion() {
-        Jwt jwt = buildSmeAdminJwtWithUserId();
+    void publish_platformAdmin_returns200WithNewVersion() {
+        Jwt jwt = buildPlatformAdminJwtWithUserId();
         EprConfigPublishRequest req = new EprConfigPublishRequest("{\"fee_rates\": {}}");
         Instant now = Instant.now();
         when(eprService.publishNewConfig(anyString(), any(UUID.class)))
@@ -136,8 +160,58 @@ class EprAdminControllerTest {
     }
 
     @Test
-    void publish_nonAdmin_returns403() {
-        Jwt jwt = buildNonAdminJwt();
+    void smeAdmin_publish_returns403() {
+        Jwt jwt = buildSmeAdminJwt();
+
+        assertThatThrownBy(() -> controller.publish(new EprConfigPublishRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).publishNewConfig(anyString(), any(UUID.class));
+    }
+
+    @Test
+    void accountant_publish_returns403() {
+        Jwt jwt = buildAccountantJwt();
+
+        assertThatThrownBy(() -> controller.publish(new EprConfigPublishRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).publishNewConfig(anyString(), any(UUID.class));
+    }
+
+    // ─── GUEST role returns 403 on all endpoints ──────────────────────────────
+
+    @Test
+    void guest_getConfig_returns403() {
+        Jwt jwt = buildGuestJwt();
+
+        assertThatThrownBy(() -> controller.getConfig(jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).getActiveConfigFull();
+    }
+
+    @Test
+    void guest_validate_returns403() {
+        Jwt jwt = buildGuestJwt();
+
+        assertThatThrownBy(() -> controller.validate(new EprConfigValidateRequest("{}"), jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(eprService, never()).validateNewConfig(anyString());
+    }
+
+    @Test
+    void guest_publish_returns403() {
+        Jwt jwt = buildGuestJwt();
 
         assertThatThrownBy(() -> controller.publish(new EprConfigPublishRequest("{}"), jwt))
                 .isInstanceOf(ResponseStatusException.class)
@@ -149,6 +223,25 @@ class EprAdminControllerTest {
 
     // ─── JWT builder helpers ──────────────────────────────────────────────────
 
+    private Jwt buildPlatformAdminJwt() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("platform@test.com")
+                .claim("role", "PLATFORM_ADMIN")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .build();
+    }
+
+    private Jwt buildPlatformAdminJwtWithUserId() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("platform@test.com")
+                .claim("role", "PLATFORM_ADMIN")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .claim("user_id", USER_ID.toString())
+                .build();
+    }
+
     private Jwt buildSmeAdminJwt() {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
@@ -158,21 +251,20 @@ class EprAdminControllerTest {
                 .build();
     }
 
-    private Jwt buildSmeAdminJwtWithUserId() {
-        return Jwt.withTokenValue("token")
-                .header("alg", "none")
-                .subject("admin@test.com")
-                .claim("role", "SME_ADMIN")
-                .claim("active_tenant_id", TENANT_ID.toString())
-                .claim("user_id", USER_ID.toString())
-                .build();
-    }
-
-    private Jwt buildNonAdminJwt() {
+    private Jwt buildAccountantJwt() {
         return Jwt.withTokenValue("token")
                 .header("alg", "none")
                 .subject("user@test.com")
                 .claim("role", "ACCOUNTANT")
+                .claim("active_tenant_id", TENANT_ID.toString())
+                .build();
+    }
+
+    private Jwt buildGuestJwt() {
+        return Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("guest@test.com")
+                .claim("role", "GUEST")
                 .claim("active_tenant_id", TENANT_ID.toString())
                 .build();
     }

@@ -109,7 +109,7 @@ const drawerVisible = computed({
   }
 })
 
-const isAdmin = computed(() => userRole.value === 'ADMIN')
+const isAdmin = computed(() => ['SME_ADMIN', 'ACCOUNTANT', 'PLATFORM_ADMIN'].includes(userRole.value ?? ''))
 
 const userInitials = computed(() => {
   const n = userName.value

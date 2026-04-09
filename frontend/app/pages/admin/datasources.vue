@@ -20,7 +20,7 @@ async function handleQuarantine(adapterName: string, quarantined: boolean) {
 let pollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  if (authStore.role !== 'SME_ADMIN' && authStore.role !== 'ACCOUNTANT') {
+  if (authStore.role !== 'PLATFORM_ADMIN' && authStore.role !== 'SME_ADMIN' && authStore.role !== 'ACCOUNTANT') {
     router.replace('/dashboard')
     return
   }
@@ -84,7 +84,7 @@ onUnmounted(() => {
       :adapters="healthStore.adapters"
       :loading="healthStore.loading"
       :quarantining="quarantining"
-      :can-quarantine="authStore.role === 'SME_ADMIN'"
+      :can-quarantine="authStore.role === 'PLATFORM_ADMIN'"
       @quarantine="handleQuarantine"
     />
 

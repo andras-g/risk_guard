@@ -60,7 +60,7 @@ const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
 // ── Auth store mock ───────────────────────────────────────────────────────────
-let mockUserRole = 'SME_ADMIN'
+let mockUserRole = 'PLATFORM_ADMIN'
 vi.mock('~/stores/auth', () => ({
   useAuthStore: () => ({
     get role() { return mockUserRole },
@@ -79,7 +79,7 @@ const mountPage = () => mount(EprConfigPage, {
 describe('epr-config.vue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUserRole = 'SME_ADMIN'
+    mockUserRole = 'PLATFORM_ADMIN'
   })
 
   it('loads and displays config version from GET response', async () => {
@@ -173,13 +173,13 @@ describe('epr-config.vue', () => {
     expect(wrapper.text()).toContain('2')
   })
 
-  it('redirects non-SME_ADMIN user to / without loading config', async () => {
+  it('redirects non-PLATFORM_ADMIN user to /dashboard without loading config', async () => {
     mockUserRole = 'ACCOUNTANT'
 
     mountPage()
     await flushPromises()
 
-    expect(mockRouterReplace).toHaveBeenCalledWith('/')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/dashboard')
     expect(mockFetch).not.toHaveBeenCalled()
   })
 })

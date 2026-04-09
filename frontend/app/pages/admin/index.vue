@@ -1,5 +1,20 @@
 <script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+
 const { t } = useI18n()
+const router = useRouter()
+const authStore = useAuthStore()
+
+const ADMIN_ROLES = ['PLATFORM_ADMIN', 'SME_ADMIN', 'ACCOUNTANT']
+
+const isPlatformAdmin = computed(() => authStore.role === 'PLATFORM_ADMIN')
+
+onMounted(() => {
+  if (!ADMIN_ROLES.includes(authStore.role ?? '')) {
+    router.replace('/dashboard')
+  }
+})
 </script>
 
 <template>
@@ -9,7 +24,8 @@ const { t } = useI18n()
     </h1>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <NuxtLink to="/admin/datasources" class="block group">
+      <!-- Data Sources: visible to all admin roles -->
+      <NuxtLink to="/admin/datasources" class="block group" data-testid="admin-card-datasources">
         <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
           <div class="flex items-center gap-3 mb-2">
             <span class="pi pi-server text-indigo-600 text-xl" />
@@ -23,7 +39,8 @@ const { t } = useI18n()
         </div>
       </NuxtLink>
 
-      <NuxtLink to="/admin/epr-config" class="block group">
+      <!-- EPR Config: PLATFORM_ADMIN only -->
+      <NuxtLink v-if="isPlatformAdmin" to="/admin/epr-config" class="block group" data-testid="admin-card-epr-config">
         <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
           <div class="flex items-center gap-3 mb-2">
             <span class="pi pi-file-edit text-indigo-600 text-xl" />
@@ -36,7 +53,9 @@ const { t } = useI18n()
           </p>
         </div>
       </NuxtLink>
-      <NuxtLink to="/admin/audit-search" class="block group">
+
+      <!-- GDPR Audit Search: PLATFORM_ADMIN only -->
+      <NuxtLink v-if="isPlatformAdmin" to="/admin/audit-search" class="block group" data-testid="admin-card-audit-search">
         <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
           <div class="flex items-center gap-3 mb-2">
             <span class="pi pi-shield text-indigo-600 text-xl" />

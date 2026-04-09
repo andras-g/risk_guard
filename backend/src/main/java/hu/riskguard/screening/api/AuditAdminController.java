@@ -16,7 +16,7 @@ import java.util.UUID;
 
 /**
  * Admin REST controller for GDPR audit log search (Story 6.4).
- * Exposes cross-tenant audit search restricted to {@code SME_ADMIN} role only.
+ * Exposes cross-tenant audit search restricted to {@code PLATFORM_ADMIN} role only.
  */
 @RestController
 @RequestMapping("/api/v1/admin/screening")
@@ -32,7 +32,7 @@ public class AuditAdminController {
      * @param tenantId  filter by tenant ID (optional)
      * @param page      zero-based page index (default 0)
      * @param size      page size (default 20, clamped to [1, 100])
-     * @param jwt       authenticated user's JWT — must have {@code role=SME_ADMIN}
+     * @param jwt       authenticated user's JWT — must have {@code role=PLATFORM_ADMIN}
      * @return paginated audit entries
      */
     @GetMapping("/audit")
@@ -43,7 +43,7 @@ public class AuditAdminController {
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        requireAdminRole(jwt);
+        requirePlatformAdminRole(jwt);
         if (taxNumber == null && tenantId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "At least one of taxNumber or tenantId must be provided");
@@ -54,9 +54,9 @@ public class AuditAdminController {
                 screeningService.getAdminAuditLog(taxNumber, tenantId, clampedPage, clampedSize));
     }
 
-    private void requireAdminRole(Jwt jwt) {
-        if (!"SME_ADMIN".equals(jwt.getClaimAsString("role"))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+    private void requirePlatformAdminRole(Jwt jwt) {
+        if (!"PLATFORM_ADMIN".equals(jwt.getClaimAsString("role"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Platform admin access required");
         }
     }
 }

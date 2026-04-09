@@ -1,5 +1,14 @@
 # Deferred Work
 
+## Deferred from: code review of 8-5-platform-admin-role-and-admin-re-gating (2026-04-09)
+
+- D1: PLATFORM_ADMIN placed in demo SME tenant (`b000-000000000001`) — cross-tenant authorization model undefined; demo-mode acceptable for now; revisit when platform operator multi-tenant scope is designed.
+- D2: `DataSourceHealthDashboard` defaults `canQuarantine: true` — insecure opt-out default; parent always passes explicit `:can-quarantine` prop correctly, but the default should be `false`; pre-existing from Story 8.4.
+- D3: PLATFORM_ADMIN has no post-login landing page — global middleware sends to SME dashboard (watchlist/screening) which is irrelevant; pre-existing middleware design gap.
+- D4: `admin/index.vue` has no test file — new `onMounted` redirect (GUEST → /dashboard) and `v-if="isPlatformAdmin"` card visibility logic are entirely untested; AC11 only required updating existing specs, not creating new ones.
+- D5: `requirePlatformAdminRole` / `requireAnyAdminRole` duplicated identically across 3 controllers — no shared utility; latent consistency risk if a new role is added; pre-existing pattern from Story 8.4.
+- D6: `AppSidebar` shows PLATFORM_ADMIN SME-oriented nav items (Watchlist, Screening, EPR Filing) — these features are irrelevant to a platform operator; pre-existing nav structure; address in UX polish sprint.
+
 ## Deferred from: code review of 8-3-invoice-driven-epr-auto-fill (2026-04-03)
 
 - W1: `invoiceNumber` logged plain in `DataSourceService.queryInvoiceDetails` warn path — inconsistent with masked `taxNumber`; invoice numbers are not PII; low risk.

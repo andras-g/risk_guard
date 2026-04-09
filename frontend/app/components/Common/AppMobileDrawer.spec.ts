@@ -103,19 +103,28 @@ describe('AppMobileDrawer — navigation items', () => {
 })
 
 describe('AppMobileDrawer — admin section role gating', () => {
-  it('admin nav visible when role is ADMIN', () => {
-    const role = ref('ADMIN')
-    expect(role.value === 'ADMIN').toBe(true)
+  function isAdmin(roleValue: string | null): boolean {
+    return ['SME_ADMIN', 'ACCOUNTANT', 'PLATFORM_ADMIN'].includes(roleValue ?? '')
+  }
+
+  it('admin nav visible when role is SME_ADMIN', () => {
+    expect(isAdmin('SME_ADMIN')).toBe(true)
   })
 
-  it('admin nav hidden when role is SME_ADMIN', () => {
-    const role = ref('SME_ADMIN')
-    expect(role.value === 'ADMIN').toBe(false)
+  it('admin nav visible when role is ACCOUNTANT', () => {
+    expect(isAdmin('ACCOUNTANT')).toBe(true)
+  })
+
+  it('admin nav visible when role is PLATFORM_ADMIN', () => {
+    expect(isAdmin('PLATFORM_ADMIN')).toBe(true)
+  })
+
+  it('admin nav hidden when role is GUEST', () => {
+    expect(isAdmin('GUEST')).toBe(false)
   })
 
   it('admin nav hidden when role is null', () => {
-    const role = ref(null)
-    expect(role.value === 'ADMIN').toBe(false)
+    expect(isAdmin(null)).toBe(false)
   })
 })
 
