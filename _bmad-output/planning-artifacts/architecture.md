@@ -2,15 +2,26 @@
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8]
 status: 'complete'
 completedAt: '2026-03-05'
-correctedAt: '2026-03-13'
-correctionApplied: 'sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
-correctionRef: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md'
+correctedAt: '2026-04-14'
+corrections:
+  - applied: 'sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
+    ref: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md'
+    date: '2026-03-13'
+  - applied: 'sprint-change-proposal-2026-04-14 (CP-5) — Epic 9 Product Registry'
+    ref: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-14.md'
+    date: '2026-04-14'
+    addendum: '## Epic 9 Addendum — Product Registry Data Model & Pluggable Report Target (CP-5)'
+    relatedAdrs:
+      - 'docs/architecture/adrs/ADR-0001-ai-kf-classification.md'
+      - 'docs/architecture/adrs/ADR-0002-pluggable-epr-report-target.md'
 inputDocuments:
   - "_bmad-output/planning-artifacts/prd.md"
   - "_bmad-output/planning-artifacts/product-brief-risk_guard-2026-03-04.md"
   - "_bmad-output/planning-artifacts/research/technical-Scraper-Tech-Audit-research-2026-03-04.md"
   - "_bmad-output/planning-artifacts/research/market-Hungarian-SME-behavior-and-red-flag-response-research-2026-03-04.md"
   - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md"
+  - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-14.md"
+  - "_bmad-output/planning-artifacts/research/okirkapu-and-kf-refresh-2026-04-14.md"
   - "partnerRadar.md"
 workflowType: 'architecture'
 project_name: 'risk_guard'
@@ -23,6 +34,20 @@ date: '2026-03-04'
 > This document was updated on 2026-03-13 to integrate the course correction approved on 2026-03-12. Key changes: scraping/Playwright architecture removed, `scraping` module renamed to `datasource`, NAV Online Számla integration layer added, demo mode formalized, EPR module updated with NAV invoice data dependency.
 >
 > **Reference:** `_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md`
+
+> **ADDENDUM APPLIED (2026-04-14) — CP-5 Epic 9**
+>
+> A new top-level section (`## Epic 9 Addendum — Product Registry Data Model & Pluggable Report Target`) is appended at the end of this document with the data model for `products`, `product_packaging_components`, `registry_entry_audit_log`, ERD relationships to `tenants`, and the PPWR-decoupling note. The earlier sections of this document are unchanged.
+>
+> The addendum corrects two framings carried in earlier text and in CP-5 itself:
+> 1. **The EPR report target is OKIRkapu (national authority portal), not MOHU.** MOHU only invoices.
+> 2. **The submission format is XML against the `KG:KGYF-NÉ` XSD, not CSV.** Source: `_bmad-output/planning-artifacts/research/okirkapu-and-kf-refresh-2026-04-14.md`.
+>
+> The two ADRs landed alongside this addendum capture the decisions in detail:
+> - [ADR-0001 — AI-assisted KF-code classification](../../docs/architecture/adrs/ADR-0001-ai-kf-classification.md)
+> - [ADR-0002 — Pluggable EPR report target](../../docs/architecture/adrs/ADR-0002-pluggable-epr-report-target.md)
+>
+> **Reference:** `_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-14.md`
 
 # Architecture Decision Document
 
@@ -1399,3 +1424,293 @@ Then add manually: jOOQ, Resilience4j (`resilience4j-spring-boot3`), JAXB Runtim
 **Architecture Status:** READY FOR IMPLEMENTATION ✅
 
 **Document Maintenance:** Update this architecture when major technical decisions are made during implementation.
+
+---
+
+## Epic 9 Addendum — Product Registry Data Model & Pluggable Report Target (CP-5)
+
+> **Date:** 2026-04-14
+> **Driver:** [Sprint Change Proposal CP-5](sprint-change-proposal-2026-04-14.md), grounded in [80/2023 Annex 3.1, Annex 4.1, Annex 1.2 research](research/okirkapu-and-kf-refresh-2026-04-14.md).
+> **Companion ADRs:** [ADR-0001 (AI KF classification)](../../docs/architecture/adrs/ADR-0001-ai-kf-classification.md), [ADR-0002 (Pluggable EPR report target)](../../docs/architecture/adrs/ADR-0002-pluggable-epr-report-target.md).
+> **Scope:** Additive. The earlier sections of this document remain accurate for everything outside the Product Registry surface.
+
+### Why this section exists
+
+Story 8.3 shipped invoice-driven EPR autofill on the assumption that the producer's invoice line items *are* the packaging materials. That assumption holds for packaging-material distributors (paper-bag vendors, PET sellers) but breaks for the actual ICP — KKV manufacturers and importers whose invoices list *packaged products*. For them, the legally mandated *csomagolási nyilvántartás* (per-product packaging registry under 80/2023) is the missing join table between invoice quantity and EPR-reportable material mass.
+
+This addendum records the data model that supports the registry, the boundaries it imposes on the rest of the EPR module, and the PPWR-readiness invariants that make the schema stable against the 2027–2030 EU regulatory transition.
+
+### Architectural invariants introduced (binding for Epic 9 and beyond)
+
+These are the binding rules from CP-5 §5. ArchUnit enforces (1), (3), (4); code review catches (2), (5).
+
+1. **Packaging is modelled at SKU/component level, never as aggregate tonnage.** Aggregation happens at report-generation time, not at storage time. The `product_packaging_components` row is the unit of record.
+2. **KF code is one classifier among many** on a packaging component. Nullable PPWR fields (`recyclability_grade`, `recycled_content_pct`, `reusable`, `substances_of_concern`) exist in schema from day one even though they are not populated today.
+3. **The EPR report target is pluggable.** `EprService` depends on the `EprReportTarget` interface only. `OkirkapuXmlExporter` is today's implementation; `EuRegistryAdapter` is the post-2029 placeholder. No service references the OKIRkapu exporter directly. See [ADR-0002](../../docs/architecture/adrs/ADR-0002-pluggable-epr-report-target.md).
+4. **Fee-modulation rules are data, not code.** Future eco-modulation (mandated PPWR 2030) loads from config / DB, not branched in logic.
+5. **Supplier-declaration provenance is captured from day one.** `supplier_declaration_ref` nullable field on components — backfilling chain-of-custody evidence later is prohibitive.
+
+### Data model — three new tables
+
+All three tables are tenant-scoped per the existing multi-tenancy convention (`tenant_id` NOT NULL, enforced by `TenantFilter` at the repository layer; see *Cross-Cutting Concerns Identified* earlier in this document). All new tables are owned by the `epr` Spring Modulith module; physical isolation is enforced by ArchUnit (see *ArchUnit additions* below).
+
+#### `products`
+
+Per-tenant catalogue of SKUs the producer places on the Hungarian market. Identity row for the registry.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `tenant_id` | UUID FK → `tenants.id`, NOT NULL | Tenant isolation. |
+| `article_number` | VARCHAR(64) | Producer's internal SKU identifier. Unique per tenant (composite unique index on `(tenant_id, article_number)`). |
+| `name` | VARCHAR(255) NOT NULL | Human-readable product name. |
+| `vtsz` | VARCHAR(8) | Combined Nomenclature code from the producer's invoices (4 or 8 digits). Used by the VTSZ-prefix fallback classifier (see ADR-0001). |
+| `primary_unit` | VARCHAR(16) NOT NULL | Unit of sale (`db`, `kg`, `l`, etc.) — must align with the unit on NAV invoice line items so quantity multiplication is correct. |
+| `status` | ENUM NOT NULL | `ACTIVE`, `DISCONTINUED`, `DRAFT`. Triage queue products land as `DRAFT`. |
+| `created_at` | TIMESTAMPTZ NOT NULL | |
+| `updated_at` | TIMESTAMPTZ NOT NULL | |
+
+Indexes:
+- `(tenant_id, status)` — registry list filter.
+- `(tenant_id, vtsz)` — fallback classification lookup.
+- `(tenant_id, article_number)` UNIQUE.
+
+#### `product_packaging_components`
+
+The bill-of-materials. One product has one or more packaging components; each component carries its own KF code, weight, and PPWR-future fields.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `product_id` | UUID FK → `products.id` ON DELETE CASCADE, NOT NULL | |
+| `component_order` | INT NOT NULL | 1-based ordering for deterministic UI display. |
+| `material_description` | VARCHAR(255) NOT NULL | Free-text human label (e.g., "PP cup, 0.7 kg"). |
+| `kf_code` | CHAR(8) NOT NULL | Validated against the seeded KF reference table (see *Reference data* below). |
+| `weight_per_unit_kg` | DECIMAL(12, 6) NOT NULL | Per-unit material mass in kilograms. Three+ decimal precision to satisfy LUCID-style 3-decimal aggregation. |
+| `recyclability_grade` | CHAR(1) NULL | PPWR field. A/B/C/D when populated. **Nullable from day one — populated when 2030 eco-modulation lands.** |
+| `recycled_content_pct` | DECIMAL(5, 2) NULL | PPWR field. Percentage 0–100. Nullable. |
+| `reusable` | BOOLEAN NULL | PPWR field. Nullable. |
+| `substances_of_concern` | JSONB NULL | PPWR field. Structured list, schema TBD when implementing act lands. Nullable. |
+| `supplier_declaration_ref` | VARCHAR(255) NULL | Reference to the supplier's chain-of-custody declaration (file path, document ID, or external URL). Nullable but reserved from day one. |
+| `created_at` | TIMESTAMPTZ NOT NULL | |
+| `updated_at` | TIMESTAMPTZ NOT NULL | |
+
+Indexes:
+- `(product_id, component_order)` UNIQUE — deterministic ordering.
+- `(kf_code)` — aggregation grouping for `OkirkapuXmlExporter`.
+
+`tenant_id` is intentionally NOT denormalised onto this table. Reaching `tenant_id` is one join through `products`; this is acceptable given the table sits behind `RegistryRepository` and tenant filtering already lives at the `products` query layer. Revisit only if query-plan analysis on production data shows the join cost is material.
+
+#### `registry_entry_audit_log`
+
+Append-only audit trail. Every field change to a `products` or `product_packaging_components` row produces one row here. Supports MOHU/OKIRkapu audit obligations and the AI-classification provenance requirement from ADR-0001.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `tenant_id` | UUID FK → `tenants.id`, NOT NULL | Denormalised here — audit queries filter by tenant first. |
+| `product_id` | UUID FK → `products.id` ON DELETE CASCADE, NOT NULL | The product whose registry entry changed. (For `product_packaging_components` changes, this is the parent product's id.) |
+| `field_changed` | VARCHAR(64) NOT NULL | Dotted path: `products.name`, `products.vtsz`, `components[2].kf_code`, etc. |
+| `old_value` | TEXT NULL | NULL when source = creation. |
+| `new_value` | TEXT NULL | NULL when source = deletion. |
+| `changed_by_user_id` | UUID FK → `users.id`, NULL | NULL when source is `NAV_BOOTSTRAP` (system-driven). |
+| `source` | ENUM NOT NULL | `MANUAL`, `AI_SUGGESTED_CONFIRMED`, `AI_SUGGESTED_EDITED`, `VTSZ_FALLBACK`, `NAV_BOOTSTRAP`. Mirrors the audit categories from ADR-0001. |
+| `strategy` | VARCHAR(32) NULL | Populated for AI-sourced rows: `VERTEX_GEMINI`, `VTSZ_PREFIX`, `NONE`. |
+| `model_version` | VARCHAR(64) NULL | Populated for `VERTEX_GEMINI` rows. |
+| `timestamp` | TIMESTAMPTZ NOT NULL | |
+
+Indexes:
+- `(tenant_id, product_id, timestamp DESC)` — audit-trail UI per product.
+- `(tenant_id, source, timestamp DESC)` — operational filter ("show me everything Gemini classified this month").
+
+### ERD — relationships to existing tables
+
+```
+                    ┌──────────────┐
+                    │   tenants    │ (existing)
+                    │              │
+                    │ id (PK)      │
+                    └──────┬───────┘
+                           │ 1
+                           │
+                    ┌──────┴───────┐
+                    │              │ M
+              ┌─────▼────┐   ┌─────▼─────────────────────┐
+              │  users   │   │       products            │
+              │ (existing)│  │                            │
+              │ id (PK)  │   │ id (PK)                    │
+              └─────┬────┘   │ tenant_id (FK)             │
+                    │ 1      │ article_number             │
+                    │        │ name, vtsz, primary_unit,  │
+                    │ M      │ status, created_at, updated_at │
+              ┌─────▼─────────┐  └──────┬─────────────────┘
+              │ registry_entry │         │ 1
+              │ _audit_log    │ M       │
+              │               ◄─────────┤ (product_id FK)
+              │ id (PK)       │         │
+              │ tenant_id     │         │
+              │ product_id    │         │ M
+              │ field_changed │   ┌─────▼──────────────────────┐
+              │ old_value     │   │ product_packaging_         │
+              │ new_value     │   │ components                 │
+              │ changed_by_   │   │                            │
+              │   user_id     │   │ id (PK)                    │
+              │ source, strategy,  │ product_id (FK)            │
+              │ model_version,│   │ component_order            │
+              │ timestamp     │   │ material_description       │
+              └───────────────┘   │ kf_code, weight_per_unit_kg│
+                                  │ recyclability_grade NULL,  │
+                                  │ recycled_content_pct NULL, │
+                                  │ reusable NULL,             │
+                                  │ substances_of_concern NULL,│
+                                  │ supplier_declaration_ref   │
+                                  │   NULL                     │
+                                  │ created_at, updated_at     │
+                                  └────────────────────────────┘
+```
+
+Foreign keys at a glance:
+
+- `products.tenant_id → tenants.id` (RESTRICT — never delete a tenant with products)
+- `product_packaging_components.product_id → products.id` (CASCADE — delete a product → its components)
+- `registry_entry_audit_log.tenant_id → tenants.id` (RESTRICT)
+- `registry_entry_audit_log.product_id → products.id` (CASCADE — keep the audit log scoped to existing products; for retention, copy to cold storage before product deletion)
+- `registry_entry_audit_log.changed_by_user_id → users.id` (SET NULL — never lose audit history when a user is deactivated)
+
+### Reference data — KF code seed
+
+The `KG:KGYF-NÉ` schema requires KF codes that match the codes hatályos on the date of the report. Per the 2026-04-14 research:
+
+- KF codes are an 8-character string (positions: 1–2 product/waste, 3–4 material stream, 5–6 group, 7 form, 8 waste-management activity).
+- The 2026-01-01 refresh (203/2025 amendment) is already in force; product was built after it, so no migration is needed.
+- Packaging KF codes are stable in the currently-enacted tranche; battery codes changed.
+
+Seed approach (Story 9.1 task):
+
+- A `kf_codes` reference table seeded from 80/2023 Annex 3/4 consolidated text (via jogtar.hu) or from the OKIRkapu `xmlapi` portal's KG code-list download.
+- Schema includes `valid_from` (NOT NULL, default `2026-01-01` for the seed) and `valid_to` (NULL for currently-valid codes). Forward-compat hook for the next amendment; cheap to include now.
+- `product_packaging_components.kf_code` validates against `kf_codes` at write time. Validation enforced by jOOQ FK or by a `RegistryService` pre-write check — implementer's choice; ArchUnit does not enforce.
+
+### Module / package structure additions
+
+The registry sub-module sits inside the existing `epr` Spring Modulith module. No new top-level module is created. Package layout (extends the `epr` tree shown earlier in this document):
+
+```
+hu.riskguard.epr/
+├── api/                                  (existing)
+├── domain/                               (existing — EprService facade lives here)
+├── internal/                             (existing — EprRepository lives here)
+│
+├── registry/                             ← NEW
+│   ├── api/
+│   │   ├── RegistryController.java       # /api/v1/products
+│   │   └── dto/
+│   │       ├── ProductRequest.java
+│   │       ├── ProductResponse.java
+│   │       └── PackagingComponentRequest.java
+│   ├── domain/
+│   │   ├── RegistryService.java          # facade for sub-module
+│   │   ├── RegistryBootstrapService.java # NAV-driven triage (Story 9.2)
+│   │   └── events/
+│   │       └── ProductRegistered.java
+│   ├── classifier/                       # ADR-0001 strategy package
+│   │   ├── KfCodeClassifierService.java  # interface
+│   │   ├── ClassifierRouter.java
+│   │   ├── ClassificationResult.java
+│   │   ├── KfSuggestion.java
+│   │   ├── ClassificationStrategy.java   # enum
+│   │   ├── ClassificationConfidence.java # enum
+│   │   └── internal/
+│   │       ├── VertexAiGeminiClassifier.java
+│   │       └── VtszPrefixFallbackClassifier.java
+│   └── internal/
+│       └── RegistryRepository.java       # jOOQ — products, product_packaging_components, registry_entry_audit_log, kf_codes
+│
+├── report/                               ← NEW (ADR-0002)
+│   ├── EprReportTarget.java              # interface
+│   ├── EprReportRequest.java             # record
+│   ├── EprReportArtifact.java            # record (filename, contentType, bytes, summaryReport, provenanceLines[])
+│   ├── EprReportProvenance.java          # record
+│   ├── EprReportFormat.java              # enum: OKIRKAPU_XML | EU_REGISTRY (future)
+│   └── internal/
+│       ├── OkirkapuXmlExporter.java      # EprReportTarget impl — today's only impl
+│       ├── KgKgyfNeAggregator.java       # GROUP BY kf_code, sum kg
+│       ├── KgKgyfNeMarshaller.java       # JAXB → KG:KGYF-NÉ XML
+│       └── jaxb-generated/               # build-time JAXB classes from XSD
+│
+└── package-info.java                     (existing)
+
+backend/src/main/resources/
+└── schemas/
+    ├── nav/                              (existing — NAV Online Számla XSDs)
+    └── okirkapu/                         ← NEW
+        └── KG-KGYF-NE-vN.xsd             # version-pinned, downloaded from kapu.okir.hu/okirkapuugyfel/xmlapi
+```
+
+The previously-existing `hu.riskguard.epr.domain.MohuExporter` is misnamed under the corrected framing (the receiver is OKIRkapu, not MOHU). Story 9.4 either renames it into `report/internal/OkirkapuXmlExporter` or replaces it. Either way, after Story 9.4 lands, no class outside `hu.riskguard.epr.report.internal` references "MOHU" by name in its dependency graph.
+
+### EPR module table-ownership update
+
+The existing ArchUnit rule `epr_module_should_only_access_own_tables` (in `NamingConventionTest.java`) currently allows the `epr` module to access `EprConfigs`, `EprCalculations`, `EprExports`, `EprMaterialTemplates`. **Story 9.1 must extend this allow-list** to add the four new tables: `Products`, `ProductPackagingComponents`, `RegistryEntryAuditLog`, `KfCodes`.
+
+### ArchUnit additions (binding for Epic 9)
+
+Three new ArchUnit rules ship as part of Story 9.1's foundation work. They are documented in detail in the ArchUnit test file (`backend/src/test/java/hu/riskguard/architecture/EpicNineInvariantsTest.java`) and summarised here:
+
+1. **Registry write boundary** (CP-5 §5 invariant 1).
+   Only classes in `hu.riskguard.epr.registry..` may write to `product_packaging_components` (i.e., depend on the jOOQ `ProductPackagingComponents` table or `ProductPackagingComponentsRecord`). Other modules read aggregated results through `RegistryService`, never the table directly.
+2. **Pluggable report target boundary** (CP-5 §5 invariant 3, ADR-0002).
+   No class outside `hu.riskguard.epr.report..` may depend on `OkirkapuXmlExporter` or any other concrete `EprReportTarget` implementation. Callers depend on the `EprReportTarget` interface only.
+3. **Fee modulation comes from data, not branches** (CP-5 §5 invariant 4).
+   No class in `hu.riskguard.epr..` may use a hard-coded `if` / `switch` branch on a recyclability grade enum (`A`/`B`/`C`/`D`) to compute fees. Eco-modulation rules must come from the EPR config / DB. This is enforced as a class-level rule that flags suspicious patterns; full enforcement requires Story 9.4-era code review since some `switch` statements (e.g., on enum status) are legitimate.
+
+### Reporting flow (end-to-end, post-Epic-9)
+
+```
+NAV invoices for period
+        │
+        ▼
+EprReportRequest (tenantId, period)
+        │
+        ▼
+EprService.generateReport(request)
+        │
+        ├─► For each invoice line item:
+        │       │
+        │       ├─► RegistryService.findByVtszOrArticleNumber(...)
+        │       │       ├─► HIT  → REGISTRY_MATCH provenance, components.kf_code + weight × units
+        │       │       └─► MISS → KfCodeClassifierService (ADR-0001):
+        │       │                    ├─► Gemini Flash (HIGH/MEDIUM confidence) → suggested but not auto-applied
+        │       │                    │   (suggestions surface only in registry editor, not in report path)
+        │       │                    └─► VTSZ-prefix fallback → VTSZ_FALLBACK provenance
+        │       │                                                 (uses Story 8.3 logic via KfCodeClassifierService)
+        │       └─► both miss → UNMATCHED provenance, listed in summary for user action
+        │
+        ├─► KgKgyfNeAggregator: GROUP BY kf_code, SUM(weight × units) → per-KF-code totals (kg, 3 decimals)
+        │
+        ├─► KgKgyfNeMarshaller: JAXB → KG:KGYF-NÉ XML
+        │
+        └─► EprReportArtifact (xml bytes + summaryReport + provenanceLines[])
+                    │
+                    ▼
+            User downloads XML → manually uploads to kapu.okir.hu
+                    │
+                    ▼
+            Authority forwards aggregated data to MOHU by 25th of month after quarter
+                    │
+                    ▼
+            MOHU issues invoice (15-day payment terms)
+```
+
+Risk Guard's responsibility ends at "User downloads XML". No automated submission round-trip — OKIRkapu has no programmatic ingestion endpoint per the 2026-04-14 research.
+
+### Cross-references
+
+- For the AI classification path's strategy interface, model choice, guardrails, and validation gate: [ADR-0001](../../docs/architecture/adrs/ADR-0001-ai-kf-classification.md).
+- For the report-target abstraction, OKIRkapu/XML correction, and PPWR-readiness rationale: [ADR-0002](../../docs/architecture/adrs/ADR-0002-pluggable-epr-report-target.md).
+- For epic and story breakdown: [Sprint Change Proposal CP-5](sprint-change-proposal-2026-04-14.md), §4.2 – §4.5.
+- For the legal basis (80/2023 Annex 3.1/4.1/1.2) and OKIRkapu submission-format research: [OKIRkapu format + KF refresh research](research/okirkapu-and-kf-refresh-2026-04-14.md).
+
+---
+
+**Addendum status:** READY FOR IMPLEMENTATION ✅ — Story 9.1 owns table creation (Flyway), ArchUnit rule additions, and the `kf_codes` seed. Stories 9.2 / 9.3 / 9.4 build on this foundation per CP-5 §4.

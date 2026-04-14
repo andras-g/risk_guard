@@ -1,13 +1,17 @@
 ---
 stepsCompleted: [1, 2, 3, 4]
 status: 'corrected'
-correctedAt: '2026-03-13'
-correctionApplied: 'sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
-correctionRef: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md'
+correctedAt: '2026-04-14'
+correctionApplied: 'sprint-change-proposal-2026-04-14 (CP-5) — Epic 9 added, Epic 8 header reconciled'
+correctionRef: '_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-14.md'
+priorCorrections:
+  - '2026-03-13 sprint-change-proposal-2026-03-12 (CP-1, CP-2, CP-3)'
 inputDocuments: 
   - "_bmad-output/planning-artifacts/prd.md"
   - "_bmad-output/planning-artifacts/architecture.md"
   - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md"
+  - "_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-14.md"
+  - "_bmad-output/planning-artifacts/research/okirkapu-and-kf-refresh-2026-04-14.md"
   - "Party Mode Synthesis (March 2026)"
 ---
 
@@ -140,7 +144,13 @@ SME owners and accountants get a richer, more actionable dashboard experience. C
 
 ### Epic 8: Real Data Integration & Single-Verdict Export
 Activates real NAV Online Számla data fetching for tenants who have entered credentials, and closes the long-standing stub for the screening verdict PDF export.
-**Stories:** 8.1 (NAV Online Számla Client Implementation), 8.2 (Screening Verdict PDF Export).
+**Stories:** 8.1 (NAV Online Számla Client Implementation), 8.2 (Screening Verdict PDF Export), 8.3 (Invoice-Driven EPR Auto-Fill), 8.4 (Accountant NAV Credential Access & Demo Mode), 8.5 (PLATFORM_ADMIN Role Separation).
+
+### Epic 9: Product-Packaging Registry & Automated EPR Filing
+Enables Hungarian KKV manufacturers and importers to maintain a per-product packaging composition registry as the legal basis for correct EPR filing, bootstrapped automatically from NAV invoice data and augmented with AI-assisted KF code classification. Differentiator: invoice-native registry bootstrap — no other Hungarian EPR tool does this.
+**Legal basis:** 80/2023 Korm. rendelet 3. melléklet 1. pont (producer registration), 4. melléklet 1. pont (per-transaction reporting), 1. melléklet 2. pont (KF code structure).
+**Reference:** Sprint Change Proposal CP-5 (`sprint-change-proposal-2026-04-14.md`), Task 01 research (`research/okirkapu-and-kf-refresh-2026-04-14.md`).
+**Stories:** 9.1 (Product-Packaging Registry Foundation), 9.2 (NAV-Invoice-Driven Registry Bootstrap + Triage UI), 9.3 (AI-Assisted KF-Code Classification), 9.4 (Registry-Driven EPR Autofill + MOHU Export).
 
 ## Epic 1: Identity, Multi-Tenancy & Foundation
 **Goal:** Users can securely log in via SSO (Google/Microsoft) and operate within a strictly isolated tenant environment. Accountants can switch between client tenants.
@@ -776,6 +786,91 @@ So that I can provide proof of a specific risk check if requested by legal autho
 **And** I can see which User ID performed the search.
 **And** if no matching audit records are found, the UI displays a clear "No records found for this search" message instead of an empty table.
 
+## Epic 9: Product-Packaging Registry & Automated EPR Filing
+**Goal:** Enable Hungarian KKV manufacturers and importers to maintain a per-product packaging composition registry as the legal basis for correct EPR filing, bootstrapped automatically from NAV invoice data and augmented with AI-assisted KF code classification.
 
+**Legal basis:** 80/2023 Korm. rendelet 3. melléklet 1. pont (producer registration), 4. melléklet 1. pont (per-transaction reporting), 1. melléklet 2. pont (KF code structure).
 
+**Reference:** Sprint Change Proposal CP-5 — `sprint-change-proposal-2026-04-14.md`. Stories below are skeletons; each will be fleshed out via `bmad-create-story` immediately before dev pickup.
+
+### Story 9.1: Product-Packaging Registry Foundation
+**Goal:** Per-tenant CRUD for products with multi-component packaging bill-of-materials, legally grounded in 80/2023 Annex 3.1 + 4.1 + 1.2, with PPWR-ready nullable fields present from day one.
+
+**Dependencies:** None (foundation story for Epic 9). Reference: CP-5 §4.2.
+
+**Data model (per CP-5 §4.2):**
+- `products` (tenant_id, id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+- `product_packaging_components` (id, product_id, material_description, kf_code, weight_per_unit_kg, component_order, recyclability_grade NULL, recycled_content_pct NULL, reusable NULL, substances_of_concern NULL, supplier_declaration_ref NULL, created_at, updated_at)
+- `registry_entry_audit_log` (id, product_id, field_changed, old_value, new_value, changed_by_user_id, source, timestamp)
+
+**Acceptance Criteria:**
+- Registry list page supports search/filter by name, VTSZ, KF code, status.
+- Product editor supports 1..N packaging components with full 8-digit structured KF code input.
+- PPWR-ready nullable fields (recyclability_grade, recycled_content_pct, reusable, substances_of_concern, supplier_declaration_ref) are present in the schema from day one, even if unused by the UI initially.
+- Every field change is recorded in `registry_entry_audit_log` with user, timestamp, and source.
+- ArchUnit invariant: no service outside the registry package writes to `product_packaging_components`.
+
+### Story 9.2: NAV-Invoice-Driven Registry Bootstrap + Triage UI
+**Goal:** On first registry setup, pull the tenant's outbound NAV invoices (reusing Story 8.1 infrastructure), dedupe by (product_name, VTSZ), and present candidate products in a triage queue so users can build their registry without starting from a blank page.
+
+**Dependencies:** Story 9.1 (registry schema). Reference: CP-5 §4.3.
+
+**Flow (per CP-5 §4.3):**
+1. Trigger: user clicks "Bootstrap from NAV invoices" or opens an empty registry.
+2. `RegistryBootstrapService` fetches outbound invoices via the existing NAV Online Számla client.
+3. Dedupe line items; rank by frequency and total quantity.
+4. For each candidate, call Story 9.3 classifier to pre-suggest KF code + component structure.
+5. Candidates land in a triage queue with states: PENDING, APPROVED, REJECTED_NOT_OWN_PACKAGING, NEEDS_MANUAL_ENTRY.
+6. User triages at their own pace; approved candidates flow into the `products` table.
+
+**Acceptance Criteria:**
+- Dedup handles slight name variations (trim, case, whitespace differences).
+- Triage queue persists across sessions — users can stop and resume.
+- Skip/reject states are preserved for audit (no silent data loss).
+- No AI classifier call is made for items already in a rejected state.
+- Keyboard shortcuts for approve/reject/skip triage actions (competitive wedge: speed).
+
+### Story 9.3: AI-Assisted KF-Code Classification
+**Goal:** Given a product (name, VTSZ), suggest KF codes with confidence scores. User confirms before save. This replaces blind manual 8-digit code entry with an explainable AI suggestion plus deterministic fallback.
+
+**Dependencies:** Story 9.1 (registry schema for audit tagging). Reference: CP-5 §4.4 and the AI classification ADR produced in Task 03.
+
+**Architecture (per CP-5 §4.4):**
+- `KfCodeClassifierService` interface (minimal abstraction, not a full strategy framework).
+- `VertexAiGeminiClassifier` — primary strategy, Gemini 2.5 Flash, pinned to EU region, workload identity (no API key).
+- `VtszPrefixFallbackClassifier` — reuses Story 8.3 VTSZ-prefix logic as deterministic fallback.
+- Router falls through: primary → fallback → empty field if all fail.
+- Explicitly NOT building (per CP-5 non-goals): OpenRouter integration, A-B harness across providers.
+
+**Guardrails:**
+- Confidence threshold below which no suggestion is shown (user sees empty field, not bad guess).
+- Per-tenant monthly call cap.
+- Circuit breaker on the Gemini strategy.
+- Every suggestion tagged `AI_SUGGESTED_CONFIRMED` or `AI_SUGGESTED_EDITED` in the audit log.
+
+**Acceptance Criteria:**
+- Unit tests use a mocked classifier; real Vertex AI exercised only in env-flag-gated integration tests.
+- Graceful degradation: Vertex AI outage falls through to VTSZ-prefix, then to empty — the user is never blocked.
+- Cost meter visible to PLATFORM_ADMIN showing per-tenant monthly spend.
+
+### Story 9.4: Registry-Driven EPR Autofill + MOHU Export
+**Goal:** At quarterly report time, combine outbound invoices × registry components to produce aggregated per-KF totals and a MOHU-compatible export, replacing today's manual wizard flow for tenants who have built out their registry.
+
+**Dependencies:** Stories 9.1, 9.2, 9.3. Reference: CP-5 §4.5, and Task 01 research for MOHU format specifics.
+
+**Flow (per CP-5 §4.5):**
+1. Pull outbound invoices for the reporting period.
+2. For each line item: registry match → multiply units × component weights; otherwise VTSZ-prefix fallback (Story 8.3 logic).
+3. Aggregate per KF code, reported in kg with 3 decimals.
+4. Produce MOHU-compatible export (format per Task 01 research findings).
+
+**PPWR decoupling invariant:**
+- `EprReportTarget` interface; `MohuCsvExporter` is today's implementation; `EuRegistryAdapter` is a future placeholder.
+- `EprService` never references `MohuCsvExporter` directly — enforced by ArchUnit.
+
+**Acceptance Criteria:**
+- Report shows per-line-item provenance (registry / VTSZ-fallback / unmatched).
+- Unmatched lines flagged with a "Register this product" shortcut linking back to Story 9.1 editor.
+- CSV matches the currently MOHU-acceptable format (per Task 01 findings; MOHU portal requirement).
+- Export bundle includes a human-readable summary alongside the machine CSV.
 
