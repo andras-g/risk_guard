@@ -9,6 +9,7 @@ import { useTierGate } from '~/composables/auth/useTierGate'
 import { useRegistry } from '~/composables/api/useRegistry'
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
+import { useHealthStore } from '~/stores/health'
 import type { ProductSummaryResponse, RegistryPageResponse } from '~/composables/api/useRegistry'
 
 const { t } = useI18n()
@@ -18,6 +19,7 @@ const registryStore = useRegistryStore()
 const { listProducts, archiveProduct } = useRegistry()
 const { mapErrorType } = useApiError()
 const toast = useToast()
+const healthStore = useHealthStore()
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 const searchQ = ref<string>('')
@@ -109,6 +111,14 @@ async function onArchive(product: ProductSummaryResponse) {
 onMounted(() => fetchProducts())
 
 const isEmpty = computed(() => !isLoading.value && !error.value && products.value.length === 0 && !searchQ.value && !kfCodeFilter.value && !statusFilter.value)
+
+const showBootstrapCta = computed(() => {
+  if (!isEmpty.value) return false
+  const navAdapter = healthStore.adapters.find(a => a.adapterName === 'nav-online-szamla')
+  const hasNavCredentials = navAdapter?.credentialStatus === 'VALID'
+  const isDemo = navAdapter?.dataSourceMode === 'demo'
+  return hasNavCredentials || isDemo
+})
 </script>
 
 <template>
@@ -177,11 +187,21 @@ const isEmpty = computed(() => !isLoading.value && !error.value && products.valu
       <i class="pi pi-box text-5xl text-gray-400" aria-hidden="true" />
       <h2 class="text-xl font-medium">{{ t('registry.empty.title') }}</h2>
       <p class="text-gray-500">{{ t('registry.empty.description') }}</p>
-      <Button
-        :label="t('registry.empty.cta')"
-        icon="pi pi-plus"
-        @click="router.push('/registry/new')"
-      />
+      <div class="flex gap-3 flex-wrap justify-center">
+        <Button
+          :label="t('registry.empty.cta')"
+          icon="pi pi-plus"
+          @click="router.push('/registry/new')"
+        />
+        <Button
+          v-if="showBootstrapCta"
+          :label="t('registry.bootstrap.emptyCta')"
+          icon="pi pi-cloud-download"
+          severity="secondary"
+          data-testid="bootstrap-cta"
+          @click="router.push('/registry/bootstrap')"
+        />
+      </div>
     </div>
 
     <!-- Data table -->

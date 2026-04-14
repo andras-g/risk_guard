@@ -49,7 +49,7 @@
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
 generated: Mon Mar 23 2026
-last_updated: Mon Apr 14 2026 — Story 9.1 Groups B-E code review complete (2 parallel + auditor); 21 patches auto-fixed; 13 deferred; all tests green; status → done.
+last_updated: Mon Apr 14 2026 — Story 9.2 fresh review pass: 2 LOW cleanups (dead imports, stale mock size) auto-fixed; 752 frontend + backend + 5 e2e green; status → review.
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -141,7 +141,7 @@ development_status:
 
   epic-9: in-progress  # STARTED (2026-04-14) — CP-5 Product-Packaging Registry & Automated EPR Filing. Foundation story 9.1 drafted.
   9-1-product-packaging-registry-foundation: done  # Story file created 2026-04-14; dev completed 2026-04-14; Group A code review: 7 patches resolved; Groups B-E code review (Acceptance Auditor + Blind Hunter + Edge Case Hunter): 21 patches auto-fixed (kfCode tenant leak, page/size clamps, affected-row checks, insertComponent tenant re-verify, substancesOfConcern & component_order audit, @NotNull components, LIKE wildcard escape, @Transactional readOnly, merged removal loops, archive null-guard, KfCodeInput required, ToggleSwitch → tri-state, no weight coercion); 13 deferred. Scope: DB migration, hu.riskguard.epr.registry sub-module, REST /api/v1/registry CRUD, list + editor UI, PPWR-ready nullable fields, MANUAL-source audit log. Binds EpicNineInvariantsTest rules 1 + 4. All tests green: 10 RegistryServiceTest, 8 RegistryControllerTest, 5 RegistryRepositoryIntegrationTest, ArchUnit PASS, 739 frontend tests PASS, 5 Playwright e2e PASS.
-  9-2-nav-invoice-driven-registry-bootstrap: backlog
+  9-2-nav-invoice-driven-registry-bootstrap: review
   9-3-ai-assisted-kf-code-classification: backlog
   9-4-registry-driven-epr-autofill-and-okirkapu-export: backlog
 

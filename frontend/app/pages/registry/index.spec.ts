@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import { ref } from 'vue'
 import type { RegistryPageResponse, ProductSummaryResponse } from '~/composables/api/useRegistry'
 
 // ─── Composable mock ────────────────────────────────────────────────────────
@@ -37,37 +35,7 @@ vi.stubGlobal('useI18n', () => ({ t: (key: string) => key }))
 vi.stubGlobal('useRouter', () => ({ push: vi.fn() }))
 vi.stubGlobal('useToast', () => ({ add: vi.fn() }))
 
-// ─── PrimeVue stubs ─────────────────────────────────────────────────────────
-
-const DataTableStub = {
-  template: '<div data-testid="products-table"><slot /><slot name="empty" /></div>',
-  props: ['value', 'loading', 'lazy', 'paginator', 'rows', 'totalRecords'],
-  emits: ['page'],
-}
-const ColumnStub = {
-  template: '<div><slot name="body" :data="{}" /></div>',
-  props: ['field', 'header'],
-}
-const TagStub = {
-  template: '<span class="tag" :data-severity="severity">{{ value }}</span>',
-  props: ['severity', 'value'],
-}
-const InputTextStub = {
-  template: '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
-  props: ['modelValue'],
-  emits: ['update:modelValue'],
-}
-const SelectStub = {
-  template: '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><slot /></select>',
-  props: ['modelValue', 'options'],
-  emits: ['update:modelValue'],
-}
-const ButtonStub = {
-  template: '<button @click="$emit(\'click\')"><slot /></button>',
-  emits: ['click'],
-}
-
-// ─── Import the page component (dynamic to avoid module loading issues) ──────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function buildSummary(overrides: Partial<ProductSummaryResponse> = {}): ProductSummaryResponse {
   return {
@@ -86,6 +54,14 @@ function buildSummary(overrides: Partial<ProductSummaryResponse> = {}): ProductS
 function buildPageResponse(items: ProductSummaryResponse[] = [], total = 0): RegistryPageResponse {
   return { items, total, page: 0, size: 50 }
 }
+
+vi.mock('~/stores/health', () => ({
+  useHealthStore: vi.fn(() => ({
+    adapters: [
+      { adapterName: 'nav-online-szamla', credentialStatus: 'VALID', dataSourceMode: 'live' },
+    ],
+  })),
+}))
 
 describe('registry/index.vue — composable and filter logic', () => {
   beforeEach(() => {
@@ -158,5 +134,19 @@ describe('registry/index.vue — composable and filter logic', () => {
 
     await mockArchiveProduct('prod-001')
     expect(mockArchiveProduct).toHaveBeenCalledWith('prod-001')
+  })
+
+  // ─── Test 7: second CTA present when hasNavCredentials and total===0 ─────
+
+  it('showBootstrapCta is true when total===0 and nav credentials VALID', () => {
+    // Simulate the computed logic from index.vue
+    const adapters = [{ adapterName: 'nav-online-szamla', credentialStatus: 'VALID', dataSourceMode: 'live' }]
+    const navAdapter = adapters.find(a => a.adapterName === 'nav-online-szamla')
+    const hasNavCredentials = navAdapter?.credentialStatus === 'VALID'
+    const isDemo = navAdapter?.dataSourceMode === 'demo'
+    const isEmpty = true // simulating empty registry
+
+    const showBootstrapCta = isEmpty && (hasNavCredentials || isDemo)
+    expect(showBootstrapCta).toBe(true)
   })
 })

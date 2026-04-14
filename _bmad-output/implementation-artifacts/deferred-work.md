@@ -220,3 +220,12 @@
 - W11 (Group C): `countByTenantWithFilters` applies `kfCode` EXISTS subquery twice, structurally diverging from `listByTenantWithFilters`.
 - W12 (Group E): `ToggleSwitch` bound to nullable `Boolean reusable` — null initial value renders in undefined state; irreversible once toggled.
 - W13 (Group B): `substancesOfConcern` missing from `diffComponentAndAudit` in RegistryService — field changes produce no audit row, violating AC 5.
+
+## Deferred from: code review of 9-2-nav-invoice-driven-registry-bootstrap (2026-04-14)
+
+- D1: `triggerBootstrap` holds open a DB transaction across N serial NAV HTTP calls — connection pool exhaustion risk under load. Pre-existing pattern also in EprService. Needs async or chunked approach.
+- D2: A single `queryInvoiceDetails` exception rolls back the entire trigger batch — no per-invoice error isolation. Requires architectural redesign (e.g., per-invoice try-catch with partial-result persistence).
+- D3: `APPROVED` candidate with `resulting_product_id = NULL` after linked product is deleted (FK ON DELETE SET NULL) — no guard in service or UI for this inconsistent state.
+- D4: Keyboard shortcut hint rendered as `<p>` above DataTable rather than inside DataTable header slot — minor UX deviation from AC 7 spec wording.
+- D5: No `from <= to` validation in trigger request; inverted date range forwarded to NAV silently. Simple cross-field constraint, low urgency.
+- D6: `normalize()` private static method duplicated in `RegistryBootstrapService` and `BootstrapRepository` — divergence risk if normalization logic is ever changed.

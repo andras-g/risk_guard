@@ -22,6 +22,54 @@
       "timestamp": "Időpont",
       "title": "Változásnapló"
     },
+    "bootstrap": {
+      "actions": {
+        "approve": "Jóváhagyás",
+        "markManual": "Manuális feltöltés jelölése",
+        "reject": "Elutasítás (nem saját csomagolás)"
+      },
+      "approveDialog": {
+        "title": "Jelölt jóváhagyása"
+      },
+      "approveError": "A jóváhagyás sikertelen. Kérem, próbálja újra.",
+      "approveSuccess": "A jelölt jóváhagyva, termék létrehozva.",
+      "columns": {
+        "actions": "Műveletek",
+        "frequency": "Gyakoriság",
+        "productName": "Termék neve",
+        "quantity": "Mennyiség",
+        "status": "Státusz",
+        "suggestedKfCode": "Javasolt KF-kód",
+        "vtsz": "VTSZ"
+      },
+      "dateFrom": "Tól",
+      "dateTo": "Ig",
+      "empty": "Még nincsenek jelöltek. Kattintson a 'Számlák lekérdezése' gombra a NAV-ból való importáláshoz.",
+      "emptyCta": "Feltöltés NAV-számlákból",
+      "errors": {
+        "fetchFailed": "Nem sikerült betölteni a jelölteket.",
+        "triggerFailed": "Nem sikerült a számlákat lekérdezni a NAV-tól."
+      },
+      "fetchInvoices": "Számlák lekérdezése",
+      "filter": {
+        "all": "Összes",
+        "rejected": "Elutasított"
+      },
+      "keyboardHint": "Billentyűparancsok kijelölt sor esetén: A = Jóváhagyás, R = Elutasítás, M = Manuális",
+      "markManualSuccess": "A jelölt manuális feltöltésre jelölve.",
+      "noSuggestion": "Nincs javaslat",
+      "reFetch": "Újra lekérdezés",
+      "rejectSuccess": "A jelölt elutasítva.",
+      "status": {
+        "APPROVED": "Jóváhagyott",
+        "NEEDS_MANUAL_ENTRY": "Manuális feltöltés szükséges",
+        "PENDING": "Függőben",
+        "REJECTED_NOT_OWN_PACKAGING": "Elutasított"
+      },
+      "tableAriaLabel": "Bootstrap jelöltek feldolgozási táblázata",
+      "title": "Feltöltés NAV-számlákból",
+      "triggerSuccess": "Import kész: {created} új jelölt, {skipped} kihagyva."
+    },
     "empty": {
       "cta": "Első termék létrehozása",
       "description": "Adja hozzá a termékeket a csomagolási elemek és KF-kódok nyomon követéséhez.",

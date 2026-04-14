@@ -58,23 +58,35 @@ public class RegistryService {
 
     // ─── Create ──────────────────────────────────────────────────────────────
 
+    /**
+     * Create a new product with {@code AuditSource.MANUAL} (backward-compatible overload).
+     */
     @Transactional
     public Product create(UUID tenantId, UUID actingUserId, ProductUpsertCommand cmd) {
+        return create(tenantId, actingUserId, cmd, AuditSource.MANUAL);
+    }
+
+    /**
+     * Create a new product, threading the given {@link AuditSource} into all audit rows.
+     * Used by {@code RegistryBootstrapService} to record {@code NAV_BOOTSTRAP} as the source.
+     */
+    @Transactional
+    public Product create(UUID tenantId, UUID actingUserId, ProductUpsertCommand cmd, AuditSource source) {
         UUID productId = registryRepository.insertProduct(tenantId, cmd);
 
         // Emit one audit row per populated product field
-        emitCreateAudit(productId, tenantId, actingUserId, "article_number", cmd.articleNumber());
-        emitCreateAudit(productId, tenantId, actingUserId, "name", cmd.name());
-        emitCreateAudit(productId, tenantId, actingUserId, "vtsz", cmd.vtsz());
-        emitCreateAudit(productId, tenantId, actingUserId, "primary_unit", cmd.primaryUnit());
+        emitCreateAudit(productId, tenantId, actingUserId, "article_number", cmd.articleNumber(), source);
+        emitCreateAudit(productId, tenantId, actingUserId, "name", cmd.name(), source);
+        emitCreateAudit(productId, tenantId, actingUserId, "vtsz", cmd.vtsz(), source);
+        emitCreateAudit(productId, tenantId, actingUserId, "primary_unit", cmd.primaryUnit(), source);
         emitCreateAudit(productId, tenantId, actingUserId, "status",
-                cmd.status() != null ? cmd.status().name() : null);
+                cmd.status() != null ? cmd.status().name() : null, source);
 
         // Insert components
         if (cmd.components() != null) {
             for (ComponentUpsertCommand comp : cmd.components()) {
                 UUID compId = registryRepository.insertComponent(productId, tenantId, comp);
-                emitComponentCreateAudit(productId, tenantId, actingUserId, compId, comp);
+                emitComponentCreateAudit(productId, tenantId, actingUserId, compId, comp, source);
             }
         }
 
@@ -187,14 +199,23 @@ public class RegistryService {
 
     private void emitCreateAudit(UUID productId, UUID tenantId, UUID userId,
                                   String field, String value) {
+        emitCreateAudit(productId, tenantId, userId, field, value, AuditSource.MANUAL);
+    }
+
+    private void emitCreateAudit(UUID productId, UUID tenantId, UUID userId,
+                                  String field, String value, AuditSource source) {
         if (value == null || value.isBlank()) return;
-        emitAudit(productId, tenantId, userId, "CREATE." + field, null, value);
+        emitAudit(productId, tenantId, userId, "CREATE." + field, null, value, source);
     }
 
     private void emitAudit(UUID productId, UUID tenantId, UUID userId,
                             String field, String oldVal, String newVal) {
-        auditRepository.insertAuditRow(productId, tenantId, field, oldVal, newVal, userId,
-                AuditSource.MANUAL);
+        emitAudit(productId, tenantId, userId, field, oldVal, newVal, AuditSource.MANUAL);
+    }
+
+    private void emitAudit(UUID productId, UUID tenantId, UUID userId,
+                            String field, String oldVal, String newVal, AuditSource source) {
+        auditRepository.insertAuditRow(productId, tenantId, field, oldVal, newVal, userId, source);
     }
 
     /** Returns true when an audit row was written (old != new). */
@@ -209,41 +230,51 @@ public class RegistryService {
 
     private void emitComponentCreateAudit(UUID productId, UUID tenantId, UUID userId,
                                            UUID compId, ComponentUpsertCommand cmd) {
+        emitComponentCreateAudit(productId, tenantId, userId, compId, cmd, AuditSource.MANUAL);
+    }
+
+    private void emitComponentCreateAudit(UUID productId, UUID tenantId, UUID userId,
+                                           UUID compId, ComponentUpsertCommand cmd, AuditSource source) {
         // Normalised CREATE.components[<uuid>].<field> prefix so all create-time rows
         // share the same shape (AC 5, Story 9.3 AI-tagging relies on this).
         String prefix = "CREATE.components[" + compId + "].";
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "material_description",
-                cmd.materialDescription());
-        emitCreateAuditRaw(productId, tenantId, userId, prefix + "kf_code", cmd.kfCode());
+                cmd.materialDescription(), source);
+        emitCreateAuditRaw(productId, tenantId, userId, prefix + "kf_code", cmd.kfCode(), source);
         if (cmd.weightPerUnitKg() != null) {
             emitAudit(productId, tenantId, userId, prefix + "weight_per_unit_kg",
-                    null, cmd.weightPerUnitKg().toPlainString());
+                    null, cmd.weightPerUnitKg().toPlainString(), source);
         }
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "component_order",
-                Integer.toString(cmd.componentOrder()));
+                Integer.toString(cmd.componentOrder()), source);
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "recyclability_grade",
-                cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null);
+                cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null, source);
         if (cmd.recycledContentPct() != null) {
             emitAudit(productId, tenantId, userId, prefix + "recycled_content_pct",
-                    null, cmd.recycledContentPct().toPlainString());
+                    null, cmd.recycledContentPct().toPlainString(), source);
         }
         if (cmd.reusable() != null) {
             emitAudit(productId, tenantId, userId, prefix + "reusable",
-                    null, cmd.reusable().toString());
+                    null, cmd.reusable().toString(), source);
         }
         if (cmd.substancesOfConcern() != null) {
             emitAudit(productId, tenantId, userId, prefix + "substances_of_concern",
-                    null, cmd.substancesOfConcern().toString());
+                    null, cmd.substancesOfConcern().toString(), source);
         }
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "supplier_declaration_ref",
-                cmd.supplierDeclarationRef());
+                cmd.supplierDeclarationRef(), source);
     }
 
     /** Variant of emitCreateAudit that does NOT prepend "CREATE." — caller supplies full field. */
     private void emitCreateAuditRaw(UUID productId, UUID tenantId, UUID userId,
                                      String field, String value) {
+        emitCreateAuditRaw(productId, tenantId, userId, field, value, AuditSource.MANUAL);
+    }
+
+    private void emitCreateAuditRaw(UUID productId, UUID tenantId, UUID userId,
+                                     String field, String value, AuditSource source) {
         if (value == null || value.isBlank()) return;
-        emitAudit(productId, tenantId, userId, field, null, value);
+        emitAudit(productId, tenantId, userId, field, null, value, source);
     }
 
     private void diffComponentAndAudit(UUID productId, UUID tenantId, UUID userId,

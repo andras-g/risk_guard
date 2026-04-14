@@ -22,6 +22,54 @@
       "timestamp": "Timestamp",
       "title": "Audit Log"
     },
+    "bootstrap": {
+      "actions": {
+        "approve": "Approve",
+        "markManual": "Mark for manual entry",
+        "reject": "Reject (not own packaging)"
+      },
+      "approveDialog": {
+        "title": "Approve candidate"
+      },
+      "approveError": "Failed to approve candidate. Please try again.",
+      "approveSuccess": "Candidate approved and product created.",
+      "columns": {
+        "actions": "Actions",
+        "frequency": "Frequency",
+        "productName": "Product name",
+        "quantity": "Quantity",
+        "status": "Status",
+        "suggestedKfCode": "Suggested KF code",
+        "vtsz": "VTSZ"
+      },
+      "dateFrom": "From",
+      "dateTo": "To",
+      "empty": "No candidates yet. Click \"Fetch invoices\" to import from NAV.",
+      "emptyCta": "Bootstrap from NAV invoices",
+      "errors": {
+        "fetchFailed": "Failed to load candidates.",
+        "triggerFailed": "Failed to fetch invoices from NAV."
+      },
+      "fetchInvoices": "Fetch invoices",
+      "filter": {
+        "all": "All",
+        "rejected": "Rejected"
+      },
+      "keyboardHint": "Keyboard shortcuts when a row is selected: A = Approve, R = Reject, M = Mark manual",
+      "markManualSuccess": "Candidate marked for manual entry.",
+      "noSuggestion": "No suggestion",
+      "reFetch": "Re-fetch invoices",
+      "rejectSuccess": "Candidate rejected.",
+      "status": {
+        "APPROVED": "Approved",
+        "NEEDS_MANUAL_ENTRY": "Needs manual entry",
+        "PENDING": "Pending",
+        "REJECTED_NOT_OWN_PACKAGING": "Rejected"
+      },
+      "tableAriaLabel": "Bootstrap candidates triage table",
+      "title": "Bootstrap from NAV invoices",
+      "triggerSuccess": "Import complete: {created} new candidates, {skipped} skipped."
+    },
     "empty": {
       "cta": "Create your first product",
       "description": "Add products to track packaging components and KF codes for EPR filing.",
