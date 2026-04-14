@@ -198,12 +198,12 @@ onMounted(() => fetchCandidates())
     <!-- Date range + trigger -->
     <div class="flex flex-wrap gap-3 items-end">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium">{{ t('registry.bootstrap.dateFrom') }}</label>
-        <DatePicker v-model="fromDate" date-format="yy-mm-dd" show-icon />
+        <label for="bootstrap-date-from" class="text-sm font-medium">{{ t('registry.bootstrap.dateFrom') }}</label>
+        <DatePicker v-model="fromDate" input-id="bootstrap-date-from" date-format="yy-mm-dd" show-icon />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium">{{ t('registry.bootstrap.dateTo') }}</label>
-        <DatePicker v-model="toDate" date-format="yy-mm-dd" show-icon />
+        <label for="bootstrap-date-to" class="text-sm font-medium">{{ t('registry.bootstrap.dateTo') }}</label>
+        <DatePicker v-model="toDate" input-id="bootstrap-date-to" date-format="yy-mm-dd" show-icon />
       </div>
       <Button
         :label="bootstrapStore.triggerState === 'done'
@@ -237,10 +237,12 @@ onMounted(() => fetchCandidates())
     </div>
 
     <!-- Triage table -->
+    <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- keyboard-shortcut region wrapping a DataTable (a/r/m keys); role="region" landmark is the correct semantic -->
     <div
       v-else
       ref="tableWrapper"
       tabindex="0"
+      role="region"
       class="bootstrap-table-wrapper outline-none"
       :aria-label="t('registry.bootstrap.tableAriaLabel')"
       @keydown.stop="onTableKeydown"
