@@ -110,6 +110,14 @@ dependencies {
 	runtimeOnly 'com.sun.xml.bind:jaxb-impl:4.0.5'
 	implementation 'org.bouncycastle:bcprov-jdk18on:1.79'
 
+	// Story 9.3: Google Application Default Credentials for Vertex AI Gemini REST calls.
+	// Spring AI 1.x is not compatible with Spring Boot 4.0.3 (Spring Framework 7.x), so we
+	// call the Gemini generateContent REST API directly using java.net.http.HttpClient.
+	// google-auth provides GoogleCredentials.getApplicationDefault() for ADC token refresh.
+	// postgres-socket-factory already pulls google-auth transitively, but we declare it
+	// explicitly to avoid accidental removal.
+	implementation 'com.google.auth:google-auth-library-oauth2-http:1.23.0'
+
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'

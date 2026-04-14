@@ -7,6 +7,8 @@ import hu.riskguard.epr.api.dto.EprConfigResponse;
 import hu.riskguard.epr.api.dto.EprConfigValidateRequest;
 import hu.riskguard.epr.api.dto.EprConfigValidateResponse;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.registry.api.dto.ClassifierUsageSummaryResponse;
+import hu.riskguard.epr.registry.domain.ClassifierUsageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,10 +21,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Admin REST controller for hot-swappable EPR config management.
+ * Admin REST controller for hot-swappable EPR config management and AI usage reporting.
  * Restricted to {@code PLATFORM_ADMIN} role only.
  */
 @RestController
@@ -31,6 +34,7 @@ import java.util.UUID;
 public class EprAdminController {
 
     private final EprService eprService;
+    private final ClassifierUsageService classifierUsageService;
 
     /**
      * Returns the currently active EPR config (version, JSON data, activation timestamp).
@@ -67,6 +71,18 @@ public class EprAdminController {
         requirePlatformAdminRole(jwt);
         UUID actorUserId = JwtUtil.requireUuidClaim(jwt, "user_id");
         return eprService.publishNewConfig(req.configData(), actorUserId);
+    }
+
+    /**
+     * Returns AI classifier usage for all tenants in the current calendar month.
+     * Requires {@code PLATFORM_ADMIN} role; returns 403 for all other roles.
+     */
+    @GetMapping("/classifier/usage")
+    public List<ClassifierUsageSummaryResponse> getClassifierUsage(@AuthenticationPrincipal Jwt jwt) {
+        requirePlatformAdminRole(jwt);
+        return classifierUsageService.getAllTenantsUsage().stream()
+                .map(ClassifierUsageSummaryResponse::from)
+                .toList();
     }
 
     private void requirePlatformAdminRole(Jwt jwt) {

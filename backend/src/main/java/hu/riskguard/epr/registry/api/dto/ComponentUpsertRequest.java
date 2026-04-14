@@ -24,13 +24,18 @@ public record ComponentUpsertRequest(
         @DecimalMin("0") @DecimalMax("100") BigDecimal recycledContentPct,
         Boolean reusable,
         JsonNode substancesOfConcern,
-        @Size(max = 256) String supplierDeclarationRef
+        @Size(max = 256) String supplierDeclarationRef,
+        // Story 9.3: AI classification provenance (nullable — backward-compatible)
+        String classificationSource,
+        String classificationStrategy,
+        String classificationModelVersion
 ) {
     public static ComponentUpsertRequest from(ComponentUpsertCommand cmd) {
         return new ComponentUpsertRequest(
                 cmd.id(), cmd.materialDescription(), cmd.kfCode(), cmd.weightPerUnitKg(),
                 cmd.componentOrder(), cmd.recyclabilityGrade(), cmd.recycledContentPct(),
-                cmd.reusable(), cmd.substancesOfConcern(), cmd.supplierDeclarationRef()
+                cmd.reusable(), cmd.substancesOfConcern(), cmd.supplierDeclarationRef(),
+                cmd.classificationSource(), cmd.classificationStrategy(), cmd.classificationModelVersion()
         );
     }
 
@@ -38,7 +43,7 @@ public record ComponentUpsertRequest(
         return new ComponentUpsertCommand(
                 id, materialDescription, kfCode, weightPerUnitKg, componentOrder,
                 recyclabilityGrade, recycledContentPct, reusable, substancesOfConcern,
-                supplierDeclarationRef
+                supplierDeclarationRef, classificationSource, classificationStrategy, classificationModelVersion
         );
     }
 }

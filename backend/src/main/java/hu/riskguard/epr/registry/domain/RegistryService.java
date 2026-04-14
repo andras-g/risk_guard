@@ -283,8 +283,26 @@ public class RegistryService {
         String prefix = "components[" + compId + "].";
         diffAndAudit(productId, tenantId, userId, prefix + "material_description",
                 old.materialDescription(), cmd.materialDescription());
-        diffAndAudit(productId, tenantId, userId, prefix + "kf_code",
-                old.kfCode(), cmd.kfCode());
+
+        // kf_code: use classificationSource as AuditSource when provided (Story 9.3)
+        if (!java.util.Objects.equals(old.kfCode(), cmd.kfCode())) {
+            AuditSource kfSource = AuditSource.MANUAL;
+            String kfStrategy = null;
+            String kfModelVersion = null;
+            if (cmd.classificationSource() != null) {
+                try {
+                    kfSource = AuditSource.valueOf(cmd.classificationSource());
+                } catch (IllegalArgumentException ignored) {
+                    // fall back to MANUAL for unknown values
+                }
+                if (kfSource == AuditSource.AI_SUGGESTED_CONFIRMED || kfSource == AuditSource.AI_SUGGESTED_EDITED) {
+                    kfStrategy = cmd.classificationStrategy();
+                    kfModelVersion = cmd.classificationModelVersion();
+                }
+            }
+            auditRepository.insertAuditRow(productId, tenantId, prefix + "kf_code",
+                    old.kfCode(), cmd.kfCode(), userId, kfSource, kfStrategy, kfModelVersion);
+        }
 
         // component_order changes must be audited (AC 5: per-field audit coverage)
         diffAndAudit(productId, tenantId, userId, prefix + "component_order",

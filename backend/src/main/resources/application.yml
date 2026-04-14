@@ -25,6 +25,15 @@ spring:
       enabled: ${SPRING_DOCKER_COMPOSE_ENABLED:false}
   main:
     lazy-initialization: ${SPRING_MAIN_LAZY_INITIALIZATION:false}
+  ai:
+    vertex:
+      ai:
+        gemini:
+          project-id: ${GCP_PROJECT_ID:risk-guard-dev}
+          location: europe-west1
+          chat:
+            options:
+              model: gemini-2.5-flash
   security:
     oauth2:
       client:
@@ -90,6 +99,12 @@ resilience4j:
         waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
         registerHealthIndicator: true
+      vertex-gemini:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 60s
+        permittedNumberOfCallsInHalfOpenState: 3
+        registerHealthIndicator: true
   retry:
     configs:
       default:
@@ -143,3 +158,6 @@ risk-guard:
    outbox:
       cron: "${OUTBOX_CRON:0 */1 * * * ?}"    # Every 60 seconds
       batch-size: ${OUTBOX_BATCH_SIZE:50}
+   classifier:
+      confidence-threshold: MEDIUM
+      monthly-cap: 1000

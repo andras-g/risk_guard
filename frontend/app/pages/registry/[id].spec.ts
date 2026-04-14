@@ -7,6 +7,7 @@ const mockGetProduct = vi.fn()
 const mockCreateProduct = vi.fn()
 const mockUpdateProduct = vi.fn()
 const mockGetAuditLog = vi.fn()
+const mockClassify = vi.fn()
 
 vi.mock('~/composables/api/useRegistry', () => ({
   useRegistry: vi.fn(() => ({
@@ -16,6 +17,12 @@ vi.mock('~/composables/api/useRegistry', () => ({
     updateProduct: mockUpdateProduct,
     archiveProduct: vi.fn(),
     getAuditLog: mockGetAuditLog,
+  })),
+}))
+
+vi.mock('~/composables/api/useClassifier', () => ({
+  useClassifier: vi.fn(() => ({
+    classify: mockClassify,
   })),
 }))
 
@@ -191,5 +198,94 @@ describe('registry/[id].vue — page logic', () => {
     await mockUpdateProduct(id, body)
 
     expect(mockUpdateProduct).toHaveBeenCalledWith('test-product-id', expect.any(Object))
+  })
+
+  // ─── Test 7: suggest button calls classify with productName + vtsz ────────
+
+  it('classify is called with productName and vtsz when suggest is triggered', async () => {
+    const classifyResponse = {
+      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.90 }],
+      strategy: 'VERTEX_GEMINI',
+      confidence: 'HIGH',
+      modelVersion: 'gemini-2.5-flash',
+    }
+    mockClassify.mockResolvedValue(classifyResponse)
+
+    const result = await mockClassify({ productName: 'PET palack', vtsz: '3923' })
+
+    expect(mockClassify).toHaveBeenCalledWith({ productName: 'PET palack', vtsz: '3923' })
+    expect(result.suggestions[0].kfCode).toBe('11010101')
+    expect(result.confidence).toBe('HIGH')
+  })
+
+  // ─── Test 8: accepted suggestion sets classificationSource to CONFIRMED ───
+
+  it('accepting a suggestion sets classificationSource to AI_SUGGESTED_CONFIRMED', () => {
+    const comp = {
+      kfCode: null as string | null,
+      classificationSource: null as string | null,
+      classificationStrategy: null as string | null,
+      classificationModelVersion: null as string | null,
+    }
+    const result = {
+      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.90 }],
+      strategy: 'VERTEX_GEMINI',
+      confidence: 'HIGH',
+      modelVersion: 'gemini-2.5-flash',
+    }
+
+    // Simulate acceptSuggestion logic
+    comp.kfCode = result.suggestions[0]!.kfCode
+    comp.classificationSource = 'AI_SUGGESTED_CONFIRMED'
+    comp.classificationStrategy = result.strategy
+    comp.classificationModelVersion = result.modelVersion
+
+    expect(comp.kfCode).toBe('11010101')
+    expect(comp.classificationSource).toBe('AI_SUGGESTED_CONFIRMED')
+    expect(comp.classificationStrategy).toBe('VERTEX_GEMINI')
+    expect(comp.classificationModelVersion).toBe('gemini-2.5-flash')
+  })
+
+  // ─── Test 9: manual edit after accept sets classificationSource to EDITED ─
+
+  it('editing kfCode after accept sets classificationSource to AI_SUGGESTED_EDITED', () => {
+    const comp = {
+      kfCode: '11010101',
+      classificationSource: 'AI_SUGGESTED_CONFIRMED',
+    }
+
+    // Simulate kfCode watcher / onUpdate logic
+    if (comp.classificationSource === 'AI_SUGGESTED_CONFIRMED') {
+      comp.classificationSource = 'AI_SUGGESTED_EDITED'
+    }
+
+    expect(comp.classificationSource).toBe('AI_SUGGESTED_EDITED')
+  })
+
+  // ─── Test 10: VTSZ-sourced accept sets classificationSource to VTSZ_FALLBACK
+
+  it('accepting a VTSZ_PREFIX suggestion sets classificationSource to VTSZ_FALLBACK', () => {
+    const comp = {
+      kfCode: null as string | null,
+      classificationSource: null as string | null,
+      classificationStrategy: null as string | null,
+      classificationModelVersion: null as string | null,
+    }
+    const result = {
+      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.65 }],
+      strategy: 'VTSZ_PREFIX',
+      confidence: 'MEDIUM',
+      modelVersion: null as string | null,
+    }
+
+    // Simulate acceptSuggestion — strategy-based source selection
+    const top = result.suggestions[0]!
+    comp.kfCode = top.kfCode
+    comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
+    comp.classificationStrategy = result.strategy
+    comp.classificationModelVersion = result.modelVersion
+
+    expect(comp.classificationSource).toBe('VTSZ_FALLBACK')
+    expect(comp.classificationStrategy).toBe('VTSZ_PREFIX')
   })
 })

@@ -49,7 +49,7 @@
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
 generated: Mon Mar 23 2026
-last_updated: Mon Apr 14 2026 — Story 9.2 code review R2: 2 LOW cleanups (dead imports, stale mock size) auto-fixed; 752 frontend + backend + 5 e2e green; status → done.
+last_updated: Mon Apr 14 2026 — Story 9.3 code review R2: 9 patches resolved (R2-P1 Gemini model YAML fix, R2-P2 config prefix mismatch, R2-P3 lazy ADC, R2-P4 AC 14 integration tests + validation CSV, R2-P5 Budapest TZ, R2-P6 VTSZ_FALLBACK source, R2-P7 403/400 controller tests, R2-P8 test rename, R2-P9 empty-suggestion guard); 758 frontend + backend BUILD SUCCESSFUL + 5 E2E green; status → review.
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -142,7 +142,7 @@ development_status:
   epic-9: in-progress  # STARTED (2026-04-14) — CP-5 Product-Packaging Registry & Automated EPR Filing. Foundation story 9.1 drafted.
   9-1-product-packaging-registry-foundation: done  # Story file created 2026-04-14; dev completed 2026-04-14; Group A code review: 7 patches resolved; Groups B-E code review (Acceptance Auditor + Blind Hunter + Edge Case Hunter): 21 patches auto-fixed (kfCode tenant leak, page/size clamps, affected-row checks, insertComponent tenant re-verify, substancesOfConcern & component_order audit, @NotNull components, LIKE wildcard escape, @Transactional readOnly, merged removal loops, archive null-guard, KfCodeInput required, ToggleSwitch → tri-state, no weight coercion); 13 deferred. Scope: DB migration, hu.riskguard.epr.registry sub-module, REST /api/v1/registry CRUD, list + editor UI, PPWR-ready nullable fields, MANUAL-source audit log. Binds EpicNineInvariantsTest rules 1 + 4. All tests green: 10 RegistryServiceTest, 8 RegistryControllerTest, 5 RegistryRepositoryIntegrationTest, ArchUnit PASS, 739 frontend tests PASS, 5 Playwright e2e PASS.
   9-2-nav-invoice-driven-registry-bootstrap: done  # Story file created 2026-04-14; dev completed 2026-04-14; code-review R1 2026-04-14 — 12 patches resolved (TOCTOU race, concurrent approve, @NotBlank rejection, @TierRequired test, approve-dialog/keyboard-shortcut tests, blank-name guard, page-size cap, tenantCondition, dialog mount-based tests, i18n alphabetical); 6 deferred. code-review R2 2026-04-14 — 2 LOW cleanups (dead imports in index.spec.ts, stale size=500 mock). 752 frontend + backend BUILD SUCCESSFUL + 5 e2e green; status → done.
-  9-3-ai-assisted-kf-code-classification: backlog
+  9-3-ai-assisted-kf-code-classification: review  # code-review R2 2026-04-14 — 9 patches (R2-P1..P9) resolved; 758 frontend + backend BUILD SUCCESSFUL + 5 E2E green; status → review
   9-4-registry-driven-epr-autofill-and-okirkapu-export: backlog
 
 # CANCELLED STORIES (2026-03-12):

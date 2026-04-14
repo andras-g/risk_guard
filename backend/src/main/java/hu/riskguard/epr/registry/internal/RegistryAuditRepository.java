@@ -23,9 +23,23 @@ public class RegistryAuditRepository extends BaseRepository {
         super(dsl);
     }
 
+    /**
+     * Insert an audit row with no AI provenance (backward-compatible overload).
+     */
     public void insertAuditRow(UUID productId, UUID tenantId, String fieldChanged,
                                 String oldValue, String newValue,
                                 UUID changedByUserId, AuditSource source) {
+        insertAuditRow(productId, tenantId, fieldChanged, oldValue, newValue, changedByUserId, source, null, null);
+    }
+
+    /**
+     * Insert an audit row with optional AI classification provenance (Story 9.3).
+     * {@code strategy} and {@code modelVersion} are non-null only for AI_SUGGESTED_* sources.
+     */
+    public void insertAuditRow(UUID productId, UUID tenantId, String fieldChanged,
+                                String oldValue, String newValue,
+                                UUID changedByUserId, AuditSource source,
+                                String strategy, String modelVersion) {
         dsl.insertInto(REGISTRY_ENTRY_AUDIT_LOG)
                 .set(REGISTRY_ENTRY_AUDIT_LOG.PRODUCT_ID, productId)
                 .set(REGISTRY_ENTRY_AUDIT_LOG.TENANT_ID, tenantId)
@@ -34,6 +48,8 @@ public class RegistryAuditRepository extends BaseRepository {
                 .set(REGISTRY_ENTRY_AUDIT_LOG.NEW_VALUE, newValue)
                 .set(REGISTRY_ENTRY_AUDIT_LOG.CHANGED_BY_USER_ID, changedByUserId)
                 .set(REGISTRY_ENTRY_AUDIT_LOG.SOURCE, source.name())
+                .set(REGISTRY_ENTRY_AUDIT_LOG.STRATEGY, strategy)
+                .set(REGISTRY_ENTRY_AUDIT_LOG.MODEL_VERSION, modelVersion)
                 .execute();
     }
 

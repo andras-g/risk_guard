@@ -194,7 +194,12 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.ProductPackagingComponents",
                                 "hu.riskguard.jooq.tables.RegistryEntryAuditLog",
                                 // Story 9.2 — bootstrap candidates table
-                                "hu.riskguard.jooq.tables.RegistryBootstrapCandidates"
+                                "hu.riskguard.jooq.tables.RegistryBootstrapCandidates",
+                                // Story 9.3 — AI classifier usage table + KF codes reference
+                                "hu.riskguard.jooq.tables.AiClassifierUsage",
+                                "hu.riskguard.jooq.tables.KfCodes",
+                                // Story 9.3 — cross-tenant admin join (ClassifierUsageRepository.findAllForMonth)
+                                "hu.riskguard.jooq.tables.Tenants"
                         );
                         private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
 

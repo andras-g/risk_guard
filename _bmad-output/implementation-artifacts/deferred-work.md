@@ -229,3 +229,11 @@
 - D4: Keyboard shortcut hint rendered as `<p>` above DataTable rather than inside DataTable header slot — minor UX deviation from AC 7 spec wording.
 - D5: No `from <= to` validation in trigger request; inverted date range forwarded to NAV silently. Simple cross-field constraint, low urgency.
 - D6: `normalize()` private static method duplicated in `RegistryBootstrapService` and `BootstrapRepository` — divergence risk if normalization logic is ever changed.
+
+
+## Deferred from: code review of 9-3-ai-assisted-kf-code-classification (2026-04-14)
+
+- W1: `RegistryAuditEntry` record and `listAuditByProduct()` fetch do not expose `strategy`/`modelVersion` columns — written to DB but never returned in audit log API; not specified in AC 9 for read path; address when audit log UI needs to show AI provenance.
+- W2: `[id].spec.ts` tests 7–9 test mock call behavior rather than actual component rendering (proxy tests); low-value coverage pattern; pre-existing test quality issue in this file.
+- W3: Confidence ordinal comparison in `ClassifierRouter` is fragile if `ClassificationConfidence` enum is ever reordered; existing comment in `ClassificationConfidence.java` warns; not introduced here.
+- W4: `VtszPrefixFallbackClassifier` returns `VTSZ_PREFIX` strategy for no-match case before `ClassifierRouter` overrides to `NONE`; correct end-to-end behavior, minor spec deviation from AC 3 wording.

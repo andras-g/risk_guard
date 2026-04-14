@@ -54,6 +54,21 @@ onMounted(() => {
         </div>
       </NuxtLink>
 
+      <!-- AI Classifier Usage: PLATFORM_ADMIN only -->
+      <NuxtLink v-if="isPlatformAdmin" to="/admin/ai-usage" class="block group" data-testid="admin-card-ai-usage">
+        <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">
+          <div class="flex items-center gap-3 mb-2">
+            <span class="pi pi-chart-bar text-indigo-600 text-xl" />
+            <h2 class="text-lg font-semibold text-slate-800 group-hover:text-indigo-700">
+              {{ t('admin.classifier.title') }}
+            </h2>
+          </div>
+          <p class="text-sm text-slate-500">
+            {{ t('admin.classifier.subtitle') }}
+          </p>
+        </div>
+      </NuxtLink>
+
       <!-- GDPR Audit Search: PLATFORM_ADMIN only -->
       <NuxtLink v-if="isPlatformAdmin" to="/admin/audit-search" class="block group" data-testid="admin-card-audit-search">
         <div class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all">

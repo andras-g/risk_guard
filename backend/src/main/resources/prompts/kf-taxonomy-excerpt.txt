@@ -1,0 +1,37 @@
+KF Taxonomy (80/2023 Korm. rendelet 1.2. melléklet — rövidített kivonata):
+
+Műanyagok (11xxxxxx):
+11010101 - PET – Polietilén-tereftalát
+11010201 - HDPE – Nagy sűrűségű polietilén
+11010301 - LDPE – Alacsony sűrűségű polietilén
+11010401 - PP – Polipropilén
+11010501 - PS – Polisztirol
+11010601 - EPS – Expandált polisztirol (hab)
+11010701 - PVC – Polivinil-klorid
+11010801 - PA – Poliamid (Nylon)
+11010901 - PC – Polikarbonát
+11011001 - ABS – Akrilnitril-butadién-sztirol
+
+Üveg (21xxxxxx):
+21010101 - Üveg – Átlátszó (szín nélküli)
+21010201 - Üveg – Színes (barna, zöld)
+
+Fémek (31xxxxxx):
+31010101 - Acél – Általános / bádogdoboz
+31010201 - Alumínium – Általános / doboz
+31010301 - Ón
+
+Papír és karton (41xxxxxx):
+41010101 - Papír – Általános (nem kezelt)
+41010201 - Karton / hullámpapír
+41010301 - Finom (kezelt) papír / laminált
+
+Fa (51xxxxxx):
+51010101 - Fa – Általános (raklap, fadoboz)
+51010201 - Furnér / rétegelt lemez
+
+Természetes textilek / rostok (61xxxxxx):
+61010101 - Természetes textil / rost (juta, pamut zsák)
+
+Kompozit (71xxxxxx):
+71010101 - Többrétegű kompozit csomagolás (pl. Tetra Pak)

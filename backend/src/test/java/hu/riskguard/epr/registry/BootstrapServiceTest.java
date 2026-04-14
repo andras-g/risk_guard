@@ -304,7 +304,7 @@ class BootstrapServiceTest {
     private ApproveCommand buildApproveCommand() {
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET", "11010101", new BigDecimal("0.1"), 0,
-                null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
         return new ApproveCommand("ART-001", "Termék A", "12345678", "DARAB",
                 ProductStatus.ACTIVE, List.of(comp));
     }

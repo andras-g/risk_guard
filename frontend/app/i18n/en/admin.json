@@ -77,6 +77,21 @@
       "subtitle": "Live health status of all registered data source adapters",
       "title": "Data Sources"
     },
+    "classifier": {
+      "title": "AI Classifier Usage",
+      "subtitle": "Monthly AI KF-code classification call counts and estimated costs per tenant.",
+      "period": "Current period: {period}",
+      "refresh": "Refresh",
+      "empty": "No usage recorded for this period.",
+      "columns": {
+        "tenantName": "Tenant",
+        "callCount": "Calls",
+        "estimatedCost": "Est. Cost (Ft)"
+      },
+      "errors": {
+        "loadFailed": "Failed to load classifier usage data."
+      }
+    },
     "navCredentials": {
       "title": "NAV Online Számla Credentials",
       "description": "Enter your NAV technical user credentials. They are verified and encrypted before storage.",

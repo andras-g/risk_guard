@@ -135,6 +135,16 @@
       "ARCHIVED": "Archived",
       "DRAFT": "Draft"
     },
+    "classify": {
+      "accept": "Accept",
+      "confidence": {
+        "HIGH": "High confidence",
+        "MEDIUM": "Medium confidence"
+      },
+      "error": "Classification failed — please try again",
+      "noSuggestion": "No suggestion available — enter KF code manually",
+      "suggest": "Suggest KF code"
+    },
     "title": "Product-Packaging Registry"
   }
 }

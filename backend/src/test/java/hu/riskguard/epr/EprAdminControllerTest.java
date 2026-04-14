@@ -7,6 +7,9 @@ import hu.riskguard.epr.api.dto.EprConfigResponse;
 import hu.riskguard.epr.api.dto.EprConfigValidateRequest;
 import hu.riskguard.epr.api.dto.EprConfigValidateResponse;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.registry.api.dto.ClassifierUsageSummaryResponse;
+import hu.riskguard.epr.registry.domain.ClassifierUsageSummary;
+import hu.riskguard.epr.registry.domain.ClassifierUsageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +44,9 @@ class EprAdminControllerTest {
     @Mock
     private EprService eprService;
 
+    @Mock
+    private ClassifierUsageService classifierUsageService;
+
     private EprAdminController controller;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
@@ -48,7 +54,7 @@ class EprAdminControllerTest {
 
     @BeforeEach
     void setUp() {
-        controller = new EprAdminController(eprService);
+        controller = new EprAdminController(eprService, classifierUsageService);
     }
 
     // ─── GET /config ──────────────────────────────────────────────────────────
@@ -219,6 +225,36 @@ class EprAdminControllerTest {
                         .isEqualTo(HttpStatus.FORBIDDEN));
 
         verify(eprService, never()).publishNewConfig(anyString(), any(UUID.class));
+    }
+
+    // ─── GET /classifier/usage ────────────────────────────────────────────────
+
+    @Test
+    void platformAdmin_getClassifierUsage_returns200WithSummaryList() {
+        Jwt jwt = buildPlatformAdminJwt();
+        List<ClassifierUsageSummary> summaries = List.of(
+                new ClassifierUsageSummary(TENANT_ID, "Tenant A", 42, 42 * 0.15),
+                new ClassifierUsageSummary(UUID.randomUUID(), "Tenant B", 7, 7 * 0.15)
+        );
+        when(classifierUsageService.getAllTenantsUsage()).thenReturn(summaries);
+
+        List<ClassifierUsageSummaryResponse> result = controller.getClassifierUsage(jwt);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).callCount()).isEqualTo(42);
+        assertThat(result.get(1).callCount()).isEqualTo(7);
+    }
+
+    @Test
+    void smeAdmin_getClassifierUsage_returns403() {
+        Jwt jwt = buildSmeAdminJwt();
+
+        assertThatThrownBy(() -> controller.getClassifierUsage(jwt))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
+                        .isEqualTo(HttpStatus.FORBIDDEN));
+
+        verify(classifierUsageService, never()).getAllTenantsUsage();
     }
 
     // ─── JWT builder helpers ──────────────────────────────────────────────────

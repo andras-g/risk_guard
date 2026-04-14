@@ -52,6 +52,15 @@ export GOOGLE_CLIENT_SECRET="dummy-e2e"
 export MICROSOFT_CLIENT_ID="dummy-e2e"
 export MICROSOFT_CLIENT_SECRET="dummy-e2e"
 
+# ── 0b. Google Application Default Credentials (Vertex AI Gemini) ───────────
+echo "==> Checking Google Application Default Credentials (ADC)..."
+if gcloud auth application-default print-access-token --quiet >/dev/null 2>&1; then
+  echo "    ✓ ADC token available — Vertex AI Gemini classifier will be active"
+else
+  echo "    ⚠  No ADC token — KF-code AI suggestions will fall back to VTSZ-prefix (non-blocking)"
+fi
+export GCP_PROJECT_ID="$GCP_PROJECT"
+
 # ── 1. PostgreSQL ─────────────────────────────────────────────────────────────
 echo "==> Starting PostgreSQL..."
 docker compose -f "$ROOT_DIR/docker-compose.yml" up -d --wait

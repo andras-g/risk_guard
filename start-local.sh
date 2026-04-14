@@ -61,6 +61,18 @@ load_secret "MICROSOFT_CLIENT_ID_STAGING"   "MICROSOFT_CLIENT_ID"
 load_secret "MICROSOFT_CLIENT_SECRET_STAGING" "MICROSOFT_CLIENT_SECRET"
 load_secret "JWT_SECRET_STAGING"            "JWT_SECRET"
 
+# ── 0b. Google Application Default Credentials (Vertex AI Gemini) ───────────
+echo "==> Checking Google Application Default Credentials (ADC)..."
+if gcloud auth application-default print-access-token --quiet >/dev/null 2>&1; then
+  echo "    ✓ ADC token available — Vertex AI Gemini classifier will be active"
+else
+  echo "    ⚠  No ADC token found. KF-code AI classification will degrade to VTSZ-prefix"
+  echo "    ⚠  fallback (circuit breaker trips after 5 failures, then short-circuits 60s)."
+  echo "    ⚠  To enable Gemini: run  gcloud auth application-default login"
+  echo "    ⚠  Then ensure your account has  roles/aiplatform.user  on project $GCP_PROJECT"
+fi
+export GCP_PROJECT_ID="$GCP_PROJECT"
+
 # ── 1. PostgreSQL ─────────────────────────────────────────────────────────────
 echo "==> Starting PostgreSQL..."
 docker compose -f "$ROOT_DIR/docker-compose.yml" up -d --wait

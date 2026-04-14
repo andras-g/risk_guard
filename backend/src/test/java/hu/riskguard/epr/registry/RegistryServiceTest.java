@@ -58,7 +58,7 @@ class RegistryServiceTest {
         UUID newCompId = UUID.randomUUID();
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET bottle", "11010101", new BigDecimal("0.45"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "Activia 125g", "3923", "pcs",
                 ProductStatus.ACTIVE, List.of(comp));
@@ -92,7 +92,7 @@ class RegistryServiceTest {
 
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", "11010101", new BigDecimal("0.50"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -125,7 +125,7 @@ class RegistryServiceTest {
                         ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 COMPONENT_ID, "PET", "11010101", new BigDecimal("0.70"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, comp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -153,7 +153,7 @@ class RegistryServiceTest {
                 new ProductUpsertCommand("ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.50"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -164,7 +164,7 @@ class RegistryServiceTest {
         // Only componentOrder changed: 0 → 2
         ComponentUpsertCommand reordered = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.50"),
-                2, null, null, null, null, null);
+                2, null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of(reordered));
 
@@ -246,7 +246,7 @@ class RegistryServiceTest {
         UUID newCompId = UUID.randomUUID();
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "Recycled PET", "11020101", new BigDecimal("0.30"),
-                0, RecyclabilityGrade.A, new BigDecimal("50.00"), true, null, "DECL-001");
+                0, RecyclabilityGrade.A, new BigDecimal("50.00"), true, null, "DECL-001", null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 null, "Green Bottle", "3923", "pcs",
                 ProductStatus.DRAFT, List.of(comp));
@@ -282,7 +282,7 @@ class RegistryServiceTest {
                 new ProductUpsertCommand("ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.70"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -293,7 +293,7 @@ class RegistryServiceTest {
         // 0.70 vs 0.75 — should detect change
         ComponentUpsertCommand updatedComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.75"),
-                0, null, null, null, null, null);
+                0, null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of(updatedComp));
 

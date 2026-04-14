@@ -135,6 +135,16 @@
       "ARCHIVED": "Archivált",
       "DRAFT": "Vázlat"
     },
+    "classify": {
+      "accept": "Elfogadás",
+      "confidence": {
+        "HIGH": "Magas megbízhatóság",
+        "MEDIUM": "Közepes megbízhatóság"
+      },
+      "error": "Osztályozás sikertelen — próbálja újra",
+      "noSuggestion": "Nincs javaslat — kérjük adja meg a KF-kódot manuálisan",
+      "suggest": "KF-kód javaslat"
+    },
     "title": "Termék–Csomagolás Nyilvántartás"
   }
 }

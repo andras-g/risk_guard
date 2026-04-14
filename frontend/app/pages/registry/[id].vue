@@ -5,6 +5,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import Popover from 'primevue/popover'
 import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
@@ -12,6 +13,8 @@ import AccordionContent from 'primevue/accordioncontent'
 import Tag from 'primevue/tag'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useRegistry } from '~/composables/api/useRegistry'
+import { useClassifier } from '~/composables/api/useClassifier'
+import type { ClassifyResponse } from '~/composables/api/useClassifier'
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
 import KfCodeInput from '~/components/registry/KfCodeInput.vue'
@@ -28,6 +31,7 @@ const toast = useToast()
 const { mapErrorType } = useApiError()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const { getProduct, createProduct, updateProduct, getAuditLog } = useRegistry()
+const { classify } = useClassifier()
 const registryStore = useRegistryStore()
 
 const id = computed(() => route.params.id as string)
@@ -73,6 +77,58 @@ watch(name, () => {
   if (nameTouched.value) nameError.value = validateName()
 })
 
+// ─── Classifier (Story 9.3) ────────────────────────────────────────────────────
+const classifyPopoverRef = ref<Record<string, InstanceType<typeof Popover> | null>>({})
+const classifyLoading = ref<Record<string, boolean>>({})
+const classifySuggestion = ref<Record<string, ClassifyResponse | null>>({})
+
+async function suggestKfCode(event: Event, comp: EditableComponent) {
+  if (!name.value?.trim()) return
+  classifyLoading.value[comp._tempId] = true
+  classifySuggestion.value[comp._tempId] = null
+  const popover = classifyPopoverRef.value[comp._tempId]
+  try {
+    const result = await classify({ productName: name.value, vtsz: vtsz.value || null })
+    // Show only HIGH or MEDIUM suggestions (not LOW/empty)
+    const topSuggestion = result.suggestions[0]
+    if (topSuggestion && result.confidence !== 'LOW') {
+      classifySuggestion.value[comp._tempId] = result
+      popover?.show(event)
+    }
+    else {
+      toast.add({
+        severity: 'info',
+        summary: t('registry.classify.noSuggestion'),
+        life: 3000,
+      })
+    }
+  }
+  catch {
+    toast.add({
+      severity: 'warn',
+      summary: t('registry.classify.error'),
+      life: 3000,
+    })
+  }
+  finally {
+    classifyLoading.value[comp._tempId] = false
+  }
+}
+
+function acceptSuggestion(comp: EditableComponent, result: ClassifyResponse) {
+  const top = result.suggestions[0]
+  if (!top) return
+  comp.kfCode = top.kfCode
+  comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
+  comp.classificationStrategy = result.strategy
+  comp.classificationModelVersion = result.modelVersion ?? null
+  classifyPopoverRef.value[comp._tempId]?.hide()
+}
+
+function confidenceSeverity(confidence: string): 'success' | 'warn' {
+  return confidence === 'HIGH' ? 'success' : 'warn'
+}
+
 // ─── Components ────────────────────────────────────────────────────────────────
 interface EditableComponent {
   id: string | null
@@ -84,6 +140,10 @@ interface EditableComponent {
   recycledContentPct: number | null
   reusable: boolean | null
   supplierDeclarationRef: string | null
+  // Story 9.3: AI classification provenance
+  classificationSource: string | null
+  classificationStrategy: string | null
+  classificationModelVersion: string | null
   _tempId: string
 }
 
@@ -100,6 +160,9 @@ function newComponent(): EditableComponent {
     recycledContentPct: null,
     reusable: null,
     supplierDeclarationRef: null,
+    classificationSource: null,
+    classificationStrategy: null,
+    classificationModelVersion: null,
     _tempId: crypto.randomUUID(),
   }
 }
@@ -182,6 +245,9 @@ async function loadProduct() {
       recycledContentPct: c.recycledContentPct,
       reusable: c.reusable,
       supplierDeclarationRef: c.supplierDeclarationRef,
+      classificationSource: null,
+      classificationStrategy: null,
+      classificationModelVersion: null,
       _tempId: c.id,
     }))
   }
@@ -225,6 +291,9 @@ async function save() {
         recycledContentPct: c.recycledContentPct,
         reusable: c.reusable,
         supplierDeclarationRef: c.supplierDeclarationRef,
+        classificationSource: c.classificationSource,
+        classificationStrategy: c.classificationStrategy,
+        classificationModelVersion: c.classificationModelVersion,
       })),
     }
 
@@ -402,12 +471,51 @@ onMounted(async () => {
           </template>
         </Column>
 
-        <Column :header="t('registry.form.kfCode')" style="width: 150px">
+        <Column :header="t('registry.form.kfCode')" style="width: 200px">
           <template #body="{ data, index }">
-            <KfCodeInput
-              :id="`kf-${index}`"
-              v-model="data.kfCode"
-            />
+            <div class="flex items-center gap-1">
+              <KfCodeInput
+                :id="`kf-${index}`"
+                v-model="data.kfCode"
+                @update:model-value="() => {
+                  if (data.classificationSource === 'AI_SUGGESTED_CONFIRMED') {
+                    data.classificationSource = 'AI_SUGGESTED_EDITED'
+                  }
+                }"
+              />
+              <Button
+                v-if="name"
+                icon="pi pi-sparkles"
+                :aria-label="t('registry.classify.suggest')"
+                size="small"
+                text
+                :loading="classifyLoading[data._tempId]"
+                :data-testid="`suggest-kf-${index}`"
+                @click="suggestKfCode($event, data)"
+              />
+              <Popover :ref="(el) => { classifyPopoverRef[data._tempId] = el as InstanceType<typeof Popover> | null }">
+                <div v-if="classifySuggestion[data._tempId]" class="flex flex-col gap-2 p-1 min-w-40">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono font-semibold text-lg">{{ classifySuggestion[data._tempId]!.suggestions[0].kfCode }}</span>
+                    <Tag
+                      :value="t(`registry.classify.confidence.${classifySuggestion[data._tempId]!.suggestions[0].score >= 0.8 ? 'HIGH' : 'MEDIUM'}`)"
+                      :severity="classifySuggestion[data._tempId]!.suggestions[0].score >= 0.8 ? 'success' : 'warn'"
+                      size="small"
+                    />
+                  </div>
+                  <div v-if="classifySuggestion[data._tempId]!.suggestions[0].suggestedComponentDescriptions.length" class="text-xs text-slate-500">
+                    {{ classifySuggestion[data._tempId]!.suggestions[0].suggestedComponentDescriptions.join(', ') }}
+                  </div>
+                  <Button
+                    :label="t('registry.classify.accept')"
+                    size="small"
+                    icon="pi pi-check"
+                    :data-testid="`accept-kf-${index}`"
+                    @click="acceptSuggestion(data, classifySuggestion[data._tempId]!)"
+                  />
+                </div>
+              </Popover>
+            </div>
           </template>
         </Column>
 
