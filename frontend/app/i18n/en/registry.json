@@ -1,0 +1,92 @@
+{
+  "registry": {
+    "actions": {
+      "archive": "Archive",
+      "archived": "Product archived",
+      "back": "Back to Registry",
+      "cancel": "Cancel",
+      "create": "New Product",
+      "edit": "Edit"
+    },
+    "audit": {
+      "diff": "Change",
+      "empty": "No audit entries yet",
+      "field": "Field",
+      "source": {
+        "AI_SUGGESTED_CONFIRMED": "AI Confirmed",
+        "AI_SUGGESTED_EDITED": "AI Edited",
+        "MANUAL": "Manual",
+        "NAV_BOOTSTRAP": "NAV Bootstrap",
+        "VTSZ_FALLBACK": "VTSZ Fallback"
+      },
+      "timestamp": "Timestamp",
+      "title": "Audit Log"
+    },
+    "empty": {
+      "cta": "Create your first product",
+      "description": "Add products to track packaging components and KF codes for EPR filing.",
+      "title": "No products yet"
+    },
+    "form": {
+      "addComponent": "Add component",
+      "articleNumber": "Article number",
+      "componentOrder": "Order",
+      "componentRemoved": "Component removed",
+      "components": "Packaging components",
+      "kfCode": "KF code",
+      "materialDescription": "Material description",
+      "moveDown": "Move down",
+      "moveUp": "Move up",
+      "name": "Product name",
+      "noComponents": "No components added yet",
+      "none": "None",
+      "ppwr": "PPWR",
+      "ppwrExpand": "PPWR readiness (optional)",
+      "primaryUnit": "Primary unit",
+      "recyclabilityGrade": "Recyclability grade",
+      "recycledContentPct": "Recycled content %",
+      "removeComponent": "Remove component",
+      "reusable": "Reusable",
+      "reusableNo": "No",
+      "reusableUnknown": "Not specified",
+      "reusableYes": "Yes",
+      "save": "Save",
+      "saved": "Product saved",
+      "status": "Status",
+      "supplierDeclarationRef": "Supplier declaration ref.",
+      "titleCreate": "New product",
+      "titleEdit": "Edit product",
+      "validation": {
+        "kfCodeInvalid": "KF code must be exactly 8 digits",
+        "kfCodeRequired": "KF code is required",
+        "nameRequired": "Product name is required",
+        "weightRequired": "Weight per unit is required"
+      },
+      "vtsz": "VTSZ",
+      "weightPerUnitKg": "Weight per unit (kg)"
+    },
+    "list": {
+      "columns": {
+        "actions": "Actions",
+        "articleNumber": "Article No.",
+        "componentCount": "Components",
+        "name": "Name",
+        "status": "Status",
+        "updatedAt": "Updated",
+        "vtsz": "VTSZ"
+      },
+      "kfCodeFilter": "KF code",
+      "kfCodePlaceholder": "e.g. 11010101",
+      "search": "Search by name",
+      "searchPlaceholder": "Search products...",
+      "statusAll": "All statuses",
+      "statusFilter": "Status"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "ARCHIVED": "Archived",
+      "DRAFT": "Draft"
+    },
+    "title": "Product-Packaging Registry"
+  }
+}

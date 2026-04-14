@@ -1,0 +1,92 @@
+{
+  "registry": {
+    "actions": {
+      "archive": "Archiválás",
+      "archived": "Termék archiválva",
+      "back": "Vissza a nyilvántartáshoz",
+      "cancel": "Mégse",
+      "create": "Új termék",
+      "edit": "Szerkesztés"
+    },
+    "audit": {
+      "diff": "Változás",
+      "empty": "Még nincsenek változásnaplók",
+      "field": "Mező",
+      "source": {
+        "AI_SUGGESTED_CONFIRMED": "AI javaslat elfogadva",
+        "AI_SUGGESTED_EDITED": "AI javaslat szerkesztve",
+        "MANUAL": "Manuális",
+        "NAV_BOOTSTRAP": "NAV importálás",
+        "VTSZ_FALLBACK": "VTSZ alapú egyezés"
+      },
+      "timestamp": "Időpont",
+      "title": "Változásnapló"
+    },
+    "empty": {
+      "cta": "Első termék létrehozása",
+      "description": "Adja hozzá a termékeket a csomagolási elemek és KF-kódok nyomon követéséhez.",
+      "title": "Még nincs termék"
+    },
+    "form": {
+      "addComponent": "Elem hozzáadása",
+      "articleNumber": "Cikkszám",
+      "componentOrder": "Sorrend",
+      "componentRemoved": "Csomagolási elem eltávolítva",
+      "components": "Csomagolási elemek",
+      "kfCode": "KF-kód",
+      "materialDescription": "Anyag megnevezése",
+      "moveDown": "Le",
+      "moveUp": "Fel",
+      "name": "Termék neve",
+      "noComponents": "Még nincs csomagolási elem",
+      "none": "Nincs",
+      "ppwr": "PPWR",
+      "ppwrExpand": "PPWR-megfelelőség (opcionális)",
+      "primaryUnit": "Alapegység",
+      "recyclabilityGrade": "Újrahasznosíthatósági minősítés",
+      "recycledContentPct": "Újrafelhasznált tartalom %",
+      "removeComponent": "Elem törlése",
+      "reusable": "Újrafelhasználható",
+      "reusableNo": "Nem",
+      "reusableUnknown": "Nincs megadva",
+      "reusableYes": "Igen",
+      "save": "Mentés",
+      "saved": "Termék mentve",
+      "status": "Státusz",
+      "supplierDeclarationRef": "Szállítói nyilatkozat hivatkozása",
+      "titleCreate": "Új termék",
+      "titleEdit": "Termék szerkesztése",
+      "validation": {
+        "kfCodeInvalid": "A KF-kódnak pontosan 8 számjegyből kell állnia",
+        "kfCodeRequired": "A KF-kód megadása kötelező",
+        "nameRequired": "A termék neve kötelező",
+        "weightRequired": "Az egységenkénti tömeg megadása kötelező"
+      },
+      "vtsz": "VTSZ",
+      "weightPerUnitKg": "Egységenkénti tömeg (kg)"
+    },
+    "list": {
+      "columns": {
+        "actions": "Műveletek",
+        "articleNumber": "Cikkszám",
+        "componentCount": "Elemek száma",
+        "name": "Név",
+        "status": "Státusz",
+        "updatedAt": "Módosítva",
+        "vtsz": "VTSZ"
+      },
+      "kfCodeFilter": "KF-kód",
+      "kfCodePlaceholder": "pl. 11010101",
+      "search": "Keresés név szerint",
+      "searchPlaceholder": "Termékek keresése...",
+      "statusAll": "Minden státusz",
+      "statusFilter": "Státusz"
+    },
+    "status": {
+      "ACTIVE": "Aktív",
+      "ARCHIVED": "Archivált",
+      "DRAFT": "Vázlat"
+    },
+    "title": "Termék–Csomagolás Nyilvántartás"
+  }
+}

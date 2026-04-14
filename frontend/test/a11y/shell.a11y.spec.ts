@@ -32,7 +32,7 @@ vi.mock('~/stores/layout', () => ({
   useLayoutStore: () => ({ sidebarExpanded: true, mobileDrawerOpen: false, toggleSidebar: vi.fn() })
 }))
 vi.mock('~/stores/auth', () => ({
-  useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false })
+  useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false, tier: 'PRO_EPR' })
 }))
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({ count: 0, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })

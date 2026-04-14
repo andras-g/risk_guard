@@ -115,6 +115,8 @@
 import { storeToRefs } from 'pinia'
 import Badge from 'primevue/badge'
 import Divider from 'primevue/divider'
+import { TIER_ORDER } from '~/composables/auth/useTierGate'
+import type { Tier } from '~/composables/auth/useTierGate'
 import { useLayoutStore } from '~/stores/layout'
 import { useAuthStore } from '~/stores/auth'
 import { useWatchlistStore } from '~/stores/watchlist'
@@ -126,10 +128,17 @@ const authStore = useAuthStore()
 const watchlistStore = useWatchlistStore()
 
 const { sidebarExpanded } = storeToRefs(layoutStore)
-const { role, isAccountant } = storeToRefs(authStore)
+const { role, isAccountant, tier } = storeToRefs(authStore)
 
 const isAdmin = computed(() => ['SME_ADMIN', 'ACCOUNTANT', 'PLATFORM_ADMIN'].includes(role.value ?? ''))
 const watchlistCount = computed(() => watchlistStore.count)
+
+/** True when the active tenant has PRO_EPR tier or higher. */
+const hasProEpr = computed(() => {
+  const t = tier.value as Tier | null
+  if (!t) return false
+  return TIER_ORDER[t] >= TIER_ORDER['PRO_EPR']
+})
 
 const mainNavItems = computed(() => {
   const items = [
@@ -140,6 +149,8 @@ const mainNavItems = computed(() => {
     { key: 'screening', to: '/screening', icon: 'pi-search' },
     { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
     { key: 'epr', to: '/epr', icon: 'pi-file-export' },
+    // Registry requires PRO_EPR tier — hidden for ALAP/PRO users (AC 12)
+    ...(hasProEpr.value ? [{ key: 'registry', to: '/registry', icon: 'pi-box' }] : []),
   ]
   return items
 })

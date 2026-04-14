@@ -38,6 +38,8 @@ public class EpicNineInvariantsTest {
             noClasses()
                     .that().resideOutsideOfPackage("..epr.registry..")
                     .and().resideOutsideOfPackage("..architecture..")
+                    .and().resideOutsideOfPackage("..jooq.tables..")   // jOOQ-generated table + record classes reference each other by design
+                    .and().resideOutsideOfPackage("hu.riskguard.jooq") // jOOQ-generated infra (Keys, Tables, Indexes, Public) lives in the root jooq package
                     .and().haveSimpleNameNotEndingWith("Test")
                     .and().haveSimpleNameNotEndingWith("Tests")
                     .and().haveSimpleNameNotContaining("BeanDefinitions")
@@ -45,8 +47,7 @@ public class EpicNineInvariantsTest {
                     .should().dependOnClassesThat().haveFullyQualifiedName(
                             "hu.riskguard.jooq.tables.ProductPackagingComponents")
                     .orShould().dependOnClassesThat().haveFullyQualifiedName(
-                            "hu.riskguard.jooq.tables.records.ProductPackagingComponentsRecord")
-                    .allowEmptyShould(true);
+                            "hu.riskguard.jooq.tables.records.ProductPackagingComponentsRecord");
 
     /**
      * CP-5 §5 invariant 3 — pluggable EPR report target.

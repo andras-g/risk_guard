@@ -188,7 +188,11 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.EprConfigs",
                                 "hu.riskguard.jooq.tables.EprCalculations",
                                 "hu.riskguard.jooq.tables.EprExports",
-                                "hu.riskguard.jooq.tables.EprMaterialTemplates"
+                                "hu.riskguard.jooq.tables.EprMaterialTemplates",
+                                // Story 9.1 — registry sub-module tables (no epr_ prefix per CP-5 §4.2)
+                                "hu.riskguard.jooq.tables.Products",
+                                "hu.riskguard.jooq.tables.ProductPackagingComponents",
+                                "hu.riskguard.jooq.tables.RegistryEntryAuditLog"
                         );
                         private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
 

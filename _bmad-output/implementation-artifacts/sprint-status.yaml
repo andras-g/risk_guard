@@ -49,7 +49,7 @@
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
 generated: Mon Mar 23 2026
-last_updated: Tue Apr 14 2026
+last_updated: Mon Apr 14 2026 — Story 9.1 Groups B-E code review complete (2 parallel + auditor); 21 patches auto-fixed; 13 deferred; all tests green; status → done.
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -130,13 +130,20 @@ development_status:
   7-5-dashboard-empty-onboarding-state: done  # Story file moved from 6-5 on 2026-03-31; dev completed 2026-04-01; code-review R1 2026-04-01 — 5 patch items resolved; code-review R2 2026-04-01 — 4 patch items resolved (P1: querySelector('input') focus fix, P2: alert-feed loading assertion, P3: dialog-closes assertion, P4: beforeEach isolation); 5 deferred; CI lint fix (MonacoEditor a11y, [clientId].vue Select a11y); 673 frontend + 5 e2e green; status → done
   epic-7-retrospective: optional
 
-  epic-8: in-progress  # STARTED (2026-04-02) — Real Data Integration + UX polish bugs. NAV Online Számla client; screening verdict PDF export.
+  epic-8: done  # CLOSED (2026-04-14) — All 5 delivered stories done (8.1–8.5); 8.6 cancelled per CP-5 (absorbed into Story 9.4). Lessons captured in CP-5; retrospective optional.
   8-1-nav-online-szamla-client-implementation: done  # Story file created 2026-04-02; dev completed 2026-04-02; code-review R1 2026-04-03 — 11 findings resolved; code-review R2 2026-04-03 — 2 patch items (P11: baseURL fix, P12: dead code removal), 6 deferred, 4 dismissed; 5 test fixes (stale assertions); 684 frontend + 5 e2e all green; status → done
   8-2-screening-verdict-pdf-export: done  # Story file created 2026-04-02; client-side jsPDF, single-verdict audit-proof PDF, mobile share/desktop download, sha256Hash included. No backend changes needed. Dev completed 2026-04-03; 693 frontend tests green. code-review R1 2026-04-03 — 5 patch items resolved (P1: error toast, P2: page-break logic, P3: navigator.share guard, P4: tooltip text, P5: i18n block order); code-review R2 2026-04-03 — 4 patch items resolved (P1: i18n ordering, P2: a11y mock ref, P3: explicit import ReferenceError fix, P4: vi.mock migration); 695 frontend + 5 e2e all green; status → done.
   8-3-invoice-driven-epr-auto-fill: done  # Story file created 2026-04-02; dev completed 2026-04-03; code-review R1 2026-04-03 — 4 decisions resolved (D1: InvoiceQueryResult wrapper, D2: tenant taxNumber ownership 403, D3: Math.ceil accepted, D4: group by vtszCode+unit); 7 patches resolved; 10 deferred; code-review R2 2026-04-03 — 3 patches resolved (P1: duplicate import, P2: non-unique DataTable key, P3: non-unique Tag v-for key); 710 frontend + BUILD SUCCESSFUL backend + 5 e2e green; status → done.
   8-4-accountant-nav-credential-access-and-demo-mode: done  # Story file created 2026-04-08; dev completed 2026-04-08; ACCOUNTANT role on credential+health endpoints, demo mode skip verification, demo credential status from DB, demo info message; 714 frontend + BUILD SUCCESSFUL backend; code-review R1 2026-04-08 — 3 patches resolved 2026-04-09 (D1: canQuarantine prop hides quarantine for ACCOUNTANT, P1: AC3 demo credential status now VALID from DB, P2: test corrected to assert VALID); code-review R2 2026-04-09 — 0 patches (1 LOW apply: chunked arrayBufferToBase64 in usePdfFont.ts), 5 deferred; 715 frontend + 26 datasource backend + 5 e2e all green; status → done.
   8-5-platform-admin-role-and-admin-re-gating: done  # Story file created 2026-04-08; dev completed 2026-04-09; PLATFORM_ADMIN role, re-gate EPR config/GDPR audit/quarantine, fix mobile drawer admin bug. code-review R1 2026-04-09 — 3 patches resolved (P1: requireAnyAdminRole error msg, P2: epr-config+audit-search redirect to /dashboard, P3: AuditAdminControllerTest nonAdmin uses GUEST); 6 deferred; 8 dismissed. code-review R2 2026-04-10 — 1 patch (R2-P1: added GUEST 403 tests to EprAdminControllerTest); 0 deferred; clean; 760 backend + 718 frontend + 5 e2e all green; status → done.
   8-6-invoice-to-material-traceability: cancelled  # CANCELLED (2026-04-14) per CP-5. Story's per-invoice drill-down is absorbed into Story 9.4's registry-driven autofill provenance scope, against the re-shaped aggregation path (8.3 logic demoted to VTSZ-prefix fallback inside 9.3). Ship traceability once, on the correct code path.
+  epic-8-retrospective: optional
+
+  epic-9: in-progress  # STARTED (2026-04-14) — CP-5 Product-Packaging Registry & Automated EPR Filing. Foundation story 9.1 drafted.
+  9-1-product-packaging-registry-foundation: done  # Story file created 2026-04-14; dev completed 2026-04-14; Group A code review: 7 patches resolved; Groups B-E code review (Acceptance Auditor + Blind Hunter + Edge Case Hunter): 21 patches auto-fixed (kfCode tenant leak, page/size clamps, affected-row checks, insertComponent tenant re-verify, substancesOfConcern & component_order audit, @NotNull components, LIKE wildcard escape, @Transactional readOnly, merged removal loops, archive null-guard, KfCodeInput required, ToggleSwitch → tri-state, no weight coercion); 13 deferred. Scope: DB migration, hu.riskguard.epr.registry sub-module, REST /api/v1/registry CRUD, list + editor UI, PPWR-ready nullable fields, MANUAL-source audit log. Binds EpicNineInvariantsTest rules 1 + 4. All tests green: 10 RegistryServiceTest, 8 RegistryControllerTest, 5 RegistryRepositoryIntegrationTest, ArchUnit PASS, 739 frontend tests PASS, 5 Playwright e2e PASS.
+  9-2-nav-invoice-driven-registry-bootstrap: backlog
+  9-3-ai-assisted-kf-code-classification: backlog
+  9-4-registry-driven-epr-autofill-and-okirkapu-export: backlog
 
 # CANCELLED STORIES (2026-03-12):
 # ================================

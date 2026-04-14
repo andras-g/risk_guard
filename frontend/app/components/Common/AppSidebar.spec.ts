@@ -36,18 +36,19 @@ vi.mock('~/stores/layout', () => ({
   useLayoutStore: () => ({ sidebarExpanded: true, mobileDrawerOpen: false, toggleSidebar: vi.fn() })
 }))
 vi.mock('~/stores/auth', () => ({
-  useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false })
+  useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false, tier: 'PRO_EPR' })
 }))
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({ count: 3, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })
 }))
 
-// Navigation items — same structure as component
+// Navigation items — same structure as component (Story 9.1: registry added)
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
   { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
-  { key: 'epr', to: '/epr', icon: 'pi-file-export' }
+  { key: 'epr', to: '/epr', icon: 'pi-file-export' },
+  { key: 'registry', to: '/registry', icon: 'pi-box' },
 ]
 
 function isActive(routePath: string, itemPath: string): boolean {
@@ -55,13 +56,20 @@ function isActive(routePath: string, itemPath: string): boolean {
 }
 
 describe('AppSidebar — navigation items', () => {
-  it('has exactly 4 main navigation items', () => {
-    expect(mainNavItems).toHaveLength(4)
+  it('has exactly 5 main navigation items (including registry)', () => {
+    expect(mainNavItems).toHaveLength(5)
   })
 
-  it('includes Dashboard, Screening, Watchlist, and EPR items', () => {
+  it('includes Dashboard, Screening, Watchlist, EPR, and Registry items', () => {
     const keys = mainNavItems.map(i => i.key)
-    expect(keys).toEqual(['dashboard', 'screening', 'watchlist', 'epr'])
+    expect(keys).toEqual(['dashboard', 'screening', 'watchlist', 'epr', 'registry'])
+  })
+
+  it('includes registry entry pointing to /registry with pi-box icon', () => {
+    const registry = mainNavItems.find(i => i.key === 'registry')
+    expect(registry).toBeDefined()
+    expect(registry?.to).toBe('/registry')
+    expect(registry?.icon).toBe('pi-box')
   })
 
   it('each nav item has an i18n-compatible key', () => {
@@ -132,6 +140,21 @@ describe('AppSidebar — admin section role gating', () => {
 
   it('admin section is hidden when role is null', () => {
     expect(isAdmin(null)).toBe(false)
+  })
+})
+
+describe('AppSidebar — PRO_EPR tier gating for registry', () => {
+  it('registry entry is shown when tier is PRO_EPR', () => {
+    // TIER_ORDER: ALAP=0, PRO=1, PRO_EPR=2
+    const TIER_ORDER: Record<string, number> = { ALAP: 0, PRO: 1, PRO_EPR: 2 }
+    function hasProEpr(tier: string | null): boolean {
+      if (!tier) return false
+      return (TIER_ORDER[tier] ?? -1) >= TIER_ORDER['PRO_EPR']
+    }
+    expect(hasProEpr('PRO_EPR')).toBe(true)
+    expect(hasProEpr('PRO')).toBe(false)
+    expect(hasProEpr('ALAP')).toBe(false)
+    expect(hasProEpr(null)).toBe(false)
   })
 })
 
@@ -215,11 +238,12 @@ describe('AppSidebar — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="sidebar-logo"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="sidebar-nav"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="sidebar-toggle"]').exists()).toBe(true)
-    // 4 main nav items should render
+    // Main nav items should render (PRO_EPR tier mock includes registry)
     expect(wrapper.find('[data-testid="nav-item-dashboard"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-item-screening"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-item-watchlist"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="nav-item-epr"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="nav-item-registry"]').exists()).toBe(true)
     // Admin section SHOULD render for SME_ADMIN role
     expect(wrapper.find('[data-testid="admin-nav-section"]').exists()).toBe(true)
   })

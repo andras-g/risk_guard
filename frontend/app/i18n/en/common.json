@@ -49,6 +49,7 @@
       "admin": "Admin",
       "dashboard": "Dashboard",
       "epr": "EPR",
+      "registry": "Registry",
       "screening": "Screening",
       "watchlist": "Watchlist"
     },

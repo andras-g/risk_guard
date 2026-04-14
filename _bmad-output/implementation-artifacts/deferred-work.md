@@ -204,3 +204,19 @@
 - W3: Class-level Javadoc on DataSourceAdminController still says "Restricted to SME_ADMIN only" — update when next touching the class.
 - W4: `adapters[0]` hardcoded in `datasources.vue` — dataSourceMode from first adapter passed to NavCredentialManager; wrong in multi-adapter setups where NAV isn't at index 0; revisit when multi-adapter health view is built.
 - W5: `getHealth` computes `existsByTenantId` DB query on every 30s poll call with no server-side caching — low impact at current scale; add caching if health endpoint becomes a performance hotspot.
+
+## Deferred from: code review of 9-1-product-packaging-registry-foundation (2026-04-14)
+
+- W1: Redundant `idx_products_tenant_article` alongside partial unique index `uq_products_tenant_article` — minor write overhead; subsumed for non-null lookups.
+- W2: `changed_by_user_id` nullable in `registry_entry_audit_log` with no CHECK(source='MANUAL' → NOT NULL actor) — MANUAL audit row can carry NULL actor; beyond spec scope.
+- W3: `primary_unit` free-text VARCHAR(16) with no enumeration CHECK — inconsistent unit strings could corrupt weight aggregations; beyond Story 9.1 scope.
+- W4: AppSidebar spec tests a local `mainNavItems` copy, not the mounted component — cannot detect drift; pre-existing test pattern.
+- W5: `registry_entry_audit_log.tenant_id` has no DB-level FK consistency constraint with `products.tenant_id` — deliberate denormalization per spec Dev Notes; app layer enforces.
+- W6: `substances_of_concern` JSONB has no schema CHECK or GIN index — beyond scope for this story.
+- W7 (Group C): `RegistryRepository.insertProduct`/`insertComponent` use `fetchOne(ID)` which can return null on constraint race; null UUID produces misleading NOT_FOUND.
+- W8 (Group C): `RegistryController` `page` parameter has no `@Min(0)` — negative page produces DB-level OFFSET error (500 instead of 400).
+- W9 (Group C): `updateProduct`/`archive` don't check jOOQ affected-row count — silent no-op on cross-tenant update; audit rows written for non-existent state.
+- W10 (Group C): `insertComponent` inserts by `productId` only with no tenant re-verification at component level.
+- W11 (Group C): `countByTenantWithFilters` applies `kfCode` EXISTS subquery twice, structurally diverging from `listByTenantWithFilters`.
+- W12 (Group E): `ToggleSwitch` bound to nullable `Boolean reusable` — null initial value renders in undefined state; irreversible once toggled.
+- W13 (Group B): `substancesOfConcern` missing from `diffComponentAndAudit` in RegistryService — field changes produce no audit row, violating AC 5.
