@@ -1,21 +1,27 @@
 import type { InvoiceAutoFillResponse, InvoiceAutoFillLineDto } from '~/types/epr'
 
 /**
- * Returns the first day of the current quarter.
+ * Returns the first day of the previous quarter.
+ * EPR filings are submitted for the most recently completed quarter.
  */
 function startOfCurrentQuarter(): Date {
   const now = new Date()
   const q = Math.floor(now.getMonth() / 3)
-  return new Date(now.getFullYear(), q * 3, 1)
+  const prevQ = q === 0 ? 3 : q - 1
+  const year = q === 0 ? now.getFullYear() - 1 : now.getFullYear()
+  return new Date(year, prevQ * 3, 1)
 }
 
 /**
- * Returns the last day of the current quarter.
+ * Returns the last day of the previous quarter.
+ * EPR filings are submitted for the most recently completed quarter.
  */
 function endOfCurrentQuarter(): Date {
   const now = new Date()
   const q = Math.floor(now.getMonth() / 3)
-  return new Date(now.getFullYear(), q * 3 + 3, 0)
+  const prevQ = q === 0 ? 3 : q - 1
+  const year = q === 0 ? now.getFullYear() - 1 : now.getFullYear()
+  return new Date(year, prevQ * 3 + 3, 0)
 }
 
 /**

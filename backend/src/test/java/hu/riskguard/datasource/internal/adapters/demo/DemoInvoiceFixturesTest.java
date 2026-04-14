@@ -85,8 +85,8 @@ class DemoInvoiceFixturesTest {
         }
     }
 
-    @ParameterizedTest(name = "all invoices for company {0} fall within Q1 2026")
-    @DisplayName("all invoice dates are within Q1 2026 (Jan 1 – Mar 31)")
+    @ParameterizedTest(name = "all invoices for company {0} fall within the previous quarter")
+    @DisplayName("all invoice dates are within the previous quarter (dynamic)")
     @CsvSource({
             "12345678",  // Példa Kereskedelmi Kft.
             "99887766",  // Megbízható Építő Zrt.
@@ -97,18 +97,19 @@ class DemoInvoiceFixturesTest {
             "77889900",  // Hiányos Bevallású Kft.
             "22334455",  // Friss Startup Kft.
     })
-    void allInvoiceDatesAreWithinQ1(String taxNumber) {
-        LocalDate q1Start = LocalDate.of(2026, 1, 1);
-        LocalDate q1End = LocalDate.of(2026, 3, 31);
+    void allInvoiceDatesAreWithinPreviousQuarter(String taxNumber) {
+        LocalDate qStart = DemoInvoiceFixtures.previousQuarterStart();
+        LocalDate qEnd = DemoInvoiceFixtures.previousQuarterEnd();
 
         List<DemoInvoiceFixtures.InvoiceFixture> invoices = DemoInvoiceFixtures.getInvoices(taxNumber);
         assertThat(invoices).isNotEmpty();
 
         for (DemoInvoiceFixtures.InvoiceFixture invoice : invoices) {
             assertThat(invoice.issueDate())
-                    .as("Invoice %s for company %s should be in Q1 2026", invoice.invoiceNumber(), taxNumber)
-                    .isAfterOrEqualTo(q1Start)
-                    .isBeforeOrEqualTo(q1End);
+                    .as("Invoice %s for company %s should be in previous quarter (%s–%s)",
+                            invoice.invoiceNumber(), taxNumber, qStart, qEnd)
+                    .isAfterOrEqualTo(qStart)
+                    .isBeforeOrEqualTo(qEnd);
         }
     }
 

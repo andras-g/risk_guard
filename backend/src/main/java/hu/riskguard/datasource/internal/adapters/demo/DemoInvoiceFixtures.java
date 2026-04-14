@@ -2,17 +2,17 @@ package hu.riskguard.datasource.internal.adapters.demo;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Demo invoice fixtures providing realistic Hungarian invoice data for future EPR module.
- * Each fixture company has 20-50 invoices per quarter with realistic line items.
- *
- * <p>This class seeds the data for future {@code QueryInvoiceDigest}/{@code QueryInvoiceData}
- * needs when the NAV Online Számla adapter is implemented.
+ * Demo invoice fixtures providing realistic Hungarian invoice data for EPR auto-fill.
+ * Each fixture company has 20-50 invoices for the <em>previous quarter</em> relative to
+ * the current date. This ensures the invoice auto-fill panel always shows results when
+ * the date range is defaulted to the previous (most recently completed) quarter.
  *
  * <p>Invoice data structure mirrors the NAV Online Számla API v3 invoice format.
  */
@@ -48,11 +48,10 @@ public final class DemoInvoiceFixtures {
             String vtszCode
     ) {}
 
-    /** Map of 8-digit tax number → list of invoices for Q1 2026. */
+    /** Map of 8-digit tax number → list of invoices for the previous quarter. */
     private static final Map<String, List<InvoiceFixture>> INVOICES = new LinkedHashMap<>();
 
     static {
-        // Generate invoices for each fixture company
         INVOICES.put("12345678", generateTradeCompanyInvoices("12345678"));
         INVOICES.put("99887766", generateConstructionCompanyInvoices("99887766"));
         INVOICES.put("11223344", generateServiceCompanyInvoices("11223344"));
@@ -61,6 +60,26 @@ public final class DemoInvoiceFixtures {
         INVOICES.put("33445566", generateSuspendedCompanyInvoices("33445566"));
         INVOICES.put("77889900", generateIncompleteCompanyInvoices("77889900"));
         INVOICES.put("22334455", generateStartupCompanyInvoices("22334455"));
+    }
+
+    /**
+     * Returns the first day of the previous quarter relative to today.
+     * EPR filings cover the most recently completed quarter.
+     */
+    static LocalDate previousQuarterStart() {
+        LocalDate today = LocalDate.now();
+        int month = today.getMonthValue(); // 1-12
+        int currentQ = (month - 1) / 3;   // 0-3
+        int prevQ = currentQ == 0 ? 3 : currentQ - 1;
+        int year = currentQ == 0 ? today.getYear() - 1 : today.getYear();
+        return LocalDate.of(year, Month.of(prevQ * 3 + 1), 1);
+    }
+
+    /**
+     * Returns the last day of the previous quarter relative to today.
+     */
+    static LocalDate previousQuarterEnd() {
+        return previousQuarterStart().plusMonths(3).minusDays(1);
     }
 
     /**
@@ -104,10 +123,11 @@ public final class DemoInvoiceFixtures {
     private static List<InvoiceFixture> generateTradeCompanyInvoices(String taxNumber) {
         // Példa Kereskedelmi Kft. — trade company selling hardware/packaging
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 5);
+        LocalDate baseDate = previousQuarterStart().plusDays(4);
 
         for (int i = 1; i <= 35; i++) {
             LocalDate issueDate = baseDate.plusDays((long) i * 2);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 3 == 0 ? "INBOUND" : "OUTBOUND";
             String counterparty = direction.equals("OUTBOUND") ? "87654321" : "11112222";
 
@@ -125,7 +145,7 @@ public final class DemoInvoiceFixtures {
             }
 
             invoices.add(new InvoiceFixture(
-                    "PKK-2026-" + String.format("%04d", i), issueDate,
+                    "PKK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : counterparty,
                     direction.equals("OUTBOUND") ? counterparty : taxNumber,
                     direction, List.copyOf(items)));
@@ -136,10 +156,11 @@ public final class DemoInvoiceFixtures {
     private static List<InvoiceFixture> generateConstructionCompanyInvoices(String taxNumber) {
         // Megbízható Építő Zrt. — construction materials
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 3);
+        LocalDate baseDate = previousQuarterStart().plusDays(2);
 
         for (int i = 1; i <= 28; i++) {
             LocalDate issueDate = baseDate.plusDays((long) i * 3);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 4 == 0 ? "INBOUND" : "OUTBOUND";
             String counterparty = "33334444";
 
@@ -152,7 +173,7 @@ public final class DemoInvoiceFixtures {
                     BigDecimal.valueOf(27), "25232900"));
 
             invoices.add(new InvoiceFixture(
-                    "MEZ-2026-" + String.format("%04d", i), issueDate,
+                    "MEZ-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : counterparty,
                     direction.equals("OUTBOUND") ? counterparty : taxNumber,
                     direction, List.copyOf(items)));
@@ -162,12 +183,12 @@ public final class DemoInvoiceFixtures {
 
     private static List<InvoiceFixture> generateServiceCompanyInvoices(String taxNumber) {
         // Adós Szolgáltató Bt. — IT services
-        // Base: 2026-01-08, step: 3 days → last invoice 2026-01-08 + 21*3 = 2026-03-16 (within Q1)
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 8);
+        LocalDate baseDate = previousQuarterStart().plusDays(7);
 
         for (int i = 1; i <= 22; i++) {
             LocalDate issueDate = baseDate.plusDays((long) (i - 1) * 3);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 5 == 0 ? "INBOUND" : "OUTBOUND";
 
             List<LineItemFixture> items = new ArrayList<>();
@@ -181,7 +202,7 @@ public final class DemoInvoiceFixtures {
             }
 
             invoices.add(new InvoiceFixture(
-                    "ASB-2026-" + String.format("%04d", i), issueDate,
+                    "ASB-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : "55556666",
                     direction.equals("OUTBOUND") ? "55556666" : taxNumber,
                     direction, List.copyOf(items)));
@@ -192,10 +213,11 @@ public final class DemoInvoiceFixtures {
     private static List<InvoiceFixture> generateManufacturingCompanyInvoices(String taxNumber) {
         // Csődben Lévő Kft. — food manufacturing (insolvency)
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 2);
+        LocalDate baseDate = previousQuarterStart().plusDays(1);
 
         for (int i = 1; i <= 42; i++) {
             LocalDate issueDate = baseDate.plusDays((long) i * 2);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 2 == 0 ? "INBOUND" : "OUTBOUND";
 
             List<LineItemFixture> items = new ArrayList<>();
@@ -207,7 +229,7 @@ public final class DemoInvoiceFixtures {
                     BigDecimal.valueOf(18), "11010015"));
 
             invoices.add(new InvoiceFixture(
-                    "CLK-2026-" + String.format("%04d", i), issueDate,
+                    "CLK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : "77778888",
                     direction.equals("OUTBOUND") ? "77778888" : taxNumber,
                     direction, List.copyOf(items)));
@@ -218,10 +240,11 @@ public final class DemoInvoiceFixtures {
     private static List<InvoiceFixture> generateMixedCompanyInvoices(String taxNumber) {
         // Hátralékos és Csődös Kft. — mixed goods
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 10);
+        LocalDate baseDate = previousQuarterStart().plusDays(9);
 
         for (int i = 1; i <= 25; i++) {
             LocalDate issueDate = baseDate.plusDays((long) i * 3);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i <= 15 ? "OUTBOUND" : "INBOUND";
 
             List<LineItemFixture> items = new ArrayList<>();
@@ -230,7 +253,7 @@ public final class DemoInvoiceFixtures {
                     BigDecimal.valueOf(27), "76042100"));
 
             invoices.add(new InvoiceFixture(
-                    "HCK-2026-" + String.format("%04d", i), issueDate,
+                    "HCK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : "99990000",
                     direction.equals("OUTBOUND") ? "99990000" : taxNumber,
                     direction, List.copyOf(items)));
@@ -241,11 +264,11 @@ public final class DemoInvoiceFixtures {
     private static List<InvoiceFixture> generateSuspendedCompanyInvoices(String taxNumber) {
         // Felfüggesztett Adószámú Kft. — minimal invoices (suspended)
         List<InvoiceFixture> invoices = new ArrayList<>();
-        // Only a few invoices before suspension
         for (int i = 1; i <= 5; i++) {
-            LocalDate issueDate = LocalDate.of(2026, 1, i * 5);
+            LocalDate issueDate = previousQuarterStart().plusDays((long) i * 5);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             invoices.add(new InvoiceFixture(
-                    "FAK-2026-" + String.format("%04d", i), issueDate,
+                    "FAK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     taxNumber, "11119999", "OUTBOUND",
                     List.of(new LineItemFixture(1, "Irodaszer vegyes", BigDecimal.valueOf(10),
                             "DARAB", BigDecimal.valueOf(2500), BigDecimal.valueOf(25000),
@@ -256,12 +279,12 @@ public final class DemoInvoiceFixtures {
 
     private static List<InvoiceFixture> generateIncompleteCompanyInvoices(String taxNumber) {
         // Hiányos Bevallású Kft. — missing filings scenario
-        // Base: 2026-01-07, step: 2 days → last invoice 2026-01-07 + 29*2 = 2026-03-06 (within Q1)
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 1, 7);
+        LocalDate baseDate = previousQuarterStart().plusDays(6);
 
         for (int i = 1; i <= 30; i++) {
             LocalDate issueDate = baseDate.plusDays((long) (i - 1) * 2);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 3 == 0 ? "INBOUND" : "OUTBOUND";
 
             List<LineItemFixture> items = new ArrayList<>();
@@ -270,7 +293,7 @@ public final class DemoInvoiceFixtures {
                     BigDecimal.valueOf(27), "39172100"));
 
             invoices.add(new InvoiceFixture(
-                    "HBK-2026-" + String.format("%04d", i), issueDate,
+                    "HBK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : "22220000",
                     direction.equals("OUTBOUND") ? "22220000" : taxNumber,
                     direction, List.copyOf(items)));
@@ -280,12 +303,12 @@ public final class DemoInvoiceFixtures {
 
     private static List<InvoiceFixture> generateStartupCompanyInvoices(String taxNumber) {
         // Friss Startup Kft. — young company, fewer invoices
-        // Base: 2026-02-01, step: 3 days → last invoice 2026-02-01 + 19*3 = 2026-03-29 (within Q1)
         List<InvoiceFixture> invoices = new ArrayList<>();
-        LocalDate baseDate = LocalDate.of(2026, 2, 1);
+        LocalDate baseDate = previousQuarterStart().plusDays(30);
 
         for (int i = 1; i <= 20; i++) {
             LocalDate issueDate = baseDate.plusDays((long) (i - 1) * 3);
+            if (issueDate.isAfter(previousQuarterEnd())) break;
             String direction = i % 4 == 0 ? "INBOUND" : "OUTBOUND";
 
             List<LineItemFixture> items = new ArrayList<>();
@@ -299,7 +322,7 @@ public final class DemoInvoiceFixtures {
             }
 
             invoices.add(new InvoiceFixture(
-                    "FSK-2026-" + String.format("%04d", i), issueDate,
+                    "FSK-" + previousQuarterStart().getYear() + "-" + String.format("%04d", i), issueDate,
                     direction.equals("OUTBOUND") ? taxNumber : "44440000",
                     direction.equals("OUTBOUND") ? "44440000" : taxNumber,
                     direction, List.copyOf(items)));
