@@ -6,6 +6,8 @@
     },
     "autofill": {
       "applyButton": "Apply to Filing",
+      "scopeWarningTitle": "Designed for packaging-material distributors",
+      "scopeWarningBody": "Invoice-based auto-fill is best suited for businesses that primarily sell packaging materials (bags, bottles, cartons). If your invoices list packaged products (e.g. food items, machine parts), results may be incomplete or inaccurate — a product-packaging registry is required for correct EPR calculation.",
       "columns": {
         "description": "Description",
         "quantity": "Quantity",

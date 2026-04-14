@@ -51,6 +51,20 @@ function handleApply() {
 
 <template>
   <div class="flex flex-col gap-4">
+    <!-- Scope warning: this panel only fits packaging-material distributors -->
+    <Message
+      severity="info"
+      :closable="false"
+      data-testid="autofill-scope-warning"
+    >
+      <div class="font-semibold">
+        {{ t('epr.autofill.scopeWarningTitle') }}
+      </div>
+      <div class="text-sm mt-1">
+        {{ t('epr.autofill.scopeWarningBody') }}
+      </div>
+    </Message>
+
     <!-- Input row -->
     <div class="flex flex-wrap gap-3 items-end">
       <div class="flex flex-col gap-1">

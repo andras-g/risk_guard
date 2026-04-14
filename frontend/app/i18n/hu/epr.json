@@ -6,6 +6,8 @@
     },
     "autofill": {
       "applyButton": "Alkalmazás a bejelentésre",
+      "scopeWarningTitle": "Ez a funkció csomagolóanyag-forgalmazóknak készült",
+      "scopeWarningBody": "Az automatikus számla-alapú kitöltés azokhoz a vállalkozásokhoz illik, akik elsődlegesen csomagolóanyagokat (zsák, palack, doboz) forgalmaznak. Ha az Ön számláin csomagolt termékek szerepelnek (pl. élelmiszer, gépalkatrész), az eredmény hiányos vagy pontatlan lehet — a pontos EPR számításhoz termék-csomagolás nyilvántartás szükséges.",
       "columns": {
         "description": "Leírás",
         "quantity": "Mennyiség",
