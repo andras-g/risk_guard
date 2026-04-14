@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WatchlistEntryResponse } from '~/types/api'
 import { useDateRelative } from '~/composables/formatting/useDateRelative'
+import { useStatusColor } from '~/composables/formatting/useStatusColor'
 
 const props = defineProps<{
   entries: WatchlistEntryResponse[]
@@ -9,6 +10,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const { formatRelative } = useDateRelative()
+const { statusI18nKey } = useStatusColor()
 
 // Priority order: AT_RISK=0, TAX_SUSPENDED=1, INCOMPLETE=2, UNAVAILABLE=3
 const PRIORITY: Record<string, number> = {
@@ -75,7 +77,7 @@ const attentionEntries = computed(() => {
         <div class="flex items-center gap-3 flex-shrink-0 ml-3">
           <Tag
             :severity="STATUS_SEVERITY[entry.currentVerdictStatus ?? ''] ?? 'secondary'"
-            :value="entry.currentVerdictStatus ?? ''"
+            :value="t(statusI18nKey(entry.currentVerdictStatus ?? null))"
             class="text-xs"
           />
           <span class="text-xs text-slate-400">{{ formatRelative(entry.lastCheckedAt) }}</span>
