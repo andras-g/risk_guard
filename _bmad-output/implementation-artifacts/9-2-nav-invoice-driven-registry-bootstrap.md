@@ -1,6 +1,6 @@
 # Story 9.2: NAV-Invoice-Driven Registry Bootstrap + Triage UI
 
-Status: review
+Status: done
 
 ## Story
 
