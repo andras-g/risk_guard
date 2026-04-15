@@ -339,8 +339,9 @@ async function handleExport() {
         </h2>
         <div class="flex flex-wrap gap-3 items-end mb-4">
           <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-600">{{ t('epr.autofill.fromLabel') }}</label>
+            <label for="export-from-input" class="text-sm text-slate-600">{{ t('epr.autofill.fromLabel') }}</label>
             <input
+              id="export-from-input"
               v-model="exportFrom"
               type="date"
               class="border border-slate-300 rounded px-3 py-2 text-sm"
@@ -348,8 +349,9 @@ async function handleExport() {
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-600">{{ t('epr.autofill.toLabel') }}</label>
+            <label for="export-to-input" class="text-sm text-slate-600">{{ t('epr.autofill.toLabel') }}</label>
             <input
+              id="export-to-input"
               v-model="exportTo"
               type="date"
               class="border border-slate-300 rounded px-3 py-2 text-sm"
@@ -357,8 +359,9 @@ async function handleExport() {
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm text-slate-600">{{ t('epr.autofill.taxNumberLabel') }}</label>
+            <label for="export-tax-number-input" class="text-sm text-slate-600">{{ t('epr.autofill.taxNumberLabel') }}</label>
             <input
+              id="export-tax-number-input"
               v-model="exportTaxNumber"
               type="text"
               :placeholder="t('epr.autofill.taxNumberPlaceholder')"

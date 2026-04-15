@@ -132,14 +132,14 @@ async function handleSave() {
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="md:col-span-2">
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.legalName') }} *</label>
-            <input v-model="form.legalName" type="text" required
+            <label for="field-legal-name" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.legalName') }} *</label>
+            <input id="field-legal-name" v-model="form.legalName" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-legal-name" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.kshStatisticalNumber') }}</label>
-            <input v-model="form.kshStatisticalNumber" type="text" placeholder="12345678-1234-123-01"
+            <label for="field-ksh-number" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.kshStatisticalNumber') }}</label>
+            <input id="field-ksh-number" v-model="form.kshStatisticalNumber" type="text" placeholder="12345678-1234-123-01"
               :class="['w-full border rounded px-3 py-2 text-sm',
                 kshValid ? 'border-slate-300' : 'border-red-500']"
               data-testid="field-ksh-number" />
@@ -148,14 +148,14 @@ async function handleSave() {
             </p>
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.companyRegistrationNumber') }}</label>
-            <input v-model="form.companyRegistrationNumber" type="text" placeholder="01-09-12345678"
+            <label for="field-company-reg-number" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.companyRegistrationNumber') }}</label>
+            <input id="field-company-reg-number" v-model="form.companyRegistrationNumber" type="text" placeholder="01-09-12345678"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-company-reg-number" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.okirClientId') }}</label>
-            <input v-model.number="form.okirClientId" type="number"
+            <label for="field-okir-client-id" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.okirClientId') }}</label>
+            <input id="field-okir-client-id" v-model.number="form.okirClientId" type="number"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-okir-client-id" />
           </div>
@@ -169,32 +169,32 @@ async function handleSave() {
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressCity') }} *</label>
-            <input v-model="form.addressCity" type="text" required
+            <label for="field-address-city" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressCity') }} *</label>
+            <input id="field-address-city" v-model="form.addressCity" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-address-city" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressPostalCode') }} *</label>
-            <input v-model="form.addressPostalCode" type="text" required
+            <label for="field-address-postal-code" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressPostalCode') }} *</label>
+            <input id="field-address-postal-code" v-model="form.addressPostalCode" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-address-postal-code" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressStreetName') }} *</label>
-            <input v-model="form.addressStreetName" type="text" required
+            <label for="field-address-street-name" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressStreetName') }} *</label>
+            <input id="field-address-street-name" v-model="form.addressStreetName" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-address-street-name" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressStreetType') }}</label>
-            <input v-model="form.addressStreetType" type="text"
+            <label for="field-address-street-type" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressStreetType') }}</label>
+            <input id="field-address-street-type" v-model="form.addressStreetType" type="text"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-address-street-type" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressHouseNumber') }}</label>
-            <input v-model="form.addressHouseNumber" type="text"
+            <label for="field-address-house-number" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.addressHouseNumber') }}</label>
+            <input id="field-address-house-number" v-model="form.addressHouseNumber" type="text"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-address-house-number" />
           </div>
@@ -208,44 +208,44 @@ async function handleSave() {
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactName') }} *</label>
-            <input v-model="form.contactName" type="text" required
+            <label for="field-contact-name" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactName') }} *</label>
+            <input id="field-contact-name" v-model="form.contactName" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-name" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactTitle') }} *</label>
-            <input v-model="form.contactTitle" type="text" required
+            <label for="field-contact-title" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactTitle') }} *</label>
+            <input id="field-contact-title" v-model="form.contactTitle" type="text" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-title" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactPhone') }} *</label>
-            <input v-model="form.contactPhone" type="tel" required
+            <label for="field-contact-phone" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactPhone') }} *</label>
+            <input id="field-contact-phone" v-model="form.contactPhone" type="tel" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-phone" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactEmail') }} *</label>
-            <input v-model="form.contactEmail" type="email" required
+            <label for="field-contact-email" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactEmail') }} *</label>
+            <input id="field-contact-email" v-model="form.contactEmail" type="email" required
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-email" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactCity') }}</label>
-            <input v-model="form.contactCity" type="text"
+            <label for="field-contact-city" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactCity') }}</label>
+            <input id="field-contact-city" v-model="form.contactCity" type="text"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-city" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactPostalCode') }}</label>
-            <input v-model="form.contactPostalCode" type="text"
+            <label for="field-contact-postal-code" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactPostalCode') }}</label>
+            <input id="field-contact-postal-code" v-model="form.contactPostalCode" type="text"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-postal-code" />
           </div>
           <div>
-            <label class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactStreetName') }}</label>
-            <input v-model="form.contactStreetName" type="text"
+            <label for="field-contact-street-name" class="block text-sm text-slate-600 mb-1">{{ t('settings.producerProfile.fields.contactStreetName') }}</label>
+            <input id="field-contact-street-name" v-model="form.contactStreetName" type="text"
               class="w-full border border-slate-300 rounded px-3 py-2 text-sm"
               data-testid="field-contact-street-name" />
           </div>
