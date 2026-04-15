@@ -237,3 +237,14 @@
 - W2: `[id].spec.ts` tests 7–9 test mock call behavior rather than actual component rendering (proxy tests); low-value coverage pattern; pre-existing test quality issue in this file.
 - W3: Confidence ordinal comparison in `ClassifierRouter` is fragile if `ClassificationConfidence` enum is ever reordered; existing comment in `ClassificationConfidence.java` warns; not introduced here.
 - W4: `VtszPrefixFallbackClassifier` returns `VTSZ_PREFIX` strategy for no-match case before `ClassifierRouter` overrides to `NONE`; correct end-to-end behavior, minor spec deviation from AC 3 wording.
+
+## Deferred from: code review of 9-4-registry-driven-epr-autofill-and-okirkapu-export (2026-04-15)
+
+- W1: Redundant `idx_producer_profiles_tenant` index alongside UNIQUE constraint — UNIQUE already creates an index in PostgreSQL; clean up when convenient.
+- W2: Empty `MohuExportRequest` record compiled into production JAR — tombstone stub; delete in merge commit.
+- W3: `exportMohuGone` tombstone endpoint is unauthenticated — discloses replacement API path `/api/v1/epr/filing/okirkapu-export` to anonymous callers; low risk for a 410 tombstone.
+- W4: `generateReport` silently swallows `getActiveConfigVersion()` exceptions and logs `configVersion=0` — defensive fallback; audit log integrity is weakly compromised; address if configVersion is ever used for compliance reporting.
+- W5: `EprReportArtifact.bytes()` is a mutable `byte[]` — no defensive copy in the record; not currently exploitable since artifacts are not shared between calls; harden if caching is ever introduced.
+- W6: `ZipEntry` creation timestamps not set — will show epoch/1980-01-01 in archive tools; purely cosmetic.
+- W7: `KgKgyfNeMarshaller`/`KgKgyfNeAggregator` `@PostConstruct` always runs at startup regardless of `OkirkapuXmlExporter` `@ConditionalOnProperty`; only matters if a second `EprReportTarget` strategy is activated.
+- W8: Playwright e2e `epr-filing.spec.ts` not updated for new export button label and `.zip` extension; update before next release cycle.

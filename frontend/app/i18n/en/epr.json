@@ -109,10 +109,10 @@
       "calculateButton": "Calculate Totals",
       "calculateError": "Calculation failed: {message}",
       "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
-      "exportButton": "Export for MOHU",
+      "exportButton": "Export OKIRkapu XML",
       "exportError": "Export failed: {message}",
-      "exportGenerating": "Generating CSV...",
-      "exportLocaleNotice": "Export generated in Hungarian (required by MOHU portal).",
+      "exportGenerating": "Generating XML...",
+      "exportLocaleNotice": "The export can be uploaded to the OKIR portal (kapu.okir.hu).",
       "grandTotalFee": "Grand Total Fee",
       "grandTotalWeight": "Grand Total Weight",
       "newFilingButton": "New Filing",
@@ -132,6 +132,25 @@
         "mustBeInteger": "Quantity must be a whole number (pcs)",
         "mustBePositive": "Quantity must be greater than 0"
       }
+    },
+    "okirkapu": {
+      "exportButton": "Export OKIRkapu XML",
+      "exportError": "Export failed: {message}",
+      "exportGenerating": "Generating ZIP...",
+      "exportTitle": "OKIRkapu KG:KGYF-NÉ XML Export",
+      "openSettings": "Open Settings",
+      "panelTitle": "OKIRkapu XML Export",
+      "preview": {
+        "profileIncomplete": "Producer profile is incomplete. Please fill in all required fields.",
+        "profileOpenSettings": "Open Settings",
+        "registryMatch": "Registry Matches (included in XML)",
+        "title": "Report Preview",
+        "unmatched": "Unmatched Lines (not in XML)",
+        "unmatchedRegisterShortcut": "Register Product",
+        "vtszFallback": "VTSZ Fallback (informational only, excluded from XML)"
+      },
+      "profileIncomplete": "Complete your producer profile before exporting",
+      "profileIncompleteDetail": "Required fields (legal name, address, contact person) are missing."
     },
     "title": "EPR Manager",
     "wizard": {

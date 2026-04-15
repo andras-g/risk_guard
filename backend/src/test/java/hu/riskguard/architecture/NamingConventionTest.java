@@ -199,7 +199,10 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.AiClassifierUsage",
                                 "hu.riskguard.jooq.tables.KfCodes",
                                 // Story 9.3 — cross-tenant admin join (ClassifierUsageRepository.findAllForMonth)
-                                "hu.riskguard.jooq.tables.Tenants"
+                                "hu.riskguard.jooq.tables.Tenants",
+                                // Story 9.4 — producer profiles + NAV tenant credentials join
+                                "hu.riskguard.jooq.tables.ProducerProfiles",
+                                "hu.riskguard.jooq.tables.NavTenantCredentials"
                         );
                         private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
 

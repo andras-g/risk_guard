@@ -274,6 +274,37 @@ public class RegistryRepository extends BaseRepository {
                 .execute();
     }
 
+    /**
+     * Find ACTIVE products by exact VTSZ match for a tenant, ordered by updated_at ASC (oldest first on tie).
+     * Used by RegistryLookupService for VTSZ-based product matching.
+     *
+     * <p><b>Tenant isolation:</b> always scoped to {@code tenantId} — NEVER pass null here.
+     */
+    public List<ProductsRecord> findActiveByVtsz(UUID tenantId, String vtsz) {
+        return dsl.select(PRODUCTS.asterisk())
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.VTSZ.eq(vtsz))
+                .and(PRODUCTS.STATUS.eq(ProductStatus.ACTIVE.name()))
+                .orderBy(PRODUCTS.UPDATED_AT.asc())
+                .fetchInto(ProductsRecord.class);
+    }
+
+    /**
+     * Find ACTIVE products by exact article number for a tenant.
+     * Used by RegistryLookupService for article-number-based product matching.
+     *
+     * <p><b>Tenant isolation:</b> always scoped to {@code tenantId} — NEVER pass null here.
+     */
+    public Optional<ProductsRecord> findActiveByArticleNumber(UUID tenantId, String articleNumber) {
+        return dsl.select(PRODUCTS.asterisk())
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.ARTICLE_NUMBER.eq(articleNumber))
+                .and(PRODUCTS.STATUS.eq(ProductStatus.ACTIVE.name()))
+                .fetchOptionalInto(ProductsRecord.class);
+    }
+
     // ─── Domain mappers ──────────────────────────────────────────────────────
 
     public static Product toProduct(ProductsRecord p, List<ProductPackagingComponentsRecord> comps) {

@@ -12,8 +12,9 @@ import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.EprConfigValidator;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.domain.FeeCalculator;
-import hu.riskguard.epr.domain.MohuExporter;
 import hu.riskguard.epr.internal.EprRepository;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
+import hu.riskguard.epr.report.EprReportTarget;
 import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
 import org.jooq.JSONB;
 import org.jooq.Record;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,11 +51,17 @@ class EprServiceAutoFillTest {
     @Mock
     private FeeCalculator feeCalculator;
     @Mock
-    private MohuExporter mohuExporter;
+    private EprReportTarget reportTarget;
     @Mock
     private EprConfigValidator eprConfigValidator;
     @Mock
     private DataSourceService dataSourceService;
+
+    @Mock
+    private ProducerProfileService producerProfileService;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
 
     private EprService eprService;
 
@@ -78,7 +86,7 @@ class EprServiceAutoFillTest {
     @BeforeEach
     void setUp() {
         eprService = new EprService(eprRepository, dagEngine, feeCalculator,
-                mohuExporter, eprConfigValidator, dataSourceService);
+                eprConfigValidator, dataSourceService, reportTarget, producerProfileService, transactionManager);
     }
 
     @Test

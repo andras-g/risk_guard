@@ -78,6 +78,29 @@ public class EpicNineInvariantsTest {
                     .allowEmptyShould(true);
 
     /**
+     * CP-5 §5 invariant 3b — aggregator and marshaller are package-private internals.
+     *
+     * No class outside {@code hu.riskguard.epr.report..} may depend on the concrete
+     * {@code KgKgyfNeAggregator} or {@code KgKgyfNeMarshaller} implementation classes.
+     * They are package-private to enforce this at language level, but this ArchUnit rule
+     * provides a belt-and-suspenders compile-time guard.
+     *
+     * Pre-emptive: {@code allowEmptyShould(true)} until these classes exist on main.
+     */
+    @ArchTest
+    static final ArchRule aggregator_and_marshaller_not_accessed_from_outside_report_package =
+            noClasses()
+                    .that().resideOutsideOfPackage("..epr.report..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().haveSimpleNameNotEndingWith("Test")
+                    .and().haveSimpleNameNotEndingWith("Tests")
+                    .and().haveSimpleNameNotContaining("BeanDefinitions")
+                    .and().haveSimpleNameNotContaining("BeanFactoryRegistrations")
+                    .should().dependOnClassesThat().haveSimpleName("KgKgyfNeAggregator")
+                    .orShould().dependOnClassesThat().haveSimpleName("KgKgyfNeMarshaller")
+                    .allowEmptyShould(true);
+
+    /**
      * CP-5 §5 invariant 4 — fee modulation rules are data, not code.
      *
      * Future PPWR eco-modulation (mandatory 2030) will key fees off recyclability grade

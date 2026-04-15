@@ -227,6 +227,7 @@ tasks.named('test') {
 tasks.named('compileJava') {
 	dependsOn tasks.named('generateJooq')
 	dependsOn tasks.named('xjc')
+	dependsOn tasks.named('xjcOkirkapu')
 }
 
 // XJC: generate JAXB classes from NAV Online Számla XSD schemas.
@@ -244,6 +245,7 @@ dependencies {
 
 def xjcOutputDir = layout.buildDirectory.dir('generated-sources/jaxb')
 def xjcNavXsdDir = layout.projectDirectory.dir('src/main/resources/xsd/nav')
+def xjcOkirkapuXsdDir = layout.projectDirectory.dir('src/main/resources/xsd/okirkapu')
 
 tasks.register('xjc', JavaExec) {
 	description = 'Generate JAXB classes from NAV Online Számla XSD schemas'
@@ -266,6 +268,29 @@ tasks.register('xjc', JavaExec) {
 	]
 
 	inputs.dir(xjcNavXsdDir)
+	outputs.dir(xjcOutputDir)
+}
+
+// XJC: generate JAXB classes from OKIRkapu KG:KGYF-NÉ XSD schema (ADR-0002).
+// No external catalog needed — the OKIRkapu XSD has no external schema references.
+// Generated classes land in build/generated-sources/jaxb/ alongside NAV classes.
+tasks.register('xjcOkirkapu', JavaExec) {
+	description = 'Generate JAXB classes from OKIRkapu KG-KGYF-NE XSD schema'
+	classpath = configurations.xjcTool
+	mainClass.set('com.sun.tools.xjc.XJCFacade')
+
+	doFirst {
+		mkdir xjcOutputDir.get().asFile
+	}
+
+	args = [
+		'-p', 'hu.riskguard.epr.report.internal.generated.okirkapu',
+		'-d', xjcOutputDir.get().asFile.absolutePath,
+		'-b', xjcOkirkapuXsdDir.file('bindings.xjb').asFile.absolutePath,
+		xjcOkirkapuXsdDir.file('KG-KGYF-NE-v1.16.xsd').asFile.absolutePath,
+	]
+
+	inputs.dir(xjcOkirkapuXsdDir)
 	outputs.dir(xjcOutputDir)
 }
 

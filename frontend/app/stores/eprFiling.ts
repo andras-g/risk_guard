@@ -29,12 +29,15 @@ export interface FilingCalculationResponse {
   configVersion: number
 }
 
+export type ProducerProfileIncompleteError = 'producer.profile.incomplete'
+
 interface FilingState {
   lines: FilingLineState[]
   serverResult: FilingCalculationResponse | null
   isCalculating: boolean
   isExporting: boolean
   error: string | null
+  exportError: ProducerProfileIncompleteError | string | null
 }
 
 export const useEprFilingStore = defineStore('eprFiling', {
@@ -44,6 +47,7 @@ export const useEprFilingStore = defineStore('eprFiling', {
     isCalculating: false,
     isExporting: false,
     error: null,
+    exportError: null,
   }),
 
   getters: {
@@ -156,38 +160,40 @@ export const useEprFilingStore = defineStore('eprFiling', {
       }
     },
 
-    async exportMohu() {
-      if (!this.serverResult) return
+    async exportOkirkapu(from: string, to: string, taxNumber: string) {
       this.isExporting = true
+      this.exportError = null
       try {
         const config = useRuntimeConfig()
-        const blob = await $fetch<Blob>('/api/v1/epr/filing/export', {
+        const blob = await $fetch<Blob>('/api/v1/epr/filing/okirkapu-export', {
           method: 'POST',
-          body: {
-            lines: this.serverResult.lines.map(l => ({
-              templateId: l.templateId,
-              kfCode: l.kfCode,
-              name: l.name,
-              quantityPcs: l.quantityPcs,
-              totalWeightKg: l.totalWeightKg,
-              feeAmountHuf: l.feeAmountHuf,
-            })),
-            configVersion: this.serverResult.configVersion,
-          },
+          body: { from, to, taxNumber },
           responseType: 'blob',
           baseURL: config.public.apiBase as string,
           credentials: 'include',
         })
         if (import.meta.client) {
+          const quarter = Math.ceil((new Date(from).getMonth() + 1) / 3)
+          const year = new Date(from).getFullYear()
           const url = URL.createObjectURL(blob)
           const anchor = document.createElement('a')
           anchor.href = url
-          anchor.download = `mohu-epr-${new Date().toISOString().slice(0, 10)}.csv`
+          anchor.download = `okir-kg-kgyf-ne-${year}-Q${quarter}.zip`
           document.body.appendChild(anchor)
           anchor.click()
           document.body.removeChild(anchor)
           setTimeout(() => URL.revokeObjectURL(url), 100)
         }
+      }
+      catch (e: unknown) {
+        const status = (e as { status?: number })?.status
+        if (status === 412) {
+          this.exportError = 'producer.profile.incomplete'
+        }
+        else {
+          this.exportError = e instanceof Error ? e.message : String(e)
+        }
+        throw e
       }
       finally {
         this.isExporting = false
@@ -200,6 +206,7 @@ export const useEprFilingStore = defineStore('eprFiling', {
       this.isCalculating = false
       this.isExporting = false
       this.error = null
+      this.exportError = null
     },
   },
 })

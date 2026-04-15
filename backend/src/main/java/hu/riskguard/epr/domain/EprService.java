@@ -11,13 +11,20 @@ import hu.riskguard.datasource.domain.InvoiceSummary;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.internal.EprRepository;
 import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
+import hu.riskguard.epr.report.EprReportArtifact;
+import hu.riskguard.epr.report.EprReportRequest;
+import hu.riskguard.epr.report.EprReportTarget;
 import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.JSONB;
 import org.jooq.Record;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -54,9 +61,11 @@ public class EprService {
     private final EprRepository eprRepository;
     private final DagEngine dagEngine;
     private final FeeCalculator feeCalculator;
-    private final MohuExporter mohuExporter;
     private final EprConfigValidator eprConfigValidator;
     private final DataSourceService dataSourceService;
+    private final EprReportTarget reportTarget;
+    private final ProducerProfileService producerProfileService;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * ObjectMapper for JSON serialization of traversal paths and config parsing.
@@ -256,18 +265,104 @@ public class EprService {
      * @return raw UTF-8 BOM + CSV bytes ready to send as a file download
      * @throws ResponseStatusException 422 if configVersion does not match the active config
      */
-    @Transactional
-    public byte[] exportMohuCsv(MohuExportRequest request, UUID tenantId) {
-        int activeVersion = getActiveConfigVersion();
-        if (request.configVersion() != activeVersion) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Config version mismatch: request has version " + request.configVersion()
-                    + " but active version is " + activeVersion);
+    @Transactional(readOnly = true)
+    public EprReportArtifact generateReport(EprReportRequest request) {
+        UUID tenantId = request.tenantId();
+        LocalDate periodStart = request.periodStart();
+        LocalDate periodEnd = request.periodEnd();
+
+        // Validate period start before end
+        if (periodStart.isAfter(periodEnd)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period start must not be after end");
         }
-        byte[] csvBytes = mohuExporter.generate(request.lines());
-        String fileHash = HashUtil.sha256Hex(csvBytes);
-        eprRepository.saveExport(tenantId, request.configVersion(), fileHash);
-        return csvBytes;
+
+        // Validate period does not extend into the future
+        if (periodEnd.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period may not extend into the future");
+        }
+
+        // Validate period is within one calendar quarter
+        int startQuarter = (periodStart.getMonthValue() - 1) / 3;
+        int endQuarter = (periodEnd.getMonthValue() - 1) / 3;
+        if (periodStart.getYear() != periodEnd.getYear() || startQuarter != endQuarter) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period must be within a single calendar quarter");
+        }
+
+        // D2: Validate tenant owns the requested tax number (skip in demo mode / no credentials)
+        dataSourceService.getTenantTaxNumber(tenantId).ifPresent(registeredTaxNumber -> {
+            String requestedTaxNumber = request.taxNumber();
+            String requestedBase = requestedTaxNumber.length() >= 8 ? requestedTaxNumber.substring(0, 8) : requestedTaxNumber;
+            String registeredBase = registeredTaxNumber.length() >= 8 ? registeredTaxNumber.substring(0, 8) : registeredTaxNumber;
+            if (!requestedBase.equals(registeredBase)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Tax number does not match tenant's registered tax number");
+            }
+        });
+
+        // Validate producer profile completeness early (AC 3 step 1)
+        producerProfileService.get(tenantId); // throws 412 if incomplete
+
+        // Delegate to the active EprReportTarget strategy (OkirkapuXmlExporter by default)
+        EprReportArtifact artifact = reportTarget.generate(request);
+
+        // Log the export in a separate REQUIRES_NEW transaction so the write commits
+        // independently of the outer read-only transaction (per AC 3 + ADR-0002).
+        String fileHash = artifact.xmlBytes() != null
+                ? HashUtil.sha256Hex(artifact.xmlBytes())
+                : HashUtil.sha256Hex(artifact.bytes());
+        int configVersion;
+        try {
+            configVersion = getActiveConfigVersion();
+        } catch (Exception e) {
+            configVersion = 0;
+        }
+        final int finalConfigVersion = configVersion;
+        TransactionTemplate writeTx = new TransactionTemplate(transactionManager);
+        writeTx.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        writeTx.executeWithoutResult(status ->
+                eprRepository.insertExport(tenantId, finalConfigVersion, fileHash,
+                        "OKIRKAPU_XML", periodStart, periodEnd));
+
+        return artifact;
+    }
+
+    /**
+     * Preview EPR report: same validation as generateReport but does NOT write an audit log.
+     */
+    @Transactional(readOnly = true)
+    public EprReportArtifact previewReport(EprReportRequest request) {
+        UUID tenantId = request.tenantId();
+        LocalDate periodStart = request.periodStart();
+        LocalDate periodEnd = request.periodEnd();
+
+        if (periodStart.isAfter(periodEnd)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period start must not be after end");
+        }
+        if (periodEnd.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period may not extend into the future");
+        }
+        int startQuarter = (periodStart.getMonthValue() - 1) / 3;
+        int endQuarter = (periodEnd.getMonthValue() - 1) / 3;
+        if (periodStart.getYear() != periodEnd.getYear() || startQuarter != endQuarter) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period must be within a single calendar quarter");
+        }
+        dataSourceService.getTenantTaxNumber(tenantId).ifPresent(registeredTaxNumber -> {
+            String requestedTaxNumber = request.taxNumber();
+            String requestedBase = requestedTaxNumber.length() >= 8 ? requestedTaxNumber.substring(0, 8) : requestedTaxNumber;
+            String registeredBase = registeredTaxNumber.length() >= 8 ? registeredTaxNumber.substring(0, 8) : registeredTaxNumber;
+            if (!requestedBase.equals(registeredBase)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Tax number does not match tenant's registered tax number");
+            }
+        });
+        producerProfileService.get(tenantId);
+        return reportTarget.generate(request);
     }
 
     // ─── Wizard methods ──────────────────────────────────────────────────────
@@ -497,9 +592,13 @@ public class EprService {
      * @return auto-fill response with suggested lines, NAV availability flag, and mode
      */
     public InvoiceAutoFillResponse autoFillFromInvoices(String taxNumber, LocalDate from, LocalDate to, UUID tenantId) {
-        // D2: Validate tenant owns the requested tax number (skip in demo mode / no credentials)
+        // D2: Validate tenant owns the requested tax number using strict 8-digit prefix equality
+        // (VAT/country suffixes stripped so "12345678-2-41" and "12345678" are considered the same tenant,
+        //  but bidirectional startsWith — the old check — let "1xxxxxxx" match any tax number starting with "1").
         dataSourceService.getTenantTaxNumber(tenantId).ifPresent(registeredTaxNumber -> {
-            if (!taxNumber.startsWith(registeredTaxNumber) && !registeredTaxNumber.startsWith(taxNumber)) {
+            String requestedBase = taxNumber.length() >= 8 ? taxNumber.substring(0, 8) : taxNumber;
+            String registeredBase = registeredTaxNumber.length() >= 8 ? registeredTaxNumber.substring(0, 8) : registeredTaxNumber;
+            if (!requestedBase.equals(registeredBase)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "Tax number does not match tenant's registered tax number");
             }

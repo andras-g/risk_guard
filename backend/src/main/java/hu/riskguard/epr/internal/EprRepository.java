@@ -15,6 +15,8 @@ import org.jooq.JSONB;
 
 import hu.riskguard.jooq.enums.ExportFormatType;
 
+import java.time.LocalDate;
+
 import static hu.riskguard.jooq.Tables.EPR_CALCULATIONS;
 import static hu.riskguard.jooq.Tables.EPR_CONFIGS;
 import static hu.riskguard.jooq.Tables.EPR_EXPORTS;
@@ -339,6 +341,27 @@ public class EprRepository extends BaseRepository {
            .set(EPR_EXPORTS.FILE_HASH, fileHash)
            // calculation_id left null — bulk export, no single calculation row
            .execute();
+    }
+
+    /**
+     * Insert a row into {@code epr_exports} recording a completed OKIRkapu XML export.
+     * {@code calculation_id} is null for period-based exports.
+     *
+     * <p>Uses raw SQL because the export_format column is VARCHAR(50) and
+     * OKIRKAPU_XML is not (yet) in the jOOQ-generated {@code ExportFormatType} enum.
+     * The column accepts any string value; the enum binding is just a jOOQ convenience.
+     *
+     * @param format      export format string (e.g. "OKIRKAPU_XML")
+     * @param periodStart start of the reporting period
+     * @param periodEnd   end of the reporting period
+     */
+    public void insertExport(UUID tenantId, int configVersion, String fileHash,
+                              String format, LocalDate periodStart, LocalDate periodEnd) {
+        dsl.execute(
+                "INSERT INTO epr_exports (id, tenant_id, config_version, export_format, file_hash, period_start, period_end) " +
+                "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?, ?)",
+                tenantId, configVersion, format, fileHash, periodStart, periodEnd
+        );
     }
 
     /**

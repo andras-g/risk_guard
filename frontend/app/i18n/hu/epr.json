@@ -109,10 +109,10 @@
       "calculateButton": "Összesítés kiszámítása",
       "calculateError": "Számítás sikertelen: {message}",
       "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
-      "exportButton": "Exportálás MOHU-ba",
+      "exportButton": "Export OKIRkapu XML",
       "exportError": "Exportálás sikertelen: {message}",
-      "exportGenerating": "CSV generálása...",
-      "exportLocaleNotice": "Az export magyar nyelven készült (a MOHU portál követelménye).",
+      "exportGenerating": "XML generálása...",
+      "exportLocaleNotice": "Az export feltölthető az OKIR portálra (kapu.okir.hu).",
       "grandTotalFee": "Teljes díj összege",
       "grandTotalWeight": "Teljes tömeg",
       "newFilingButton": "Új bejelentés",
@@ -132,6 +132,25 @@
         "mustBeInteger": "A darabszámnak egész számnak kell lennie",
         "mustBePositive": "A darabszámnak nagyobbnak kell lennie 0-nál"
       }
+    },
+    "okirkapu": {
+      "exportButton": "OKIRkapu XML exportálása",
+      "exportError": "Exportálás sikertelen: {message}",
+      "exportGenerating": "ZIP generálása...",
+      "exportTitle": "OKIRkapu KG:KGYF-NÉ XML Export",
+      "openSettings": "Beállítások megnyitása",
+      "panelTitle": "OKIRkapu XML Export",
+      "preview": {
+        "profileIncomplete": "A gyártói profil hiányos. Kérjük, töltse ki az összes szükséges mezőt.",
+        "profileOpenSettings": "Beállítások megnyitása",
+        "registryMatch": "Nyilvántartási egyezések (XML-be kerül)",
+        "title": "Előzetes jelentés",
+        "unmatched": "Nem illeszkedett sorok (XML-ből kizárva)",
+        "unmatchedRegisterShortcut": "Termék regisztrálása",
+        "vtszFallback": "VTSZ visszaesési sorok (csak tájékoztató jellegű, XML-ből kizárva)"
+      },
+      "profileIncomplete": "Töltse ki a gyártói profilt az exportálás előtt",
+      "profileIncompleteDetail": "A bejelentéshez szükséges mezők (cégnév, cím, kapcsolattartó) hiányoznak."
     },
     "title": "EPR Kezelő",
     "wizard": {

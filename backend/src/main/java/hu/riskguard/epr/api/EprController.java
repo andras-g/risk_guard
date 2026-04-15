@@ -5,6 +5,11 @@ import hu.riskguard.core.security.TierRequired;
 import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.producer.api.dto.ProducerProfileResponse;
+import hu.riskguard.epr.producer.api.dto.ProducerProfileUpsertRequest;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
+import hu.riskguard.epr.report.EprReportArtifact;
+import hu.riskguard.epr.report.EprReportRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -35,6 +40,7 @@ import java.util.UUID;
 public class EprController {
 
     private final EprService eprService;
+    private final ProducerProfileService producerProfileService;
 
     /**
      * Create a new material template.
@@ -254,20 +260,87 @@ public class EprController {
     }
 
     /**
-     * Generate a MOHU-compliant CSV export for the completed EPR filing and download it.
-     * Logs the export in {@code epr_exports} with SHA-256 file hash.
+     * Tombstone endpoint — MOHU CSV export has been replaced by OKIRkapu XML export.
+     * Returns HTTP 410 Gone with a redirect hint.
      */
     @PostMapping("/filing/export")
-    public ResponseEntity<byte[]> exportMohu(
-            @Valid @RequestBody MohuExportRequest request,
+    public ResponseEntity<Map<String, String>> exportMohuGone() {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of(
+                        "code", "epr.export.csv.removed",
+                        "message", "MOHU CSV export has been replaced by OKIRkapu XML export",
+                        "replacement", "/api/v1/epr/filing/okirkapu-export"
+                ));
+    }
+
+    /**
+     * Generate OKIRkapu XML export for a quarter period.
+     * Validates producer profile completeness, tax number ownership, and period boundaries.
+     * Returns a ZIP file containing the XML and a summary text.
+     */
+    @PostMapping("/filing/okirkapu-export")
+    public ResponseEntity<byte[]> exportOkirkapu(
+            @Valid @RequestBody OkirkapuExportRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
-        byte[] csv = eprService.exportMohuCsv(request, tenantId);
-        String filename = "mohu-epr-" + java.time.LocalDate.now() + ".csv";
+        EprReportArtifact artifact = eprService.generateReport(
+                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()));
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_TYPE, "text/csv; charset=UTF-8")
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .body(csv);
+                .header(HttpHeaders.CONTENT_TYPE, "application/zip")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + artifact.filename() + "\"")
+                .body(artifact.bytes());
+    }
+
+    /**
+     * Preview OKIRkapu export: return provenance lines and summary without binary file.
+     * Useful for the frontend provenance panel before the user triggers the actual download.
+     */
+    @PostMapping("/filing/okirkapu-preview")
+    public ResponseEntity<OkirkapuPreviewResponse> previewOkirkapu(
+            @Valid @RequestBody OkirkapuExportRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        EprReportArtifact artifact = eprService.previewReport(
+                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()));
+        return ResponseEntity.ok(OkirkapuPreviewResponse.from(artifact));
+    }
+
+    // ─── Producer profile endpoints ──────────────────────────────────────────
+
+    /**
+     * Get the producer profile for the current tenant.
+     * Returns null fields if the profile is incomplete (so the frontend form can load empty).
+     * Requires SME_ADMIN role.
+     */
+    @GetMapping("/producer-profile")
+    public ResponseEntity<ProducerProfileResponse> getProducerProfile(
+            @AuthenticationPrincipal Jwt jwt) {
+        requireSmeAdminRole(jwt);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        return producerProfileService.getForDisplay(tenantId)
+                .map(p -> ResponseEntity.ok(ProducerProfileResponse.from(p)))
+                .orElse(ResponseEntity.ok().build());
+    }
+
+    /**
+     * Create or update the producer profile for the current tenant.
+     * Requires SME_ADMIN role.
+     */
+    @PutMapping("/producer-profile")
+    public ResponseEntity<ProducerProfileResponse> upsertProducerProfile(
+            @Valid @RequestBody ProducerProfileUpsertRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        requireSmeAdminRole(jwt);
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        return ResponseEntity.ok(
+                ProducerProfileResponse.from(producerProfileService.upsert(tenantId, request)));
+    }
+
+    // ─── Private helpers ─────────────────────────────────────────────────────
+
+    private void requireSmeAdminRole(Jwt jwt) {
+        JwtUtil.requireRole(jwt, "SME admin access required", "SME_ADMIN");
     }
 
 }

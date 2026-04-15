@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxb:bindings version="3.0"
+               xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb"
+               xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               schemaLocation="KG-KGYF-NE-v1.16.xsd">
+    <!-- Change KG_KGYF_NE_TERMEK_FORG.MENNYISEG from float to double to avoid precision loss
+         when reporting weights in kg (values can exceed float's ~7 significant digit limit) -->
+    <jaxb:bindings node="//xs:element[@name='KG_KGYF_NE_TERMEK_FORG']/xs:complexType/xs:sequence/xs:element[@name='MENNYISEG']">
+        <jaxb:property>
+            <jaxb:baseType>
+                <jaxb:javaType name="double"
+                               parseMethod="Double.parseDouble"
+                               printMethod="Double.toString"/>
+            </jaxb:baseType>
+        </jaxb:property>
+    </jaxb:bindings>
+</jaxb:bindings>

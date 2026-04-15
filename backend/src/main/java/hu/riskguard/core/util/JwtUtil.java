@@ -38,4 +38,19 @@ public final class JwtUtil {
                     "Invalid " + claimName + " claim in JWT: not a valid UUID");
         }
     }
+
+    /** JWT claim key used for the user's role across the application. */
+    public static final String ROLE_CLAIM = "role";
+
+    /**
+     * Verify the JWT's {@link #ROLE_CLAIM} matches one of the allowed roles.
+     * Throws {@code 403 Forbidden} otherwise.
+     */
+    public static void requireRole(Jwt jwt, String forbiddenMessage, String... allowedRoles) {
+        String role = jwt.getClaimAsString(ROLE_CLAIM);
+        for (String allowed : allowedRoles) {
+            if (allowed.equals(role)) return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, forbiddenMessage);
+    }
 }

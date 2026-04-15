@@ -1,0 +1,41 @@
+{
+  "settings": {
+    "producerProfile": {
+      "fields": {
+        "addressCity": "City",
+        "addressHouseNumber": "House Number",
+        "addressPostalCode": "Postal Code",
+        "addressStreetName": "Street Name",
+        "addressStreetType": "Street Type",
+        "companyRegistrationNumber": "Company Registration Number",
+        "contactCity": "Contact City",
+        "contactEmail": "Contact Email",
+        "contactName": "Contact Name",
+        "contactPhone": "Contact Phone",
+        "contactPostalCode": "Contact Postal Code",
+        "contactStreetName": "Contact Street Name",
+        "contactTitle": "Contact Title / Role",
+        "isConcessionaire": "Concessionaire",
+        "isIndividualPerformer": "Individual Performer",
+        "isManufacturer": "Manufacturer",
+        "isSubcontractor": "Subcontractor",
+        "kshStatisticalNumber": "KSH Statistical Number",
+        "legalName": "Legal Name",
+        "okirClientId": "OKIR Client ID (KUJ)"
+      },
+      "saveButton": "Save Profile",
+      "savedSuccess": "Producer profile saved successfully",
+      "saveError": "Failed to save profile",
+      "sections": {
+        "address": "Registered Address",
+        "contact": "Contact Person",
+        "identity": "Legal Identity",
+        "roles": "EPR Roles"
+      },
+      "title": "Producer Profile",
+      "validation": {
+        "kshPattern": "KSH number format: NNNNNNNN-TTTT-GGG-MM (e.g. 12345678-1234-123-01)"
+      }
+    }
+  }
+}

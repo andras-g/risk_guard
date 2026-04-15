@@ -5,8 +5,9 @@ import hu.riskguard.epr.domain.DagEngine;
 import hu.riskguard.epr.domain.EprConfigValidator;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.domain.FeeCalculator;
-import hu.riskguard.epr.domain.MohuExporter;
 import hu.riskguard.epr.internal.EprRepository;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
+import hu.riskguard.epr.report.EprReportTarget;
 import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
 import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -40,7 +42,7 @@ class EprServiceTest {
     private DagEngine dagEngine;
 
     @Mock
-    private MohuExporter mohuExporter;
+    private EprReportTarget reportTarget;
 
     @Mock
     private EprConfigValidator eprConfigValidator;
@@ -48,13 +50,19 @@ class EprServiceTest {
     @Mock
     private DataSourceService dataSourceService;
 
+    @Mock
+    private ProducerProfileService producerProfileService;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private EprService eprService;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), mohuExporter, eprConfigValidator, dataSourceService);
+        eprService = new EprService(eprRepository, dagEngine, new FeeCalculator(), eprConfigValidator, dataSourceService, reportTarget, producerProfileService, transactionManager);
     }
 
     @Test

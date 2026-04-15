@@ -1,0 +1,41 @@
+{
+  "settings": {
+    "producerProfile": {
+      "fields": {
+        "addressCity": "Város",
+        "addressHouseNumber": "Házszám",
+        "addressPostalCode": "Irányítószám",
+        "addressStreetName": "Utca neve",
+        "addressStreetType": "Közterület típusa",
+        "companyRegistrationNumber": "Cégjegyzékszám",
+        "contactCity": "Kapcsolattartó városa",
+        "contactEmail": "Kapcsolattartó e-mail",
+        "contactName": "Kapcsolattartó neve",
+        "contactPhone": "Kapcsolattartó telefonszáma",
+        "contactPostalCode": "Kapcsolattartó irányítószáma",
+        "contactStreetName": "Kapcsolattartó utcája",
+        "contactTitle": "Kapcsolattartó beosztása",
+        "isConcessionaire": "Koncesszor",
+        "isIndividualPerformer": "Egyéni teljesítő",
+        "isManufacturer": "Gyártó",
+        "isSubcontractor": "Alvállalkozó",
+        "kshStatisticalNumber": "KSH statisztikai szám",
+        "legalName": "Cégnév",
+        "okirClientId": "OKIR ügyfélszám (KUJ)"
+      },
+      "saveButton": "Profil mentése",
+      "savedSuccess": "Gyártói profil sikeresen mentve",
+      "saveError": "A profil mentése sikertelen",
+      "sections": {
+        "address": "Székhely cím",
+        "contact": "Kapcsolattartó",
+        "identity": "Jogi azonosítók",
+        "roles": "EPR szerepkörök"
+      },
+      "title": "Gyártói profil",
+      "validation": {
+        "kshPattern": "A KSH szám formátuma: NNNNNNNN-TTTT-GGG-MM (pl. 12345678-1234-123-01)"
+      }
+    }
+  }
+}

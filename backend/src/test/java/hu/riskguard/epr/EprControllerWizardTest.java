@@ -7,6 +7,7 @@ import hu.riskguard.core.security.TierGateInterceptor;
 import hu.riskguard.epr.api.EprController;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.EprService;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.identity.domain.IdentityService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -63,6 +64,9 @@ class EprControllerWizardTest {
     @Mock
     private IdentityService identityService;
 
+    @Mock
+    private ProducerProfileService producerProfileService;
+
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -117,7 +121,7 @@ class EprControllerWizardTest {
     void setUp() {
         TierGateInterceptor interceptor = new TierGateInterceptor(identityService);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new EprController(eprService))
+                .standaloneSetup(new EprController(eprService, producerProfileService))
                 .addFilters(new SecurityContextFilter())
                 .addInterceptors(interceptor)
                 .setControllerAdvice(new TierGateExceptionHandler())

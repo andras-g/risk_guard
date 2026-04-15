@@ -1,0 +1,1090 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+# OKIR adatszolgáltatás KG_KGYF_NE XSD séma 
+-->
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="KG_KGYF_NE_ACS">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="ADATCSOMAG">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="LETREHOZVA" type="xs:dateTime"/>
+              <xs:element name="KUJ" type="xs:int"/>
+              <xs:element name="EV" type="xs:int"/>
+              <xs:element name="NE" type="xs:int"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="UGYFEL_NEVE">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Megnevezés</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_ORSZAG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Ország</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_TELEPULES">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Település</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_IRSZAM">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_UTCA">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_KOZTERULET_TIPUS" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZEKHELY_HAZSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ADOSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Adószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="13"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ADOAZONOSITO" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Adóazonosító jel</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="10"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="NEMZETKOZI_ADOSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közösségi/nemzetközi adószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="30"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KSH_TORZSSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Törzsszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="8"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KSH_TEAOR_KOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Szakágazati kód (TEÁOR)</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="4"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KSH_GAZDFORMA_KOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Gazdálkodási forma kód (GFO)</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KSH_MEGYE_KOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Területi (megye) kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_SZEMELY_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Természetes személy?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_NEVE" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Megnevezés</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_IRSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="4"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TELEPULESKOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Település</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="5"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_UTCA" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_KOZTERTIPUS" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_HAZSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_ADOSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Adószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="13"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_NEVE" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Viselt név</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_IRSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="4"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_TELEPULESKOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Település</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="5"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_UTCA" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_KOZTERTIPUS" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_HAZSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_SZULETESI_NEV" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Születési név</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_SZULETESI_HELY" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Születési hely</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_SZULETESI_IDO" type="xs:date" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Születési dátum</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ANYJA_NEVE" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Anyja neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ERT_IRSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="4"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ERT_TELEPULESKOD" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Település</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="5"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ERT_UTCA" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ERT_KOZTERTIPUS" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ERT_HAZSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_EMAIL" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">E-mail cím</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGH_TSZ_ADOSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Adószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="13"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_NEV">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Név</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_BEOSZTAS">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Beosztás</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_ORSZAG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Ország</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="3"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_IRSZAM">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_TELEPULES">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Település</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_UTCA">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_KOZTERTIPUS" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_HAZSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="20"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_TELEFON">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Telefon</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="50"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KAPCSTARTO_EMAIL">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">E-mail cím</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="100"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="GYARTO_10">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Besorolás</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="EGYENI_TELJESITO_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ALVALLALKOZO_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KONCESSZOR_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="NULLAS_JELENTES_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MEGFELEL_VALOSAGNAK_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="FIZETESI_KOTELEZETTSEG_10">
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="SZAMLASZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Számla sorszáma</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="10"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="UGYSZAM" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Ügyszám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="25"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE_TERMEK_FORG" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="KF_TERMEKARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Termékáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_ANYAGARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Anyagáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_CSOPORT_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Csoport kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_KOTELEZETTSEG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Kötelezettség kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_SZARMAZAS_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Származás kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG" type="xs:float">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Mennyiség</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="PALACK_DOBOZ_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Palack vagy doboz?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="PALACK_DOBOZ_DB" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Palackok vagy dobozok száma</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="0"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KG_KGYF_NE_TERMEK_VEVO" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="VEVO_ADOSZAMA" minOccurs="0">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Vevő adószáma</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:maxLength value="13"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="VEVO_ADOAZONOSITO" minOccurs="0">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Vevő adóazonosítója</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:maxLength value="10"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="VEVO_NEVE">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Vevő  neve</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="100"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="ORSZAG_KOD">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Ország</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="3"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="TELEPULES">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Település</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="100"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="IRSZAM">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Irányítószám</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="20"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="UTCA">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Közterület neve</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="100"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="KOZTERULET_TIPUS" minOccurs="0">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Közterület típusa</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:maxLength value="20"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="HAZSZAM" minOccurs="0">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="hu">Házszám</xs:documentation>
+                      </xs:annotation>
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:maxLength value="20"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE_TERMEK_VISSZA" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="KF_TERMEKARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Termékáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_ANYAGARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Anyagáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_CSOPORT_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Csoport kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_KOTELEZETTSEG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Kötelezettség kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_SZARMAZAS_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Származás kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Mennyiség</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:float">
+                    <xs:minInclusive value="0.001"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG_DB" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Visszavett termék</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="0"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE_BORASZAT" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="KATEGORIA_KOD" type="xs:int">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Kategória kód</xs:documentation>
+                </xs:annotation>
+              </xs:element>
+              <xs:element name="MENNYISEG">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Üvegcsomagolás mennyisége</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KULFOLDRE_SZALLITVA_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Üvegcsomagolást külföldre szállították?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="UJRA_CSOMAGOLOSZER_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Üvegcsomagolás többedik forgalmazása?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="VISSZAVALTASI_DIJAS_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Kötelezően visszaváltási díjas termék?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="ELSO_FORG_HOZATAL_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Üvegcsomagolás első alkalommal kerül forgalomba hozatalra?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KGYF_DIJ_MEGFIZETVE_10" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Újrahasználható üvegcsomagolás kiterjesztett gyártói felelősségi díja már megfizetésre került?</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:enumeration value="0"/>
+                    <xs:enumeration value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG_KG" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Visszaváltási díjas üvegcsomagolás (kg)</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:float">
+                    <xs:minInclusive value="0.001"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE_KEZELES" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="KF_TERMEKARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Termékáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_ANYAGARAM_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Anyagáram kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_CSOPORT_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Csoport kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="2"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_KOTELEZETTSEG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Kötelezettség kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="KF_SZARMAZAS_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Származás kód</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Mennyiség</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:float">
+                    <xs:minInclusive value="0.001"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG_DB" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Visszavett hulladék</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="0"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="KG_KGYF_NE_ITALTERMEK" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="MEGNEVEZES">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Italtermék megnevezése</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="50"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="GTIN" minOccurs="0">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">GTIN szám</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:maxLength value="13"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="CSOM_ANYAG_KOD">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Csomagolás anyaga</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:string">
+                    <xs:minLength value="1"/>
+                    <xs:maxLength value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+              <xs:element name="MENNYISEG">
+                <xs:annotation>
+                  <xs:documentation xml:lang="hu">Forgalomba hozott mennyiség</xs:documentation>
+                </xs:annotation>
+                <xs:simpleType>
+                  <xs:restriction base="xs:int">
+                    <xs:minInclusive value="1"/>
+                  </xs:restriction>
+                </xs:simpleType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
