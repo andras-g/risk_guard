@@ -134,10 +134,10 @@
       }
     },
     "okirkapu": {
-      "exportButton": "OKIRkapu XML exportálása",
+      "exportButton": "Negyedéves EPR bevallás letöltése (OKIRkapu XML)",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "ZIP generálása...",
-      "exportTitle": "OKIRkapu KG:KGYF-NÉ XML Export",
+      "exportTitle": "Negyedéves EPR bevallás – OKIRkapu beküldéshez",
       "openSettings": "Beállítások megnyitása",
       "panelTitle": "OKIRkapu XML Export",
       "preview": {

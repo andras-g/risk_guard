@@ -740,3 +740,541 @@ INSERT INTO nav_tenant_credentials (
     '55667788'
 )
 ON CONFLICT (tenant_id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 13: Producer Profiles (Story 9.4 — OKIRkapu XML identity block)
+-- =============================================================================
+-- One profile per PRO_EPR tenant. Complete legal/address/contact/KSH/OKIR fields
+-- so ProducerProfileService.get() returns without 412 PRECONDITION_FAILED and the
+-- OKIRkapu XML export marshaller can populate every KG:KGYF-NÉ identity element.
+INSERT INTO producer_profiles (
+    id, tenant_id, legal_name,
+    address_country_code, address_postal_code, address_city, address_street_name, address_street_type, address_house_number,
+    ksh_statistical_number, company_registration_number,
+    contact_name, contact_title, contact_country_code, contact_postal_code, contact_city, contact_street_name,
+    contact_phone, contact_email,
+    okir_client_id,
+    is_manufacturer, is_individual_performer, is_subcontractor, is_concessionaire,
+    created_at, updated_at
+) VALUES
+-- demo@riskguard.hu — Bemutató Kereskedelmi Kft.
+(
+    '00000000-0000-4000-f000-000000000001',
+    '00000000-0000-4000-b000-000000000001',
+    'Bemutató Kereskedelmi Kft.',
+    'HU', '1062', 'Budapest', 'Andrássy', 'út', '42',
+    '12345678-4690-113-01', '01-09-123456',
+    'Demo Felhasználó', 'Ügyvezető', 'HU', '1062', 'Budapest', 'Andrássy út 42.',
+    '+36-1-555-0101', 'demo@riskguard.hu',
+    1234567,
+    true, true, false, false,
+    now() - INTERVAL '45 days', now() - INTERVAL '5 days'
+),
+-- Zöld Élelmiszer Kft. (accountant client 1)
+(
+    '00000000-0000-4000-f000-000000000002',
+    '00000000-0000-4000-b000-000000000020',
+    'Zöld Élelmiszer Kft.',
+    'HU', '2000', 'Szentendre', 'Fő', 'tér', '7',
+    '99887766-1032-113-13', '13-09-556677',
+    'Kiss Edit', 'Pénzügyi vezető', 'HU', '2000', 'Szentendre', 'Fő tér 7.',
+    '+36-26-555-0120', 'penzugy@zoldelelmiszer.hu',
+    2345678,
+    true, true, false, false,
+    now() - INTERVAL '90 days', now() - INTERVAL '10 days'
+),
+-- Prémium Bútor Zrt. (accountant client 2)
+(
+    '00000000-0000-4000-f000-000000000003',
+    '00000000-0000-4000-b000-000000000021',
+    'Prémium Bútor Zrt.',
+    'HU', '6000', 'Kecskemét', 'Ipari', 'út', '15',
+    '55667788-3101-114-03', '03-10-998877',
+    'Nagy Tamás', 'Logisztikai igazgató', 'HU', '6000', 'Kecskemét', 'Ipari út 15.',
+    '+36-76-555-0133', 'logisztika@premiumbutor.hu',
+    3456789,
+    true, false, true, false,
+    now() - INTERVAL '59 days', now() - INTERVAL '3 days'
+)
+ON CONFLICT (tenant_id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 14: Product-Packaging Registry (Story 9.1 — products + components)
+-- =============================================================================
+-- UUID scheme: f000-1xxx = Bemutató, f000-2xxx = Zöld, f000-3xxx = Prémium
+-- VTSZ codes for Bemutató (tenant b000-001) intentionally align with DemoInvoiceFixtures
+-- trade company lines (39233000 PET, 48191000 karton, 73181500 csavar) so invoice-driven
+-- registry lookup returns matches on filing autofill.
+INSERT INTO products (
+    id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at
+) VALUES
+-- Bemutató Kereskedelmi — 5 products (3 ACTIVE, 1 DRAFT, 1 ARCHIVED)
+(
+    '00000000-0000-4000-f000-000000001001',
+    '00000000-0000-4000-b000-000000000001',
+    'PKK-PET-050', 'PET palack 0,5L (saját márka)', '39233000', 'db', 'ACTIVE',
+    now() - INTERVAL '40 days', now() - INTERVAL '5 days'
+),
+(
+    '00000000-0000-4000-f000-000000001002',
+    '00000000-0000-4000-b000-000000000001',
+    'PKK-BOX-403020', 'Kartondoboz 40x30x20', '48191000', 'db', 'ACTIVE',
+    now() - INTERVAL '38 days', now() - INTERVAL '4 days'
+),
+(
+    '00000000-0000-4000-f000-000000001003',
+    '00000000-0000-4000-b000-000000000001',
+    'PKK-CSV-M6', 'Csavarkészlet M6x30 (100db/doboz)', '73181500', 'db', 'ACTIVE',
+    now() - INTERVAL '35 days', now() - INTERVAL '7 days'
+),
+(
+    '00000000-0000-4000-f000-000000001004',
+    '00000000-0000-4000-b000-000000000001',
+    'PKK-PET-150', 'PET palack 1,5L (új termék — véglegesítés alatt)', '39233000', 'db', 'DRAFT',
+    now() - INTERVAL '6 days', now() - INTERVAL '2 days'
+),
+(
+    '00000000-0000-4000-f000-000000001005',
+    '00000000-0000-4000-b000-000000000001',
+    'PKK-ALU-033', 'Alumínium doboz 0,33L (kivezetve)', '76129000', 'db', 'ARCHIVED',
+    now() - INTERVAL '200 days', now() - INTERVAL '60 days'
+),
+-- Zöld Élelmiszer — 4 products
+(
+    '00000000-0000-4000-f000-000000002001',
+    '00000000-0000-4000-b000-000000000020',
+    'ZE-JAR-720', 'Savanyú uborka üveg 720ml', '20019085', 'db', 'ACTIVE',
+    now() - INTERVAL '70 days', now() - INTERVAL '12 days'
+),
+(
+    '00000000-0000-4000-f000-000000002002',
+    '00000000-0000-4000-b000-000000000020',
+    'ZE-CTN-1L', 'Tejfölös karton 1L (összetett csomagolás)', '48191000', 'db', 'ACTIVE',
+    now() - INTERVAL '60 days', now() - INTERVAL '8 days'
+),
+(
+    '00000000-0000-4000-f000-000000002003',
+    '00000000-0000-4000-b000-000000000020',
+    'ZE-CAN-400', 'Zöldség konzerv fémdoboz 400g', '20059900', 'db', 'ACTIVE',
+    now() - INTERVAL '55 days', now() - INTERVAL '15 days'
+),
+(
+    '00000000-0000-4000-f000-000000002004',
+    '00000000-0000-4000-b000-000000000020',
+    'ZE-PET-050', 'PET palack 0,5L ásványvíz', '39233000', 'db', 'ACTIVE',
+    now() - INTERVAL '50 days', now() - INTERVAL '4 days'
+),
+-- Prémium Bútor — 3 products (2 ACTIVE, 1 DRAFT)
+(
+    '00000000-0000-4000-f000-000000003001',
+    '00000000-0000-4000-b000-000000000021',
+    'PB-CHAIR-SHIP', 'Étkezőszék szállítódoboz', '48191000', 'db', 'ACTIVE',
+    now() - INTERVAL '45 days', now() - INTERVAL '5 days'
+),
+(
+    '00000000-0000-4000-f000-000000003002',
+    '00000000-0000-4000-b000-000000000021',
+    'PB-PALLET-EUR', 'Komód raklap (EUR)', '44152000', 'db', 'ACTIVE',
+    now() - INTERVAL '40 days', now() - INTERVAL '10 days'
+),
+(
+    '00000000-0000-4000-f000-000000003003',
+    '00000000-0000-4000-b000-000000000021',
+    'PB-SOFA-WRAP', 'Sezlon csomagolás (kidolgozás alatt)', '39269097', 'db', 'DRAFT',
+    now() - INTERVAL '4 days', now() - INTERVAL '4 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Packaging components for the ACTIVE products above.
+-- Weights in kg. kf_code must be 8 digits matching kf_codes reference seed.
+INSERT INTO product_packaging_components (
+    id, product_id, material_description, kf_code, weight_per_unit_kg,
+    component_order, recyclability_grade, recycled_content_pct, reusable, supplier_declaration_ref,
+    created_at, updated_at
+) VALUES
+-- PKK PET palack 0,5L: 1 component (PET body)
+(
+    '00000000-0000-4000-f000-000000001101',
+    '00000000-0000-4000-f000-000000001001',
+    'PET palack test', '11010101', 0.025000, 0, 'A', 30.00, false, 'SUP-PET-2026-001',
+    now() - INTERVAL '40 days', now() - INTERVAL '5 days'
+),
+-- PKK Kartondoboz: 1 component (corrugated cardboard)
+(
+    '00000000-0000-4000-f000-000000001201',
+    '00000000-0000-4000-f000-000000001002',
+    'Hullámpapír lap (3-rétegű)', '41010201', 0.350000, 0, 'A', 75.00, false, 'SUP-KART-2026-003',
+    now() - INTERVAL '38 days', now() - INTERVAL '4 days'
+),
+-- PKK Csavarkészlet: 2 components (steel mass + cardboard packaging)
+(
+    '00000000-0000-4000-f000-000000001301',
+    '00000000-0000-4000-f000-000000001003',
+    'Acél csavar tömeg (M6x30 × 100db)', '31010101', 0.600000, 0, 'B', 0.00, false, NULL,
+    now() - INTERVAL '35 days', now() - INTERVAL '7 days'
+),
+(
+    '00000000-0000-4000-f000-000000001302',
+    '00000000-0000-4000-f000-000000001003',
+    'Kisdoboz karton', '41010201', 0.050000, 1, 'A', 60.00, false, 'SUP-KART-2026-003',
+    now() - INTERVAL '35 days', now() - INTERVAL '7 days'
+),
+-- Zöld Élelmiszer — uborkás üveg: 3 components
+(
+    '00000000-0000-4000-f000-000000002101',
+    '00000000-0000-4000-f000-000000002001',
+    'Üveg (átlátszó)', '21010101', 0.300000, 0, 'A', 40.00, true, 'SUP-UVEG-2026-007',
+    now() - INTERVAL '70 days', now() - INTERVAL '12 days'
+),
+(
+    '00000000-0000-4000-f000-000000002102',
+    '00000000-0000-4000-f000-000000002001',
+    'Fém csavaros kupak', '31010101', 0.012000, 1, 'B', 20.00, false, NULL,
+    now() - INTERVAL '70 days', now() - INTERVAL '12 days'
+),
+(
+    '00000000-0000-4000-f000-000000002103',
+    '00000000-0000-4000-f000-000000002001',
+    'Papír címke', '41010101', 0.002000, 2, 'A', 80.00, false, NULL,
+    now() - INTERVAL '70 days', now() - INTERVAL '12 days'
+),
+-- Zöld Élelmiszer — tejfölös karton (Tetra Pak-szerű többrétegű)
+(
+    '00000000-0000-4000-f000-000000002201',
+    '00000000-0000-4000-f000-000000002002',
+    'Többrétegű kompozit doboz (papír+PE+alu)', '71010101', 0.025000, 0, 'C', 15.00, false, 'SUP-TETRA-2026-001',
+    now() - INTERVAL '60 days', now() - INTERVAL '8 days'
+),
+-- Zöld Élelmiszer — fémdoboz
+(
+    '00000000-0000-4000-f000-000000002301',
+    '00000000-0000-4000-f000-000000002003',
+    'Acél konzervdoboz', '31010101', 0.060000, 0, 'A', 50.00, false, NULL,
+    now() - INTERVAL '55 days', now() - INTERVAL '15 days'
+),
+(
+    '00000000-0000-4000-f000-000000002302',
+    '00000000-0000-4000-f000-000000002003',
+    'Papír címke', '41010101', 0.001500, 1, 'A', 80.00, false, NULL,
+    now() - INTERVAL '55 days', now() - INTERVAL '15 days'
+),
+-- Zöld Élelmiszer — PET ásványvíz
+(
+    '00000000-0000-4000-f000-000000002401',
+    '00000000-0000-4000-f000-000000002004',
+    'PET palack test', '11010101', 0.025000, 0, 'A', 30.00, false, 'SUP-PET-2026-004',
+    now() - INTERVAL '50 days', now() - INTERVAL '4 days'
+),
+(
+    '00000000-0000-4000-f000-000000002402',
+    '00000000-0000-4000-f000-000000002004',
+    'Műanyag kupak (HDPE)', '11010201', 0.003500, 1, 'A', 25.00, false, NULL,
+    now() - INTERVAL '50 days', now() - INTERVAL '4 days'
+),
+-- Prémium Bútor — étkezőszék szállítódoboz (3 komponens)
+(
+    '00000000-0000-4000-f000-000000003101',
+    '00000000-0000-4000-f000-000000003001',
+    'Hullámpapír doboz (5-rétegű)', '41010201', 1.200000, 0, 'A', 70.00, false, 'SUP-KART-2026-010',
+    now() - INTERVAL '45 days', now() - INTERVAL '5 days'
+),
+(
+    '00000000-0000-4000-f000-000000003102',
+    '00000000-0000-4000-f000-000000003001',
+    'EPS (polisztirol hab) sarokvédő', '11010601', 0.150000, 1, 'D', 0.00, false, NULL,
+    now() - INTERVAL '45 days', now() - INTERVAL '5 days'
+),
+(
+    '00000000-0000-4000-f000-000000003103',
+    '00000000-0000-4000-f000-000000003001',
+    'LDPE stretchfólia', '11010301', 0.080000, 2, 'B', 10.00, false, NULL,
+    now() - INTERVAL '45 days', now() - INTERVAL '5 days'
+),
+-- Prémium Bútor — komód raklap
+(
+    '00000000-0000-4000-f000-000000003201',
+    '00000000-0000-4000-f000-000000003002',
+    'EUR-raklap fa', '51010101', 25.000000, 0, 'A', 0.00, true, 'SUP-EUR-2026-002',
+    now() - INTERVAL '40 days', now() - INTERVAL '10 days'
+),
+(
+    '00000000-0000-4000-f000-000000003202',
+    '00000000-0000-4000-f000-000000003002',
+    'Acél szög', '31010101', 0.200000, 1, 'B', 0.00, false, NULL,
+    now() - INTERVAL '40 days', now() - INTERVAL '10 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 15: Registry Bootstrap Candidates (Story 9.2 — NAV-invoice triage)
+-- =============================================================================
+-- Mix of statuses showing both classified (APPROVED → linked to product) and
+-- unclassified (PENDING / REJECTED_NOT_OWN_PACKAGING / NEEDS_MANUAL_ENTRY) paths.
+INSERT INTO registry_bootstrap_candidates (
+    id, tenant_id, product_name, vtsz, frequency, total_quantity, unit_of_measure,
+    status, suggested_kf_code, suggested_components, classification_strategy, classification_confidence,
+    resulting_product_id, created_at, updated_at
+) VALUES
+-- Bemutató — PENDING (AI suggested, awaiting human confirm)
+(
+    '00000000-0000-4000-f000-000000004001',
+    '00000000-0000-4000-b000-000000000001',
+    'Ragasztószalag (széles, barna)', '39199080', 8, 1600.000, 'db',
+    'PENDING', '11020101',
+    '[{"material":"Akril ragasztó PP hordozón","kfCode":"11020101","weightPerUnitKg":0.045}]'::jsonb,
+    'LLM_GEMINI', 'MEDIUM',
+    NULL, now() - INTERVAL '3 days', now() - INTERVAL '3 days'
+),
+(
+    '00000000-0000-4000-f000-000000004002',
+    '00000000-0000-4000-b000-000000000001',
+    'Műanyag raklap-fólia (stretch)', '39232100', 12, 48.000, 'tekercs',
+    'PENDING', '11010301',
+    '[{"material":"LDPE stretchfólia","kfCode":"11010301","weightPerUnitKg":2.500}]'::jsonb,
+    'VTSZ_PREFIX', 'HIGH',
+    NULL, now() - INTERVAL '2 days', now() - INTERVAL '2 days'
+),
+-- Bemutató — APPROVED (linked to existing registered product PKK-CSV-M6)
+(
+    '00000000-0000-4000-f000-000000004003',
+    '00000000-0000-4000-b000-000000000001',
+    'Csavar M6x30 (100db)', '73181500', 35, 1750.000, 'db',
+    'APPROVED', '31010101',
+    '[{"material":"Acél csavar tömeg","kfCode":"31010101","weightPerUnitKg":0.600},{"material":"Kisdoboz karton","kfCode":"41010201","weightPerUnitKg":0.050}]'::jsonb,
+    'MANUAL', 'HIGH',
+    '00000000-0000-4000-f000-000000001003',
+    now() - INTERVAL '35 days', now() - INTERVAL '30 days'
+),
+-- Bemutató — REJECTED (IT services, not a packaged good)
+(
+    '00000000-0000-4000-f000-000000004004',
+    '00000000-0000-4000-b000-000000000001',
+    'IT tanácsadás (óradíjas)', '62020000', 14, 560.000, 'óra',
+    'REJECTED_NOT_OWN_PACKAGING', NULL, NULL,
+    'MANUAL', NULL,
+    NULL, now() - INTERVAL '20 days', now() - INTERVAL '20 days'
+),
+-- Bemutató — NEEDS_MANUAL_ENTRY (classifier confidence too low)
+(
+    '00000000-0000-4000-f000-000000004005',
+    '00000000-0000-4000-b000-000000000001',
+    'Egyedi fém alkatrész (Art. X-42)', NULL, 3, 15.000, 'db',
+    'NEEDS_MANUAL_ENTRY', NULL, NULL,
+    'LLM_GEMINI', 'LOW',
+    NULL, now() - INTERVAL '1 days', now() - INTERVAL '1 days'
+),
+-- Zöld Élelmiszer — PENDING
+(
+    '00000000-0000-4000-f000-000000004101',
+    '00000000-0000-4000-b000-000000000020',
+    'Mirelit zöldség zacskó (500g)', '39232990', 7, 2100.000, 'db',
+    'PENDING', '11010301',
+    '[{"material":"LDPE fólia zacskó","kfCode":"11010301","weightPerUnitKg":0.012}]'::jsonb,
+    'LLM_GEMINI', 'HIGH',
+    NULL, now() - INTERVAL '4 days', now() - INTERVAL '4 days'
+),
+-- Zöld Élelmiszer — APPROVED (linked to ZE-PET-050)
+(
+    '00000000-0000-4000-f000-000000004102',
+    '00000000-0000-4000-b000-000000000020',
+    'PET palack 2L ásványvíz', '39233000', 22, 880.000, 'db',
+    'APPROVED', '11010101',
+    '[{"material":"PET palack test","kfCode":"11010101","weightPerUnitKg":0.040}]'::jsonb,
+    'AI_SUGGESTED_CONFIRMED', 'HIGH',
+    '00000000-0000-4000-f000-000000002004',
+    now() - INTERVAL '50 days', now() - INTERVAL '45 days'
+),
+-- Prémium Bútor — PENDING
+(
+    '00000000-0000-4000-f000-000000004201',
+    '00000000-0000-4000-b000-000000000021',
+    'Buborékfólia (1,5m)', '39211900', 9, 270.000, 'tekercs',
+    'PENDING', '11010301',
+    '[{"material":"LDPE buborékfólia","kfCode":"11010301","weightPerUnitKg":0.450}]'::jsonb,
+    'VTSZ_PREFIX', 'MEDIUM',
+    NULL, now() - INTERVAL '6 days', now() - INTERVAL '6 days'
+)
+ON CONFLICT (tenant_id, product_name, COALESCE(vtsz, '')) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 16: Registry Audit Log (Story 9.1/9.3 — classification provenance)
+-- =============================================================================
+-- Mix of MANUAL, AI_SUGGESTED_CONFIRMED, VTSZ_FALLBACK, NAV_BOOTSTRAP sources.
+-- Shows classification history on demo products for "Provenance" UI demos.
+INSERT INTO registry_entry_audit_log (
+    id, product_id, tenant_id, field_changed, old_value, new_value,
+    changed_by_user_id, source, strategy, model_version, timestamp
+) VALUES
+-- Bemutató PET palack: initial NAV bootstrap → manual weight correction
+(
+    '00000000-0000-4000-f000-000000005001',
+    '00000000-0000-4000-f000-000000001001',
+    '00000000-0000-4000-b000-000000000001',
+    'kf_code', NULL, '11010101',
+    NULL, 'NAV_BOOTSTRAP', 'VTSZ_PREFIX', NULL,
+    now() - INTERVAL '40 days'
+),
+(
+    '00000000-0000-4000-f000-000000005002',
+    '00000000-0000-4000-f000-000000001001',
+    '00000000-0000-4000-b000-000000000001',
+    'weight_per_unit_kg', '0.024000', '0.025000',
+    '00000000-0000-4000-b000-000000000002', 'MANUAL', NULL, NULL,
+    now() - INTERVAL '25 days'
+),
+-- Bemutató kartondoboz: AI-confirmed classification
+(
+    '00000000-0000-4000-f000-000000005003',
+    '00000000-0000-4000-f000-000000001002',
+    '00000000-0000-4000-b000-000000000001',
+    'kf_code', NULL, '41010201',
+    '00000000-0000-4000-b000-000000000002', 'AI_SUGGESTED_CONFIRMED', 'LLM_GEMINI', 'gemini-2.5-flash',
+    now() - INTERVAL '38 days'
+),
+-- Bemutató csavarkészlet: manual rename
+(
+    '00000000-0000-4000-f000-000000005004',
+    '00000000-0000-4000-f000-000000001003',
+    '00000000-0000-4000-b000-000000000001',
+    'name', 'Csavar M6x30', 'Csavarkészlet M6x30 (100db/doboz)',
+    '00000000-0000-4000-b000-000000000002', 'MANUAL', NULL, NULL,
+    now() - INTERVAL '20 days'
+),
+-- Zöld uborkás üveg: VTSZ fallback classification
+(
+    '00000000-0000-4000-f000-000000005005',
+    '00000000-0000-4000-f000-000000002001',
+    '00000000-0000-4000-b000-000000000020',
+    'kf_code', NULL, '21010101',
+    NULL, 'VTSZ_FALLBACK', 'VTSZ_PREFIX', NULL,
+    now() - INTERVAL '70 days'
+),
+-- Zöld tejfölös karton: AI-edited (classifier suggested 41010201, user chose 71010101 composite)
+(
+    '00000000-0000-4000-f000-000000005006',
+    '00000000-0000-4000-f000-000000002002',
+    '00000000-0000-4000-b000-000000000020',
+    'kf_code', '41010201', '71010101',
+    '00000000-0000-4000-b000-000000000011', 'AI_SUGGESTED_EDITED', 'LLM_GEMINI', 'gemini-2.5-flash',
+    now() - INTERVAL '60 days'
+),
+-- Prémium szállítódoboz: NAV bootstrap then PPWR enrichment
+(
+    '00000000-0000-4000-f000-000000005007',
+    '00000000-0000-4000-f000-000000003001',
+    '00000000-0000-4000-b000-000000000021',
+    'kf_code', NULL, '41010201',
+    NULL, 'NAV_BOOTSTRAP', 'VTSZ_PREFIX', NULL,
+    now() - INTERVAL '45 days'
+),
+(
+    '00000000-0000-4000-f000-000000005008',
+    '00000000-0000-4000-f000-000000003001',
+    '00000000-0000-4000-b000-000000000021',
+    'recycled_content_pct', NULL, '70.00',
+    '00000000-0000-4000-b000-000000000011', 'MANUAL', NULL, NULL,
+    now() - INTERVAL '30 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 17: AI Classifier Usage (Story 9.3 — monthly cap meter)
+-- =============================================================================
+-- Current-month partial consumption so admin UI shows a non-zero progress bar.
+-- year_month is computed from now() so the seed stays fresh across calendar rollovers.
+INSERT INTO ai_classifier_usage (id, tenant_id, year_month, call_count, updated_at) VALUES
+(
+    '00000000-0000-4000-f000-000000006001',
+    '00000000-0000-4000-b000-000000000001',
+    to_char(now(), 'YYYY-MM'), 87,
+    now() - INTERVAL '2 hours'
+),
+(
+    '00000000-0000-4000-f000-000000006002',
+    '00000000-0000-4000-b000-000000000020',
+    to_char(now(), 'YYYY-MM'), 142,
+    now() - INTERVAL '6 hours'
+),
+(
+    '00000000-0000-4000-f000-000000006003',
+    '00000000-0000-4000-b000-000000000021',
+    to_char(now(), 'YYYY-MM'), 34,
+    now() - INTERVAL '1 day'
+)
+ON CONFLICT (tenant_id, year_month) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 18: OKIRkapu XML Exports (Story 9.4 — filing history)
+-- =============================================================================
+-- Adds OKIRKAPU_XML-format epr_exports for each PRO_EPR tenant so the filing history
+-- page shows multi-format history (CSV from Section 7 + XML below).
+-- Relies on V20260416_001 extending the export_format_type enum to include OKIRKAPU_XML.
+-- period_start / period_end cover Q1 of the previous year — matching demo calculations.
+INSERT INTO epr_exports (
+    id, tenant_id, calculation_id, config_version, export_format, file_hash,
+    period_start, period_end, exported_at
+) VALUES
+-- Bemutató Kereskedelmi — XML for Q1
+(
+    '00000000-0000-4000-f000-000000007001',
+    '00000000-0000-4000-b000-000000000001',
+    '00000000-0000-4000-c000-000000000041',
+    1, 'OKIRKAPU_XML',
+    'e1d2c3b4a5f6e1d2c3b4a5f6e1d2c3b4a5f6e1d2c3b4a5f6e1d2c3b4a5f6e1d2',
+    date_trunc('quarter', now() - INTERVAL '3 months')::date,
+    (date_trunc('quarter', now()) - INTERVAL '1 day')::date,
+    now() - INTERVAL '5 days'
+),
+-- Zöld Élelmiszer — XML for Q1
+(
+    '00000000-0000-4000-f000-000000007002',
+    '00000000-0000-4000-b000-000000000020',
+    '00000000-0000-4000-d000-000000000041',
+    1, 'OKIRKAPU_XML',
+    'a9b8c7d6e5f4a9b8c7d6e5f4a9b8c7d6e5f4a9b8c7d6e5f4a9b8c7d6e5f4a9b8',
+    date_trunc('quarter', now() - INTERVAL '3 months')::date,
+    (date_trunc('quarter', now()) - INTERVAL '1 day')::date,
+    now() - INTERVAL '6 days'
+),
+-- Prémium Bútor — XML for Q1
+(
+    '00000000-0000-4000-f000-000000007003',
+    '00000000-0000-4000-b000-000000000021',
+    '00000000-0000-4000-d000-000000000091',
+    1, 'OKIRKAPU_XML',
+    'b8c7d6e5f4a3b8c7d6e5f4a3b8c7d6e5f4a3b8c7d6e5f4a3b8c7d6e5f4a3b8c7',
+    date_trunc('quarter', now() - INTERVAL '3 months')::date,
+    (date_trunc('quarter', now()) - INTERVAL '1 day')::date,
+    now() - INTERVAL '7 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 19: VTSZ-aligned EPR templates for Demo Felhasználó (Pre-fill match)
+-- =============================================================================
+-- Templates whose `name` matches the materialName_hu from V20260403_001 vtszMappings —
+-- this is what EprService.autoFillFromInvoices() uses for the "template matched" badge.
+-- Without these, Bemutató Kereskedelmi's invoice lines (VTSZ 39233000, 48191000, 73181500)
+-- would return suggestions with `hasExistingTemplate=false` for every row.
+INSERT INTO epr_material_templates (
+    id, tenant_id, name, base_weight_grams, kf_code, verified, recurring, created_at, updated_at
+) VALUES
+(
+    '00000000-0000-4000-f000-000000008001',
+    '00000000-0000-4000-b000-000000000001',
+    'PET csomagolás', 25.0, '11020101', true, true,
+    now() - INTERVAL '40 days', now() - INTERVAL '40 days'
+),
+(
+    '00000000-0000-4000-f000-000000008002',
+    '00000000-0000-4000-b000-000000000001',
+    'Karton csomagolás', 350.0, '11010101', true, true,
+    now() - INTERVAL '38 days', now() - INTERVAL '38 days'
+),
+(
+    '00000000-0000-4000-f000-000000008003',
+    '00000000-0000-4000-b000-000000000001',
+    'Acél csavar/kötőelem', 600.0, '91010101', true, true,
+    now() - INTERVAL '35 days', now() - INTERVAL '35 days'
+)
+ON CONFLICT (id) DO NOTHING;

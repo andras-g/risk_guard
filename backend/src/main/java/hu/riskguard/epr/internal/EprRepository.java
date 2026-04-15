@@ -347,9 +347,11 @@ public class EprRepository extends BaseRepository {
      * Insert a row into {@code epr_exports} recording a completed OKIRkapu XML export.
      * {@code calculation_id} is null for period-based exports.
      *
-     * <p>Uses raw SQL because the export_format column is VARCHAR(50) and
-     * OKIRKAPU_XML is not (yet) in the jOOQ-generated {@code ExportFormatType} enum.
-     * The column accepts any string value; the enum binding is just a jOOQ convenience.
+     * <p>The {@code export_format} column is the {@code export_format_type} PostgreSQL ENUM
+     * (V20260323_004), extended with {@code 'OKIRKAPU_XML'} in V20260416_001. PostgreSQL will
+     * not implicitly coerce {@code varchar} to the enum, so the placeholder is cast explicitly.
+     * Raw SQL is used because the jOOQ-generated {@code ExportFormatType} has not been
+     * regenerated to include the new value yet.
      *
      * @param format      export format string (e.g. "OKIRKAPU_XML")
      * @param periodStart start of the reporting period
@@ -359,7 +361,7 @@ public class EprRepository extends BaseRepository {
                               String format, LocalDate periodStart, LocalDate periodEnd) {
         dsl.execute(
                 "INSERT INTO epr_exports (id, tenant_id, config_version, export_format, file_hash, period_start, period_end) " +
-                "VALUES (gen_random_uuid(), ?, ?, ?, ?, ?, ?)",
+                "VALUES (gen_random_uuid(), ?, ?, ?::export_format_type, ?, ?, ?)",
                 tenantId, configVersion, format, fileHash, periodStart, periodEnd
         );
     }

@@ -134,10 +134,10 @@
       }
     },
     "okirkapu": {
-      "exportButton": "Export OKIRkapu XML",
+      "exportButton": "Download quarterly EPR filing (OKIRkapu XML)",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating ZIP...",
-      "exportTitle": "OKIRkapu KG:KGYF-NÉ XML Export",
+      "exportTitle": "Quarterly EPR filing — ready for OKIRkapu submission",
       "openSettings": "Open Settings",
       "panelTitle": "OKIRkapu XML Export",
       "preview": {
