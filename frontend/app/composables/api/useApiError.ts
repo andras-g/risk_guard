@@ -11,6 +11,7 @@ export function useApiError() {
     'urn:riskguard:error:email-exists-sso': 'auth.register.error.emailExistsSso',
     'urn:riskguard:error:invalid-credentials': 'auth.login.error.invalidCredentials',
     'urn:riskguard:error:too-many-attempts': 'auth.login.error.tooManyAttempts',
+    'urn:riskguard:error:registry-components-required': 'registry.form.validation.componentsRequired',
   }
 
   function mapErrorType(type: string | undefined): string {

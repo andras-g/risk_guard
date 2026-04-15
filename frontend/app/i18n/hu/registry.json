@@ -70,6 +70,19 @@
       "title": "Feltöltés NAV-számlákból",
       "triggerSuccess": "Import kész: {created} új jelölt, {skipped} kihagyva."
     },
+    "classify": {
+      "accept": "Elfogadás",
+      "confidence": {
+        "HIGH": "Magas megbízhatóság",
+        "MEDIUM": "Közepes megbízhatóság"
+      },
+      "error": "Osztályozás sikertelen — próbálja újra",
+      "noSuggestion": "Nincs javaslat — kérjük adja meg a KF-kódot manuálisan",
+      "suggest": "KF-kód javaslat",
+      "suggestShort": "Javaslat",
+      "tooltipDisabled": "Adja meg a termék nevét a javaslathoz",
+      "tooltipEnabled": "AI által javasolt KF-kód a termék neve és VTSZ alapján"
+    },
     "empty": {
       "cta": "Első termék létrehozása",
       "description": "Adja hozzá a termékeket a csomagolási elemek és KF-kódok nyomon követéséhez.",
@@ -82,11 +95,14 @@
       "componentRemoved": "Csomagolási elem eltávolítva",
       "components": "Csomagolási elemek",
       "kfCode": "KF-kód",
+      "mandatoryLegend": "A *-gal jelölt mezők kitöltése kötelező",
       "materialDescription": "Anyag megnevezése",
       "moveDown": "Le",
       "moveUp": "Fel",
       "name": "Termék neve",
-      "noComponents": "Még nincs csomagolási elem",
+      "noComponents": {
+        "cta": "Adjon hozzá legalább egy csomagolási elemet a termék mentéséhez"
+      },
       "none": "Nincs",
       "ppwr": "PPWR",
       "ppwrExpand": "PPWR-megfelelőség (opcionális)",
@@ -105,6 +121,7 @@
       "titleCreate": "Új termék",
       "titleEdit": "Termék szerkesztése",
       "validation": {
+        "componentsRequired": "Legalább egy csomagolási elem hozzáadása kötelező",
         "kfCodeInvalid": "A KF-kódnak pontosan 8 számjegyből kell állnia",
         "kfCodeRequired": "A KF-kód megadása kötelező",
         "nameRequired": "A termék neve kötelező",
@@ -135,16 +152,17 @@
       "ARCHIVED": "Archivált",
       "DRAFT": "Vázlat"
     },
-    "classify": {
-      "accept": "Elfogadás",
-      "confidence": {
-        "HIGH": "Magas megbízhatóság",
-        "MEDIUM": "Közepes megbízhatóság"
-      },
-      "error": "Osztályozás sikertelen — próbálja újra",
-      "noSuggestion": "Nincs javaslat — kérjük adja meg a KF-kódot manuálisan",
-      "suggest": "KF-kód javaslat"
-    },
-    "title": "Termék–Csomagolás Nyilvántartás"
+    "title": "Termék–Csomagolás Nyilvántartás",
+    "units": {
+      "csomag": "csomag",
+      "db": "db (darab)",
+      "g": "g",
+      "kg": "kg",
+      "l": "l (liter)",
+      "m": "m (méter)",
+      "m2": "m² (négyzetméter)",
+      "m3": "m³ (köbméter)",
+      "ml": "ml"
+    }
   }
 }

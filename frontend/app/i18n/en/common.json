@@ -29,9 +29,12 @@
     "breadcrumb": {
       "admin": "Admin",
       "dashboard": "Dashboard",
+      "edit": "Edit product",
       "epr": "EPR",
       "filing": "Quarterly Filing",
       "flightControl": "Client Portfolio",
+      "new": "New product",
+      "registry": "Registry",
       "screening": "Screening",
       "watchlist": "Watchlist"
     },

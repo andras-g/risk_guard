@@ -37,6 +37,9 @@ vi.mock('~/stores/auth', () => ({
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({ count: 0, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })
 }))
+vi.mock('~/stores/registry', () => ({
+  useRegistryStore: () => ({ editProduct: null, setEditProduct: vi.fn() })
+}))
 
 describe('Authenticated shell — axe-core a11y scan', () => {
   it('AppSidebar passes axe scan', async () => {

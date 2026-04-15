@@ -70,6 +70,19 @@
       "title": "Bootstrap from NAV invoices",
       "triggerSuccess": "Import complete: {created} new candidates, {skipped} skipped."
     },
+    "classify": {
+      "accept": "Accept",
+      "confidence": {
+        "HIGH": "High confidence",
+        "MEDIUM": "Medium confidence"
+      },
+      "error": "Classification failed — please try again",
+      "noSuggestion": "No suggestion available — enter KF code manually",
+      "suggest": "Suggest KF code",
+      "suggestShort": "Suggest",
+      "tooltipDisabled": "Enter the product name to get a suggestion",
+      "tooltipEnabled": "AI-suggested KF code based on product name and VTSZ"
+    },
     "empty": {
       "cta": "Create your first product",
       "description": "Add products to track packaging components and KF codes for EPR filing.",
@@ -82,11 +95,14 @@
       "componentRemoved": "Component removed",
       "components": "Packaging components",
       "kfCode": "KF code",
+      "mandatoryLegend": "Fields marked * are required",
       "materialDescription": "Material description",
       "moveDown": "Move down",
       "moveUp": "Move up",
       "name": "Product name",
-      "noComponents": "No components added yet",
+      "noComponents": {
+        "cta": "Add at least one packaging component to save this product"
+      },
       "none": "None",
       "ppwr": "PPWR",
       "ppwrExpand": "PPWR readiness (optional)",
@@ -105,6 +121,7 @@
       "titleCreate": "New product",
       "titleEdit": "Edit product",
       "validation": {
+        "componentsRequired": "At least one packaging component is required",
         "kfCodeInvalid": "KF code must be exactly 8 digits",
         "kfCodeRequired": "KF code is required",
         "nameRequired": "Product name is required",
@@ -135,16 +152,17 @@
       "ARCHIVED": "Archived",
       "DRAFT": "Draft"
     },
-    "classify": {
-      "accept": "Accept",
-      "confidence": {
-        "HIGH": "High confidence",
-        "MEDIUM": "Medium confidence"
-      },
-      "error": "Classification failed — please try again",
-      "noSuggestion": "No suggestion available — enter KF code manually",
-      "suggest": "Suggest KF code"
-    },
-    "title": "Product-Packaging Registry"
+    "title": "Product-Packaging Registry",
+    "units": {
+      "csomag": "pack",
+      "db": "pcs (pieces)",
+      "g": "g",
+      "kg": "kg",
+      "l": "l (litre)",
+      "m": "m (metre)",
+      "m2": "m² (square metre)",
+      "m3": "m³ (cubic metre)",
+      "ml": "ml"
+    }
   }
 }

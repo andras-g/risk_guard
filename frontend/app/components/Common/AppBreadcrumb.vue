@@ -36,7 +36,8 @@
       </NuxtLink>
       <span
         v-else
-        class="text-white font-medium select-none cursor-default"
+        :title="item.label"
+        class="text-white font-medium select-none cursor-default truncate max-w-[16rem]"
       >
         {{ item.label }}
       </span>
@@ -46,10 +47,12 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useRegistryStore } from '~/stores/registry'
 
 const { t: $t } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
+const registryStore = useRegistryStore()
 
 const homeRoute = computed(() => authStore.isAccountant ? '/flight-control' : '/dashboard')
 
@@ -63,16 +66,33 @@ const ROUTE_LABELS: Record<string, string> = {
   epr: 'common.breadcrumb.epr',
   filing: 'common.breadcrumb.filing',
   'flight-control': 'common.breadcrumb.flightControl',
-  admin: 'common.breadcrumb.admin'
+  admin: 'common.breadcrumb.admin',
+  registry: 'common.breadcrumb.registry',
+  new: 'common.breadcrumb.new'
 }
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const items = computed(() => {
   const segments = currentPath.value.split('/').filter(Boolean)
   if (segments.length === 0) return []
 
   return segments.map((segment, index) => {
-    const i18nKey = ROUTE_LABELS[segment]
-    const label = i18nKey ? $t(i18nKey) : segment
+    const prevSegment = index > 0 ? segments[index - 1] : ''
+    const isRegistryUuid = UUID_PATTERN.test(segment) && prevSegment === 'registry'
+
+    let label: string
+    if (isRegistryUuid) {
+      const editing = registryStore.editProduct
+      label = editing && editing.id === segment && editing.name
+        ? editing.name
+        : $t('common.breadcrumb.edit')
+    }
+    else {
+      const i18nKey = ROUTE_LABELS[segment]
+      label = i18nKey ? $t(i18nKey) : segment
+    }
+
     const isLast = index === segments.length - 1
 
     return {

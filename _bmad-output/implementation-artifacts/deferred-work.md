@@ -1,5 +1,22 @@
 # Deferred Work
 
+## Deferred from: code review of 9-5-registry-ux-polish-and-bug-fixes (2026-04-15)
+
+- D1: Race condition — parallel classify requests clobber shared Popover state (`[id].vue` suggestKfCode). Fixing requires AbortController cancellation; out of scope for polish story.
+- D2: `isComponentsMinSize` also matches `@Size(max=N)` violations on `components` (`RegistryValidationExceptionHandler.java`). No `@Size(max=...)` exists on components today; safe to defer.
+- D3: `expandedRows` stale keys after product reload (`[id].vue`). Cosmetic; rows re-expand unexpectedly on reload in edge case.
+- D4: `setEditProduct(null)` in `onBeforeUnmount` causes one-frame breadcrumb flash during navigation (`[id].vue`). Cosmetic.
+- D5: `save()` for new product does not call `setEditProduct(saved)` before navigation (`[id].vue`). Cosmetic breadcrumb flicker; edit path already calls it.
+- D6: E2E popover z-index assertion walks ancestor tree, not the popover element directly (`registry-classify-popover.e2e.ts`). Test improvement; regression is still caught.
+- D7: E2E test silently skips when classifier returns no HIGH/MEDIUM suggestion. Accepted per dev notes; test is honest.
+- D8: `materialDescription` has no frontend validation (backend is `@NotBlank`) — surfaces as generic 400 on save. Pre-existing gap from Story 9.1.
+- D9: UUID regex does not enforce UUID version/variant bits in `AppBreadcrumb.vue`. Cosmetic; hex-UUID-shaped segments show the edit fallback.
+- D10: `shims-vue.d.ts` uses `any` in component type. Accepted TypeScript shim pattern.
+- D11: Global keydown listener could accumulate in Nuxt keep-alive. `onBeforeUnmount` removes it correctly; no real leak in current app.
+- D12: `@ControllerAdvice(assignableTypes = RegistryController.class)` scoping fragile to controller refactoring. Intentional scope; no refactoring planned.
+- D13: Sticky action bar uses hardcoded `bg-white` (breaks dark mode). Dark mode not in project scope.
+- D14: Legacy `primaryUnit` prepended option uses raw DB value as label (no i18n). Acceptable for legacy roundtrip; `'pcs'` is self-describing.
+
 ## Deferred from: code review of 8-5-platform-admin-role-and-admin-re-gating (2026-04-09)
 
 - D1: PLATFORM_ADMIN placed in demo SME tenant (`b000-000000000001`) — cross-tenant authorization model undefined; demo-mode acceptable for now; revisit when platform operator multi-tenant scope is designed.

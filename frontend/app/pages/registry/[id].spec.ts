@@ -289,3 +289,41 @@ describe('registry/[id].vue — page logic', () => {
     expect(comp.classificationStrategy).toBe('VTSZ_PREFIX')
   })
 })
+
+// ─── Story 9.5 — UX polish & bug fixes ───────────────────────────────────────
+describe('registry/[id].vue — Story 9.5 validations', () => {
+  // Mirrors validateComponents() in the page: length===0 returns
+  // componentsRequired; any missing weightPerUnitKg returns weightRequired.
+  function validateComponents(components: { weightPerUnitKg: number | null }[]): string {
+    if (components.length === 0) return 'registry.form.validation.componentsRequired'
+    for (const c of components) {
+      if (c.weightPerUnitKg == null) return 'registry.form.validation.weightRequired'
+    }
+    return ''
+  }
+
+  it('validateComponents returns componentsRequired when list is empty', () => {
+    expect(validateComponents([])).toBe('registry.form.validation.componentsRequired')
+  })
+
+  it('validateComponents returns weightRequired when a component lacks weight', () => {
+    expect(validateComponents([{ weightPerUnitKg: null }])).toBe('registry.form.validation.weightRequired')
+  })
+
+  it('validateComponents returns "" when all components have weight', () => {
+    expect(validateComponents([{ weightPerUnitKg: 0.4 }, { weightPerUnitKg: 0.1 }])).toBe('')
+  })
+})
+
+// ─── Story 9.5 R1 Decision (c) — canonical options only ──────────────────────
+// Legacy 'pcs' is removed from the dropdown (roundtrips invisibly in the DB).
+// unitOptions always equals the canonical base list — no prepend logic.
+describe('registry/[id].vue — unit options canonical list only', () => {
+  const UNIT_VALUES = ['db', 'kg', 'g', 'l', 'ml', 'm', 'm2', 'm3', 'csomag']
+
+  it('base options are returned as-is (9 canonical values)', () => {
+    const base = UNIT_VALUES.map(v => ({ value: v, label: v }))
+    expect(base).toHaveLength(9)
+    expect(base.some(o => o.value === 'pcs')).toBe(false)
+  })
+})

@@ -29,9 +29,12 @@
     "breadcrumb": {
       "admin": "Admin",
       "dashboard": "Főoldal",
+      "edit": "Termék szerkesztése",
       "epr": "EPR",
       "filing": "Negyedéves bejelentés",
       "flightControl": "Ügyfélportfólió",
+      "new": "Új termék",
+      "registry": "Nyilvántartás",
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"
     },
