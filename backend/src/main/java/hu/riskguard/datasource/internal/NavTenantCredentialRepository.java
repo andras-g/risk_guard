@@ -55,7 +55,7 @@ public class NavTenantCredentialRepository extends BaseRepository {
         dsl.execute("""
                 INSERT INTO nav_tenant_credentials
                     (tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?::timestamptz, ?::timestamptz)
                 ON CONFLICT (tenant_id) DO UPDATE SET
                     login_encrypted  = EXCLUDED.login_encrypted,
                     password_hash    = EXCLUDED.password_hash,

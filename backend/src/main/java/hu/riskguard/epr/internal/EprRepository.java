@@ -274,7 +274,7 @@ public class EprRepository extends BaseRepository {
      */
     public void insertAdminActionLog(UUID actorUserId, String action, String target, String details) {
         dsl.execute(
-                "INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at) VALUES (?, ?, ?, ?::jsonb, ?)",
+                "INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at) VALUES (?, ?, ?, ?::jsonb, ?::timestamptz)",
                 actorUserId, action, target, details, java.time.Instant.now()
         );
     }

@@ -67,7 +67,7 @@ public class AdapterHealthRepository extends BaseRepository {
         dsl.execute("""
                 INSERT INTO adapter_health
                     (adapter_name, status, last_success_at, last_failure_at, failure_count, mtbf_hours, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?::timestamptz, ?::timestamptz, ?, ?, ?::timestamptz)
                 ON CONFLICT (adapter_name) DO UPDATE SET
                     status          = EXCLUDED.status,
                     last_success_at = EXCLUDED.last_success_at,
@@ -135,7 +135,7 @@ public class AdapterHealthRepository extends BaseRepository {
         dsl.execute("""
                 INSERT INTO adapter_health
                     (adapter_name, status, last_success_at, last_failure_at, failure_count, mtbf_hours, updated_at)
-                VALUES (?, 'HEALTHY', ?, NULL, 0, NULL, ?)
+                VALUES (?, 'HEALTHY', ?::timestamptz, NULL, 0, NULL, ?::timestamptz)
                 ON CONFLICT (adapter_name) DO UPDATE SET
                     status          = 'HEALTHY',
                     last_success_at = EXCLUDED.last_success_at,
@@ -154,7 +154,7 @@ public class AdapterHealthRepository extends BaseRepository {
         dsl.execute("""
                 INSERT INTO adapter_health
                     (adapter_name, status, last_success_at, last_failure_at, failure_count, mtbf_hours, updated_at)
-                VALUES (?, 'DEGRADED', NULL, ?, 1, NULL, ?)
+                VALUES (?, 'DEGRADED', NULL, ?::timestamptz, 1, NULL, ?::timestamptz)
                 ON CONFLICT (adapter_name) DO UPDATE SET
                     status          = 'DEGRADED',
                     last_failure_at = EXCLUDED.last_failure_at,
@@ -180,7 +180,7 @@ public class AdapterHealthRepository extends BaseRepository {
         dsl.execute("""
                 INSERT INTO adapter_health
                     (adapter_name, status, last_success_at, last_failure_at, failure_count, mtbf_hours, updated_at)
-                VALUES (?, ?, NULL, NULL, 0, NULL, ?)
+                VALUES (?, ?, NULL, NULL, 0, NULL, ?::timestamptz)
                 ON CONFLICT (adapter_name) DO UPDATE SET
                     status     = EXCLUDED.status,
                     updated_at = EXCLUDED.updated_at
@@ -214,7 +214,7 @@ public class AdapterHealthRepository extends BaseRepository {
             DSL.using(config).execute("""
                     INSERT INTO adapter_health
                         (adapter_name, quarantined, updated_at)
-                    VALUES (?, ?, ?)
+                    VALUES (?, ?, ?::timestamptz)
                     ON CONFLICT (adapter_name) DO UPDATE SET
                         quarantined = EXCLUDED.quarantined,
                         updated_at  = EXCLUDED.updated_at
@@ -223,7 +223,7 @@ public class AdapterHealthRepository extends BaseRepository {
             );
             DSL.using(config).execute("""
                     INSERT INTO admin_action_log (actor_user_id, action, target, details, performed_at)
-                    VALUES (?, ?, ?, ?::jsonb, ?)
+                    VALUES (?, ?, ?, ?::jsonb, ?::timestamptz)
                     """,
                     val(actorUserId), val(actionName), val(adapterName), val(details), val(odt, SQLDataType.TIMESTAMPWITHTIMEZONE)
             );

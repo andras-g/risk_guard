@@ -63,7 +63,12 @@ export function useInvoiceAutoFill() {
 
     try {
       const config = useRuntimeConfig()
-      const toIso = (d: Date) => d.toISOString().slice(0, 10)
+      const toIso = (d: Date) => {
+        const y = d.getFullYear()
+        const m = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${y}-${m}-${day}`
+      }
       const data = await $fetch<InvoiceAutoFillResponse>(
         '/api/v1/epr/filing/invoice-autofill',
         {
