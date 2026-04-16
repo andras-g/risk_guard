@@ -72,16 +72,23 @@
     },
     "classify": {
       "accept": "Elfogadás",
+      "acceptAll": "Összes elfogadása",
       "confidence": {
         "HIGH": "Magas megbízhatóság",
         "MEDIUM": "Közepes megbízhatóság"
       },
       "error": "Osztályozás sikertelen — próbálja újra",
+      "layer": {
+        "primary": "Elsődleges",
+        "secondary": "Másodlagos",
+        "tertiary": "Szállítási"
+      },
       "noSuggestion": "Nincs javaslat — kérjük adja meg a KF-kódot manuálisan",
       "suggest": "KF-kód javaslat",
       "suggestShort": "Javaslat",
       "tooltipDisabled": "Adja meg a termék nevét a javaslathoz",
-      "tooltipEnabled": "AI által javasolt KF-kód a termék neve és VTSZ alapján"
+      "tooltipEnabled": "AI által javasolt KF-kód a termék neve és VTSZ alapján",
+      "weightEstimateTooltip": "Becsült érték — ellenőrizze a tényleges tömeg alapján"
     },
     "empty": {
       "cta": "Első termék létrehozása",
@@ -120,10 +127,13 @@
       "supplierDeclarationRef": "Szállítói nyilatkozat hivatkozása",
       "titleCreate": "Új termék",
       "titleEdit": "Termék szerkesztése",
+      "unitsPerProduct": "Db/csomag",
+      "unitsPerProductTooltip": "Hány eladott termék fér egy csomagolási egységbe? Elsődleges = 1, 6-os multipack = 6, raklap = 480.",
       "validation": {
         "componentsRequired": "Legalább egy csomagolási elem hozzáadása kötelező",
         "kfCodeInvalid": "A KF-kódnak pontosan 8 számjegyből kell állnia",
         "kfCodeRequired": "A KF-kód megadása kötelező",
+        "materialRequired": "Az anyagleírás megadása kötelező minden csomagolási elemhez",
         "nameRequired": "A termék neve kötelező",
         "weightRequired": "Az egységenkénti tömeg megadása kötelező"
       },

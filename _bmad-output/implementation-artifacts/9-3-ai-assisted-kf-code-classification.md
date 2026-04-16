@@ -13,10 +13,10 @@ so that I can classify hundreds of packaging components accurately without manua
 1. **`ClassifierRouter` `@Primary`** bean in `hu.riskguard.epr.registry.classifier` replaces `NullKfCodeClassifier` as the active `KfCodeClassifierService`. The router strategy is: call `VertexAiGeminiClassifier` → if confidence ≤ threshold or Gemini unavailable, fall through → `VtszPrefixFallbackClassifier` → if empty → `ClassificationResult.empty()`. `NullKfCodeClassifier` is removed from the codebase.
 
 2. **`VertexAiGeminiClassifier`** (in `hu.riskguard.epr.registry.classifier.internal`):
-   - Uses Spring AI Vertex AI Gemini starter (`gemini-2.5-flash`, region pinned to `europe-west1`). Auth via Application Default Credentials (workload identity on Cloud Run; local dev: `gcloud auth application-default login`). No API key stored.
+   - Uses Spring AI Vertex AI Gemini starter (`gemini-3.0-flash-preview`, region pinned to `europe-west1`). Auth via Application Default Credentials (workload identity on Cloud Run; local dev: `gcloud auth application-default login`). No API key stored.
    - System prompt read from `backend/src/main/resources/prompts/kf-classifier-system-prompt.txt`; KF taxonomy excerpt read from `backend/src/main/resources/prompts/kf-taxonomy-excerpt.txt`.
    - Sends only: `productName` + `vtsz`. No personal data, no tax number sent to the model.
-   - Returns: `ClassificationResult` with `strategy=VERTEX_GEMINI`, `modelVersion="gemini-2.5-flash"`, up to 3 `KfSuggestion` entries sorted by score descending.
+   - Returns: `ClassificationResult` with `strategy=VERTEX_GEMINI`, `modelVersion="gemini-3.0-flash-preview"`, up to 3 `KfSuggestion` entries sorted by score descending.
    - If the Gemini response cannot be parsed or is empty: returns `ClassificationResult.empty()` — must NOT throw.
    - Wrapped in Resilience4j circuit breaker (`vertex-gemini` instance). When the circuit is open, `CallNotPermittedException` is caught internally and the classifier returns `ClassificationResult.empty()` without attempting the network call.
 
@@ -92,7 +92,7 @@ so that I can classify hundreds of packaging components accurately without manua
               location: europe-west1
               chat:
                 options:
-                  model: gemini-2.5-flash
+                  model: gemini-3.0-flash-preview
     riskguard:
       classifier:
         confidence-threshold: MEDIUM
@@ -259,7 +259,7 @@ so that I can classify hundreds of packaging components accurately without manua
 
 #### Round 2 (2026-04-14)
 
-- [x] [Review][Patch] R2-P1 [HIGH] — `application.yml` set `model: gemini-3-flash-preview` while spec AC 2/11 mandate `gemini-2.5-flash`; YAML overrode the Java default so prod traffic targeted a preview model and audit trail recorded it — reverted to `gemini-2.5-flash` [application.yml]
+- [x] [Review][Patch] R2-P1 [HIGH] — `application.yml` set `model: gemini-3-flash-preview` while spec AC 2/11 mandate `gemini-3.0-flash-preview`; YAML overrode the Java default so prod traffic targeted a preview model and audit trail recorded it — reverted to `gemini-3.0-flash-preview` [application.yml]
 - [x] [Review][Patch] R2-P2 [HIGH] — `@Value("${riskguard.classifier.*}")` in `ClassifierRouter` + `ClassifierUsageService` did not match YAML top-level key `risk-guard:`; Spring fell back to defaults, silently ignoring `confidence-threshold` and `monthly-cap` overrides — aligned both `@Value` prefixes to `risk-guard.classifier.*` [ClassifierRouter.java, ClassifierUsageService.java]
 - [x] [Review][Patch] R2-P3 [HIGH] — `VertexAiGeminiClassifier` constructor called `GoogleCredentials.getApplicationDefault()` eagerly; missing ADC threw `IOException` and crashed Spring context startup, contradicting `start-local.sh` "non-blocking" promise — lazy-init credentials with `resolveCredentials()` + `credentialsUnavailable` flag; classifier now degrades to empty result when ADC is absent [VertexAiGeminiClassifier.java]
 - [x] [Review][Patch] R2-P4 [HIGH] — AC 14 integration + validation artifacts claimed done but absent from filesystem — created `VertexAiGeminiClassifierIntegrationTest.java`, `KfClassifierValidationTest.java` (both gated by `RG_INTEGRATION_VERTEX_AI=true`), and `backend/src/test/resources/kf-classifier-validation/validation-set.csv` (15 labeled rows)

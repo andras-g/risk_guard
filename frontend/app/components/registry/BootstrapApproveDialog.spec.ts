@@ -130,7 +130,48 @@ describe('BootstrapApproveDialog', () => {
     expect((kfInput.element as HTMLInputElement).value).toBe('')
   })
 
-  // ─── Test 4: confirm button calls approveCandidate with correct body ─────
+  // ─── Test 4: multi-component pre-population from suggestedComponents JSON ──
+
+  it('pre-populates multiple component rows from suggestedComponents JSON', async () => {
+    const suggestedComponents = JSON.stringify([
+      { layer: 'primary', kfCode: '11010101', description: 'PET palack', weightEstimateKg: 0.025, unitsPerProduct: 1, score: 0.90 },
+      { layer: 'secondary', kfCode: '41010201', description: 'Karton multipack', weightEstimateKg: 0.050, unitsPerProduct: 6, score: 0.70 },
+      { layer: 'tertiary', kfCode: '51010101', description: 'Sztreccs fólia', weightEstimateKg: 0.300, unitsPerProduct: 480, score: 0.55 },
+    ])
+    const candidate = buildCandidate({ suggestedComponents })
+    const wrapper = mountDialog(candidate)
+    await wrapper.vm.$nextTick()
+
+    // Should have 3 component rows (one per packaging layer)
+    const kfInputs = wrapper.findAll('[data-testid="kf-input"]')
+    expect(kfInputs).toHaveLength(3)
+
+    expect((kfInputs[0]!.element as HTMLInputElement).value).toBe('11010101')
+    expect((kfInputs[1]!.element as HTMLInputElement).value).toBe('41010201')
+    expect((kfInputs[2]!.element as HTMLInputElement).value).toBe('51010101')
+
+    // Material descriptions should be pre-filled from JSON
+    const matInputs = wrapper.findAll('[data-testid^="ba-mat-"]')
+    expect(matInputs).toHaveLength(3)
+    expect((matInputs[0]!.element as HTMLInputElement).value).toBe('PET palack')
+    expect((matInputs[1]!.element as HTMLInputElement).value).toBe('Karton multipack')
+    expect((matInputs[2]!.element as HTMLInputElement).value).toBe('Sztreccs fólia')
+  })
+
+  it('falls back to single component when suggestedComponents is invalid JSON', async () => {
+    const candidate = buildCandidate({
+      suggestedKfCode: '11010101',
+      suggestedComponents: '<<not valid json>>',
+    })
+    const wrapper = mountDialog(candidate)
+    await wrapper.vm.$nextTick()
+
+    const kfInputs = wrapper.findAll('[data-testid="kf-input"]')
+    expect(kfInputs).toHaveLength(1)
+    expect((kfInputs[0]!.element as HTMLInputElement).value).toBe('11010101')
+  })
+
+  // ─── Test 5: confirm button calls approveCandidate with correct body ─────
 
   it('confirm button calls approveCandidate with pre-populated candidate data', async () => {
     const candidate = buildCandidate()
@@ -147,6 +188,9 @@ describe('BootstrapApproveDialog', () => {
       expect.objectContaining({
         name: 'Aktivia 125g',
         primaryUnit: 'DARAB',
+        components: expect.arrayContaining([
+          expect.objectContaining({ unitsPerProduct: 1 }),
+        ]),
       }),
     )
   })

@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Remaps bean-validation failures on {@link RegistryController} to RFC 7807
@@ -25,6 +28,9 @@ public class RegistryValidationExceptionHandler {
     static final URI COMPONENTS_REQUIRED_TYPE =
             URI.create("urn:riskguard:error:registry-components-required");
 
+    static final URI VALIDATION_FAILED_TYPE =
+            URI.create("urn:riskguard:error:registry-validation-failed");
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleValidation(MethodArgumentNotValidException ex) {
         FieldError componentsError = ex.getBindingResult().getFieldErrors().stream()
@@ -40,9 +46,22 @@ public class RegistryValidationExceptionHandler {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
         }
 
+        // Collect per-field error messages so the frontend can show specifics.
+        Map<String, List<String>> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.groupingBy(
+                        FieldError::getField,
+                        Collectors.mapping(FieldError::getDefaultMessage, Collectors.toList())
+                ));
+
+        String detail = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+
         ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problem.setType(VALIDATION_FAILED_TYPE);
         problem.setTitle("Validation failed");
-        problem.setDetail("Validation failed");
+        problem.setDetail(detail);
+        problem.setProperty("fieldErrors", fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 

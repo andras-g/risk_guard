@@ -15,7 +15,7 @@ import Message from 'primevue/message'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useRegistry } from '~/composables/api/useRegistry'
 import { useClassifier } from '~/composables/api/useClassifier'
-import type { ClassifyResponse } from '~/composables/api/useClassifier'
+import type { ClassifyResponse, KfSuggestionDto } from '~/composables/api/useClassifier'
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
 import { useUnits, DEFAULT_UNIT } from '~/composables/registry/useUnits'
@@ -29,7 +29,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { mapErrorType } = useApiError()
+const { mapErrorType, mapErrorDetail } = useApiError()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const { getProduct, createProduct, updateProduct, getAuditLog } = useRegistry()
 const { classify } = useClassifier()
@@ -71,6 +71,9 @@ function validateComponents(): string {
     return t('registry.form.validation.componentsRequired')
   }
   for (const c of components.value) {
+    if (!c.materialDescription?.trim()) {
+      return t('registry.form.validation.materialRequired')
+    }
     if (c.weightPerUnitKg == null) {
       return t('registry.form.validation.weightRequired')
     }
@@ -110,7 +113,10 @@ async function suggestKfCode(event: Event, comp: EditableComponent) {
       activeClassifyTempId.value = comp._tempId
       activeClassifySuggestion.value = result
       classifyOpener.value = opener
-      classifyPopover.value?.show(event)
+      // Pass opener as explicit target — after the await, event.currentTarget
+      // is null (browser clears it post-dispatch), so PrimeVue would fall back
+      // to (0,0) positioning without the second argument.
+      classifyPopover.value?.show(event, opener)
     }
     else {
       toast.add({
@@ -132,18 +138,57 @@ async function suggestKfCode(event: Event, comp: EditableComponent) {
   }
 }
 
-function acceptSuggestion() {
+function acceptSuggestion(suggestion: KfSuggestionDto) {
   const tempId = activeClassifyTempId.value
   const result = activeClassifySuggestion.value
   if (!tempId || !result) return
   const comp = components.value.find(c => c._tempId === tempId)
-  const top = result.suggestions[0]
-  if (!comp || !top) return
-  comp.kfCode = top.kfCode
+  if (!comp) return
+  comp.kfCode = suggestion.kfCode
+  comp.materialDescription = suggestion.description || comp.materialDescription
+  if (suggestion.weightEstimateKg != null) comp.weightPerUnitKg = suggestion.weightEstimateKg
+  comp.unitsPerProduct = suggestion.unitsPerProduct
   comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
   comp.classificationStrategy = result.strategy
   comp.classificationModelVersion = result.modelVersion ?? null
   closeClassifyPopover()
+}
+
+function acceptAllSuggestions() {
+  const result = activeClassifySuggestion.value
+  const tempId = activeClassifyTempId.value
+  if (!result || result.suggestions.length === 0 || !tempId) return
+
+  // Guard: if the target component was deleted between clicking Suggest and
+  // Accept All, bail out entirely to avoid orphaned secondary/tertiary rows.
+  const targetComp = components.value.find(c => c._tempId === tempId)
+  if (!targetComp) {
+    closeClassifyPopover()
+    return
+  }
+
+  // The first suggestion replaces the current row
+  const first = result.suggestions[0]
+  acceptSuggestion(first)
+
+  // Additional layers become new component rows
+  for (let i = 1; i < result.suggestions.length; i++) {
+    const s = result.suggestions[i]
+    const comp = newComponent()
+    comp.materialDescription = s.description || ''
+    comp.kfCode = s.kfCode
+    if (s.weightEstimateKg != null) comp.weightPerUnitKg = s.weightEstimateKg
+    comp.unitsPerProduct = s.unitsPerProduct ?? 1
+    comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
+    comp.classificationStrategy = result.strategy
+    comp.classificationModelVersion = result.modelVersion ?? null
+    components.value.push(comp)
+  }
+  reorderComponents()
+}
+
+function layerLabel(layer: string): string {
+  return t(`registry.classify.layer.${layer}`)
 }
 
 function closeClassifyPopover() {
@@ -185,6 +230,7 @@ interface EditableComponent {
   kfCode: string | null
   weightPerUnitKg: number | null
   componentOrder: number
+  unitsPerProduct: number
   recyclabilityGrade: 'A' | 'B' | 'C' | 'D' | null
   recycledContentPct: number | null
   reusable: boolean | null
@@ -206,6 +252,7 @@ function newComponent(): EditableComponent {
     kfCode: null,
     weightPerUnitKg: null,
     componentOrder: components.value.length,
+    unitsPerProduct: 1,
     recyclabilityGrade: null,
     recycledContentPct: null,
     reusable: null,
@@ -299,6 +346,7 @@ async function loadProduct() {
       kfCode: c.kfCode,
       weightPerUnitKg: c.weightPerUnitKg,
       componentOrder: c.componentOrder,
+      unitsPerProduct: c.unitsPerProduct ?? 1,
       recyclabilityGrade: c.recyclabilityGrade,
       recycledContentPct: c.recycledContentPct,
       reusable: c.reusable,
@@ -346,6 +394,7 @@ async function save() {
         kfCode: c.kfCode,
         weightPerUnitKg: c.weightPerUnitKg as number,
         componentOrder: c.componentOrder,
+        unitsPerProduct: c.unitsPerProduct,
         recyclabilityGrade: c.recyclabilityGrade,
         recycledContentPct: c.recycledContentPct,
         reusable: c.reusable,
@@ -374,8 +423,7 @@ async function save() {
     }
   }
   catch (err: unknown) {
-    const e = err as { data?: { type?: string } }
-    toast.add({ severity: 'error', summary: mapErrorType(e.data?.type), life: 4000 })
+    toast.add({ severity: 'error', summary: mapErrorDetail(err), life: 6000 })
   }
   finally {
     isSaving.value = false
@@ -626,9 +674,29 @@ onBeforeUnmount(() => {
             <InputNumber
               v-model="data.weightPerUnitKg"
               :min="0"
-              :fraction-digits="6"
+              :max-fraction-digits="6"
               :use-grouping="false"
               :aria-label="t('registry.form.weightPerUnitKg')"
+              class="w-full"
+            />
+          </template>
+        </Column>
+
+        <Column style="width: 130px">
+          <template #header>
+            <span
+              v-tooltip.top="t('registry.form.unitsPerProductTooltip')"
+              class="cursor-help border-b border-dotted border-slate-400"
+            >
+              {{ t('registry.form.unitsPerProduct') }}
+            </span>
+          </template>
+          <template #body="{ data }">
+            <InputNumber
+              v-model="data.unitsPerProduct"
+              :min="1"
+              :show-buttons="true"
+              :aria-label="t('registry.form.unitsPerProduct')"
               class="w-full"
             />
           </template>
@@ -764,27 +832,52 @@ onBeforeUnmount(() => {
       :pt="{ root: { class: 'z-[60]' } }"
       @hide="resetClassifyState"
     >
-      <div v-if="activeClassifySuggestion" class="flex flex-col gap-2 p-1 min-w-40">
-        <div class="flex items-center gap-2">
-          <span class="font-mono font-semibold text-lg">{{ activeClassifySuggestion.suggestions[0].kfCode }}</span>
-          <Tag
-            :value="t(`registry.classify.confidence.${activeClassifySuggestion.suggestions[0].score >= 0.8 ? 'HIGH' : 'MEDIUM'}`)"
-            :severity="activeClassifySuggestion.suggestions[0].score >= 0.8 ? 'success' : 'warn'"
+      <div v-if="activeClassifySuggestion" class="flex flex-col gap-3 p-1 min-w-64 max-w-sm">
+        <div
+          v-for="(s, idx) in activeClassifySuggestion.suggestions"
+          :key="idx"
+          class="border rounded-lg p-3 flex flex-col gap-1"
+        >
+          <div class="flex items-center gap-2">
+            <Tag :value="layerLabel(s.layer)" size="small" severity="secondary" />
+            <span class="font-mono font-semibold">{{ s.kfCode }}</span>
+            <Tag
+              :value="t(`registry.classify.confidence.${s.score >= 0.8 ? 'HIGH' : 'MEDIUM'}`)"
+              :severity="s.score >= 0.8 ? 'success' : 'warn'"
+              size="small"
+            />
+          </div>
+          <div v-if="s.description" class="text-xs text-slate-500">
+            {{ s.description }}
+          </div>
+          <div class="flex items-center gap-3 text-xs text-slate-400">
+            <span v-if="s.weightEstimateKg != null">
+              <span
+                v-if="s.score < 0.7"
+                v-tooltip.top="t('registry.classify.weightEstimateTooltip')"
+                class="italic cursor-help"
+              >
+                ~{{ s.weightEstimateKg }} kg
+              </span>
+              <span v-else>~{{ s.weightEstimateKg }} kg</span>
+            </span>
+            <span v-if="s.unitsPerProduct > 1">{{ s.unitsPerProduct }} {{ t('registry.form.unitsPerProduct') }}</span>
+          </div>
+          <Button
+            :label="t('registry.classify.accept')"
             size="small"
+            icon="pi pi-check"
+            :data-testid="`accept-kf-layer-${idx}`"
+            @click="acceptSuggestion(s)"
           />
         </div>
-        <div
-          v-if="activeClassifySuggestion.suggestions[0].suggestedComponentDescriptions.length"
-          class="text-xs text-slate-500"
-        >
-          {{ activeClassifySuggestion.suggestions[0].suggestedComponentDescriptions.join(', ') }}
-        </div>
         <Button
-          :label="t('registry.classify.accept')"
+          v-if="activeClassifySuggestion.suggestions.length > 1"
+          :label="t('registry.classify.acceptAll')"
           size="small"
-          icon="pi pi-check"
-          data-testid="accept-kf"
-          @click="acceptSuggestion"
+          icon="pi pi-check-circle"
+          data-testid="accept-kf-all"
+          @click="acceptAllSuggestions"
         />
       </div>
     </Popover>

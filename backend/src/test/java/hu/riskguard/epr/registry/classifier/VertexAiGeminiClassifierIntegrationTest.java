@@ -29,7 +29,7 @@ class VertexAiGeminiClassifierIntegrationTest {
         return new VertexAiGeminiClassifier(
                 System.getenv().getOrDefault("GCP_PROJECT_ID", "risk-guard-dev"),
                 "europe-west1",
-                "gemini-2.5-flash",
+                "gemini-3.0-flash-preview",
                 CircuitBreakerRegistry.ofDefaults()
         );
     }

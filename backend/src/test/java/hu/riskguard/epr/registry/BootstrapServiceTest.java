@@ -1,8 +1,11 @@
 package hu.riskguard.epr.registry;
 
 import hu.riskguard.datasource.domain.*;
+import hu.riskguard.epr.registry.classifier.ClassificationConfidence;
 import hu.riskguard.epr.registry.classifier.ClassificationResult;
+import hu.riskguard.epr.registry.classifier.ClassificationStrategy;
 import hu.riskguard.epr.registry.classifier.KfCodeClassifierService;
+import hu.riskguard.epr.registry.classifier.KfSuggestion;
 import hu.riskguard.epr.registry.domain.*;
 import hu.riskguard.epr.registry.internal.BootstrapRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -172,6 +175,52 @@ class BootstrapServiceTest {
         verify(bootstrapRepository, never()).insertCandidateIfNew(any(), any(), any(), anyInt(), any(), any(), any());
     }
 
+    // ─── Test 4b: multi-layer classification result forwarded to repository ──
+
+    @Test
+    void triggerBootstrap_multiLayerClassification_passedToRepository() {
+        when(dataSourceService.getTenantTaxNumber(TENANT_ID)).thenReturn(Optional.of(TAX_NUMBER));
+        InvoiceSummary s1 = buildSummary("INV-001");
+        when(dataSourceService.queryInvoices(TAX_NUMBER, FROM, TO, InvoiceDirection.OUTBOUND))
+                .thenReturn(new InvoiceQueryResult(List.of(s1), true));
+
+        InvoiceLineItem line = buildLine("PET palack 0,5L", "39239090", new BigDecimal("100"));
+        when(dataSourceService.queryInvoiceDetails("INV-001"))
+                .thenReturn(buildDetail("INV-001", List.of(line)));
+
+        when(bootstrapRepository.existsByTenantAndDedupeKey(eq(TENANT_ID), anyString(), any()))
+                .thenReturn(false);
+
+        // Multi-layer classification result with primary + secondary
+        KfSuggestion primary = new KfSuggestion("11010101", "PET palack", 0.85, "primary",
+                new BigDecimal("0.025"), 1);
+        KfSuggestion secondary = new KfSuggestion("41010201", "Karton multipack", 0.70, "secondary",
+                new BigDecimal("0.050"), 6);
+        ClassificationResult multiLayerResult = new ClassificationResult(
+                List.of(primary, secondary), ClassificationStrategy.VERTEX_GEMINI,
+                ClassificationConfidence.MEDIUM, "gemini-3.0-flash-preview",
+                java.time.Instant.now(), 150, 80);
+        when(classifierService.classify(anyString(), any())).thenReturn(multiLayerResult);
+        when(bootstrapRepository.insertCandidateIfNew(any(), any(), any(), anyInt(), any(), any(), any()))
+                .thenReturn(true);
+
+        bootstrapService.triggerBootstrap(TENANT_ID, USER_ID, FROM, TO);
+
+        // Verify the classification result with suggestions is forwarded to the repository
+        ArgumentCaptor<ClassificationResult> classCaptor = ArgumentCaptor.forClass(ClassificationResult.class);
+        verify(bootstrapRepository).insertCandidateIfNew(eq(TENANT_ID), anyString(), anyString(),
+                anyInt(), any(), anyString(), classCaptor.capture());
+
+        ClassificationResult captured = classCaptor.getValue();
+        assertThat(captured.suggestions()).hasSize(2);
+        assertThat(captured.suggestions().get(0).kfCode()).isEqualTo("11010101");
+        assertThat(captured.suggestions().get(0).layer()).isEqualTo("primary");
+        assertThat(captured.suggestions().get(0).weightEstimateKg()).isEqualByComparingTo("0.025");
+        assertThat(captured.suggestions().get(1).kfCode()).isEqualTo("41010201");
+        assertThat(captured.suggestions().get(1).layer()).isEqualTo("secondary");
+        assertThat(captured.suggestions().get(1).unitsPerProduct()).isEqualTo(6);
+    }
+
     // ─── Test 5: NAV service unavailable → throws 503 ───────────────────────
 
     @Test
@@ -304,7 +353,7 @@ class BootstrapServiceTest {
     private ApproveCommand buildApproveCommand() {
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET", "11010101", new BigDecimal("0.1"), 0,
-                null, null, null, null, null, null, null, null);
+                1, null, null, null, null, null, null, null, null);
         return new ApproveCommand("ART-001", "Termék A", "12345678", "DARAB",
                 ProductStatus.ACTIVE, List.of(comp));
     }

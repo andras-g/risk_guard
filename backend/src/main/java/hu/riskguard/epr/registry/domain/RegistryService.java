@@ -247,6 +247,8 @@ public class RegistryService {
         }
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "component_order",
                 Integer.toString(cmd.componentOrder()), source);
+        emitCreateAuditRaw(productId, tenantId, userId, prefix + "units_per_product",
+                Integer.toString(cmd.unitsPerProduct()), source);
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "recyclability_grade",
                 cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null, source);
         if (cmd.recycledContentPct() != null) {
@@ -308,6 +310,11 @@ public class RegistryService {
         diffAndAudit(productId, tenantId, userId, prefix + "component_order",
                 Integer.toString(old.componentOrder()),
                 Integer.toString(cmd.componentOrder()));
+
+        // units_per_product (Story 9.6)
+        diffAndAudit(productId, tenantId, userId, prefix + "units_per_product",
+                Integer.toString(old.unitsPerProduct()),
+                Integer.toString(cmd.unitsPerProduct()));
 
         // BigDecimal comparison via compareTo (avoids 0.70 vs 0.700 false positives)
         if (cmd.weightPerUnitKg() != null && old.weightPerUnitKg() != null

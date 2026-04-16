@@ -49,7 +49,7 @@ hu.riskguard.epr.registry.classifier.internal
 
 ### Vendor configuration
 
-- **Model:** `gemini-2.5-flash` via Vertex AI.
+- **Model:** `gemini-3.0-flash-preview` via Vertex AI.
 - **Region:** Pinned to `europe-west1` (or equivalent EU region with Gemini Flash quota). No fallback to non-EU regions even on Vertex outage — circuit breaker trips and the router falls through to VTSZ-prefix instead.
 - **Auth:** Workload identity from the Cloud Run / GKE runtime service account. No API keys stored, no secrets to rotate.
 - **Quota:** Default Gemini Flash quota is sufficient at expected volumes (~30 calls/tenant during bootstrap, ~50/tenant/year ongoing). Request quota increase only if multi-tenant onboarding spikes hit the limit.

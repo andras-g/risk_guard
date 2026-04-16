@@ -11,14 +11,16 @@ public record ClassifierUsageSummaryResponse(
         UUID tenantId,
         String tenantName,
         int callCount,
-        double estimatedCostFt
+        long inputTokens,
+        long outputTokens
 ) {
     public static ClassifierUsageSummaryResponse from(ClassifierUsageSummary summary) {
         return new ClassifierUsageSummaryResponse(
                 summary.tenantId(),
                 summary.tenantName(),
                 summary.callCount(),
-                summary.estimatedCostFt()
+                summary.inputTokens(),
+                summary.outputTokens()
         );
     }
 }

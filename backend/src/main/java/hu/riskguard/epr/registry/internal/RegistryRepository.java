@@ -212,6 +212,7 @@ public class RegistryRepository extends BaseRepository {
                 .set(PRODUCT_PACKAGING_COMPONENTS.KF_CODE, cmd.kfCode())
                 .set(PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG, cmd.weightPerUnitKg())
                 .set(PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER, cmd.componentOrder())
+                .set(PRODUCT_PACKAGING_COMPONENTS.UNITS_PER_PRODUCT, cmd.unitsPerProduct())
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLABILITY_GRADE,
                         cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null)
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLED_CONTENT_PCT, cmd.recycledContentPct())
@@ -234,6 +235,7 @@ public class RegistryRepository extends BaseRepository {
                 .set(PRODUCT_PACKAGING_COMPONENTS.KF_CODE, cmd.kfCode())
                 .set(PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG, cmd.weightPerUnitKg())
                 .set(PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER, cmd.componentOrder())
+                .set(PRODUCT_PACKAGING_COMPONENTS.UNITS_PER_PRODUCT, cmd.unitsPerProduct())
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLABILITY_GRADE,
                         cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null)
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLED_CONTENT_PCT, cmd.recycledContentPct())
@@ -321,6 +323,7 @@ public class RegistryRepository extends BaseRepository {
         return new ProductPackagingComponent(
                 r.getId(), r.getProductId(), r.getMaterialDescription(), r.getKfCode(),
                 r.getWeightPerUnitKg(), r.getComponentOrder(),
+                r.getUnitsPerProduct() != null ? r.getUnitsPerProduct() : 1,
                 r.getRecyclabilityGrade() != null ? RecyclabilityGrade.valueOf(r.getRecyclabilityGrade()) : null,
                 r.getRecycledContentPct(), r.getReusable(),
                 fromJsonb(r.getSubstancesOfConcern()),

@@ -33,7 +33,7 @@ spring:
           location: europe-west1
           chat:
             options:
-              model: gemini-2.5-flash
+              model: gemini-3.0-flash-preview
   security:
     oauth2:
       client:

@@ -1,5 +1,15 @@
 # Deferred Work
 
+## Deferred from: code review of 9-6-multi-layer-packaging-ratio-and-ai-weight-suggestions (2026-04-16)
+
+- D1: Static ObjectMapper in BootstrapRepository — thread-safe for current usage but fragile if JavaTimeModule/Jdk8Module needed later. Pre-existing pattern.
+- D2: candidatesTokenCount Vertex AI field naming — may vary across API versions; token counts could silently be 0. Not blocking.
+- D3: useApiError leaks raw backend validation messages to toast summaries — pre-existing XSS/info-disclosure risk via Spring BindingResult interpolation.
+- D4: weightPerUnitKg nullable in OkirkapuXmlExporter — pre-existing NPE risk for components with null weight.
+- D5: useClassifier.spec.ts never existed — pre-existing test coverage gap for classifier composable.
+- D6: No component-level tests for multi-layer popover UX — popover logic tested via function-level tests only.
+- D7: classify() with empty productName produces false-positive VTSZ_FALLBACK matches — pre-existing.
+
 ## Deferred from: code review of 9-5-registry-ux-polish-and-bug-fixes (2026-04-15)
 
 - D1: Race condition — parallel classify requests clobber shared Popover state (`[id].vue` suggestKfCode). Fixing requires AbortController cancellation; out of scope for polish story.
@@ -265,3 +275,8 @@
 - W6: `ZipEntry` creation timestamps not set — will show epoch/1980-01-01 in archive tools; purely cosmetic.
 - W7: `KgKgyfNeMarshaller`/`KgKgyfNeAggregator` `@PostConstruct` always runs at startup regardless of `OkirkapuXmlExporter` `@ConditionalOnProperty`; only matters if a second `EprReportTarget` strategy is activated.
 - W8: Playwright e2e `epr-filing.spec.ts` not updated for new export button label and `.zip` extension; update before next release cycle.
+
+## Deferred from: code review of 9-6-multi-layer-packaging-ratio-and-ai-weight-suggestions (2026-04-16)
+
+- D1: Static ObjectMapper in BootstrapRepository [BootstrapRepository.java:35] — thread-safe for current usage but fragile if JavaTimeModule or Jdk8Module are needed later. Pre-existing pattern across repo.
+- D2: candidatesTokenCount field naming in Vertex AI response [VertexAiGeminiClassifier.java:196] — field name may vary across API versions; token counts could silently be 0. Not blocking current functionality.

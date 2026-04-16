@@ -42,6 +42,7 @@ export interface BootstrapApproveRequestBody {
     kfCode: string | null
     weightPerUnitKg: number
     componentOrder: number
+    unitsPerProduct: number
     recyclabilityGrade?: string | null
     recycledContentPct?: number | null
     reusable?: boolean | null

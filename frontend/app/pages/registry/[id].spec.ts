@@ -66,6 +66,7 @@ function buildProduct(overrides: Partial<ProductResponse> = {}): ProductResponse
         kfCode: '11020101',
         weightPerUnitKg: 0.45,
         componentOrder: 0,
+        unitsPerProduct: 1,
         recyclabilityGrade: null,
         recycledContentPct: null,
         reusable: null,
@@ -158,8 +159,8 @@ describe('registry/[id].vue — page logic', () => {
       primaryUnit: 'pcs',
       status: 'ACTIVE',
       components: [
-        { materialDescription: 'PET', kfCode: null, weightPerUnitKg: 0.5, componentOrder: 0 },
-        { materialDescription: 'Paper', kfCode: null, weightPerUnitKg: 0.1, componentOrder: 1 },
+        { materialDescription: 'PET', kfCode: null, weightPerUnitKg: 0.5, componentOrder: 0, unitsPerProduct: 1 },
+        { materialDescription: 'Paper', kfCode: null, weightPerUnitKg: 0.1, componentOrder: 1, unitsPerProduct: 1 },
       ],
     }
     await mockCreateProduct(body)
@@ -204,10 +205,10 @@ describe('registry/[id].vue — page logic', () => {
 
   it('classify is called with productName and vtsz when suggest is triggered', async () => {
     const classifyResponse = {
-      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.90 }],
+      suggestions: [{ kfCode: '11010101', description: 'PET', score: 0.90, layer: 'primary', weightEstimateKg: null, unitsPerProduct: 1 }],
       strategy: 'VERTEX_GEMINI',
       confidence: 'HIGH',
-      modelVersion: 'gemini-2.5-flash',
+      modelVersion: 'gemini-3.0-flash-preview',
     }
     mockClassify.mockResolvedValue(classifyResponse)
 
@@ -228,10 +229,10 @@ describe('registry/[id].vue — page logic', () => {
       classificationModelVersion: null as string | null,
     }
     const result = {
-      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.90 }],
+      suggestions: [{ kfCode: '11010101', description: 'PET', score: 0.90, layer: 'primary', weightEstimateKg: null, unitsPerProduct: 1 }],
       strategy: 'VERTEX_GEMINI',
       confidence: 'HIGH',
-      modelVersion: 'gemini-2.5-flash',
+      modelVersion: 'gemini-3.0-flash-preview',
     }
 
     // Simulate acceptSuggestion logic
@@ -243,7 +244,7 @@ describe('registry/[id].vue — page logic', () => {
     expect(comp.kfCode).toBe('11010101')
     expect(comp.classificationSource).toBe('AI_SUGGESTED_CONFIRMED')
     expect(comp.classificationStrategy).toBe('VERTEX_GEMINI')
-    expect(comp.classificationModelVersion).toBe('gemini-2.5-flash')
+    expect(comp.classificationModelVersion).toBe('gemini-3.0-flash-preview')
   })
 
   // ─── Test 9: manual edit after accept sets classificationSource to EDITED ─
@@ -272,7 +273,7 @@ describe('registry/[id].vue — page logic', () => {
       classificationModelVersion: null as string | null,
     }
     const result = {
-      suggestions: [{ kfCode: '11010101', suggestedComponentDescriptions: ['PET'], score: 0.65 }],
+      suggestions: [{ kfCode: '11010101', description: 'PET', score: 0.65, layer: 'primary', weightEstimateKg: null, unitsPerProduct: 1 }],
       strategy: 'VTSZ_PREFIX',
       confidence: 'MEDIUM',
       modelVersion: null as string | null,
@@ -293,10 +294,12 @@ describe('registry/[id].vue — page logic', () => {
 // ─── Story 9.5 — UX polish & bug fixes ───────────────────────────────────────
 describe('registry/[id].vue — Story 9.5 validations', () => {
   // Mirrors validateComponents() in the page: length===0 returns
-  // componentsRequired; any missing weightPerUnitKg returns weightRequired.
-  function validateComponents(components: { weightPerUnitKg: number | null }[]): string {
+  // componentsRequired; blank materialDescription returns materialRequired;
+  // any missing weightPerUnitKg returns weightRequired.
+  function validateComponents(components: { materialDescription: string; weightPerUnitKg: number | null }[]): string {
     if (components.length === 0) return 'registry.form.validation.componentsRequired'
     for (const c of components) {
+      if (!c.materialDescription?.trim()) return 'registry.form.validation.materialRequired'
       if (c.weightPerUnitKg == null) return 'registry.form.validation.weightRequired'
     }
     return ''
@@ -306,12 +309,23 @@ describe('registry/[id].vue — Story 9.5 validations', () => {
     expect(validateComponents([])).toBe('registry.form.validation.componentsRequired')
   })
 
-  it('validateComponents returns weightRequired when a component lacks weight', () => {
-    expect(validateComponents([{ weightPerUnitKg: null }])).toBe('registry.form.validation.weightRequired')
+  it('validateComponents returns materialRequired when description is blank', () => {
+    expect(validateComponents([{ materialDescription: '', weightPerUnitKg: 0.5 }])).toBe('registry.form.validation.materialRequired')
   })
 
-  it('validateComponents returns "" when all components have weight', () => {
-    expect(validateComponents([{ weightPerUnitKg: 0.4 }, { weightPerUnitKg: 0.1 }])).toBe('')
+  it('validateComponents returns materialRequired when description is whitespace-only', () => {
+    expect(validateComponents([{ materialDescription: '  ', weightPerUnitKg: 0.5 }])).toBe('registry.form.validation.materialRequired')
+  })
+
+  it('validateComponents returns weightRequired when a component lacks weight', () => {
+    expect(validateComponents([{ materialDescription: 'PET', weightPerUnitKg: null }])).toBe('registry.form.validation.weightRequired')
+  })
+
+  it('validateComponents returns "" when all components are valid', () => {
+    expect(validateComponents([
+      { materialDescription: 'PET', weightPerUnitKg: 0.4 },
+      { materialDescription: 'HDPE', weightPerUnitKg: 0.1 },
+    ])).toBe('')
   })
 })
 

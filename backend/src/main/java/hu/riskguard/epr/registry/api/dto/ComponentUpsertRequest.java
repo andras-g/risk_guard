@@ -20,6 +20,7 @@ public record ComponentUpsertRequest(
         @Pattern(regexp = "^[0-9]{8}$") String kfCode,
         @NotNull @DecimalMin("0") BigDecimal weightPerUnitKg,
         @NotNull @Min(0) Integer componentOrder,
+        @Min(1) Integer unitsPerProduct,
         RecyclabilityGrade recyclabilityGrade,
         @DecimalMin("0") @DecimalMax("100") BigDecimal recycledContentPct,
         Boolean reusable,
@@ -33,7 +34,8 @@ public record ComponentUpsertRequest(
     public static ComponentUpsertRequest from(ComponentUpsertCommand cmd) {
         return new ComponentUpsertRequest(
                 cmd.id(), cmd.materialDescription(), cmd.kfCode(), cmd.weightPerUnitKg(),
-                cmd.componentOrder(), cmd.recyclabilityGrade(), cmd.recycledContentPct(),
+                cmd.componentOrder(), cmd.unitsPerProduct(),
+                cmd.recyclabilityGrade(), cmd.recycledContentPct(),
                 cmd.reusable(), cmd.substancesOfConcern(), cmd.supplierDeclarationRef(),
                 cmd.classificationSource(), cmd.classificationStrategy(), cmd.classificationModelVersion()
         );
@@ -42,6 +44,7 @@ public record ComponentUpsertRequest(
     public ComponentUpsertCommand toCommand() {
         return new ComponentUpsertCommand(
                 id, materialDescription, kfCode, weightPerUnitKg, componentOrder,
+                unitsPerProduct != null ? unitsPerProduct : 1,
                 recyclabilityGrade, recycledContentPct, reusable, substancesOfConcern,
                 supplierDeclarationRef, classificationSource, classificationStrategy, classificationModelVersion
         );

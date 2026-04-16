@@ -72,16 +72,23 @@
     },
     "classify": {
       "accept": "Accept",
+      "acceptAll": "Accept all",
       "confidence": {
         "HIGH": "High confidence",
         "MEDIUM": "Medium confidence"
       },
       "error": "Classification failed — please try again",
+      "layer": {
+        "primary": "Primary",
+        "secondary": "Secondary",
+        "tertiary": "Tertiary"
+      },
       "noSuggestion": "No suggestion available — enter KF code manually",
       "suggest": "Suggest KF code",
       "suggestShort": "Suggest",
       "tooltipDisabled": "Enter the product name to get a suggestion",
-      "tooltipEnabled": "AI-suggested KF code based on product name and VTSZ"
+      "tooltipEnabled": "AI-suggested KF code based on product name and VTSZ",
+      "weightEstimateTooltip": "Estimated value — verify against actual weight"
     },
     "empty": {
       "cta": "Create your first product",
@@ -120,10 +127,13 @@
       "supplierDeclarationRef": "Supplier declaration ref.",
       "titleCreate": "New product",
       "titleEdit": "Edit product",
+      "unitsPerProduct": "Units/pkg",
+      "unitsPerProductTooltip": "How many sold product units fit in one packaging unit? Primary = 1, 6-pack = 6, pallet = 480.",
       "validation": {
         "componentsRequired": "At least one packaging component is required",
         "kfCodeInvalid": "KF code must be exactly 8 digits",
         "kfCodeRequired": "KF code is required",
+        "materialRequired": "Material description is required for every packaging component",
         "nameRequired": "Product name is required",
         "weightRequired": "Weight per unit is required"
       },

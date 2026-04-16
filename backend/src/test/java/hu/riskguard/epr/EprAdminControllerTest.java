@@ -233,8 +233,8 @@ class EprAdminControllerTest {
     void platformAdmin_getClassifierUsage_returns200WithSummaryList() {
         Jwt jwt = buildPlatformAdminJwt();
         List<ClassifierUsageSummary> summaries = List.of(
-                new ClassifierUsageSummary(TENANT_ID, "Tenant A", 42, 42 * 0.15),
-                new ClassifierUsageSummary(UUID.randomUUID(), "Tenant B", 7, 7 * 0.15)
+                new ClassifierUsageSummary(TENANT_ID, "Tenant A", 42, 5040, 1890),
+                new ClassifierUsageSummary(UUID.randomUUID(), "Tenant B", 7, 840, 315)
         );
         when(classifierUsageService.getAllTenantsUsage()).thenReturn(summaries);
 

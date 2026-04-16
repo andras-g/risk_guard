@@ -7,6 +7,7 @@ export interface ComponentResponse {
   kfCode: string | null
   weightPerUnitKg: number
   componentOrder: number
+  unitsPerProduct: number
   recyclabilityGrade: 'A' | 'B' | 'C' | 'D' | null
   recycledContentPct: number | null
   reusable: boolean | null
@@ -71,6 +72,7 @@ export interface ComponentUpsertRequest {
   kfCode: string | null
   weightPerUnitKg: number
   componentOrder: number
+  unitsPerProduct: number
   recyclabilityGrade?: 'A' | 'B' | 'C' | 'D' | null
   recycledContentPct?: number | null
   reusable?: boolean | null

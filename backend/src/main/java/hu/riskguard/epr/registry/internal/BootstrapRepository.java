@@ -1,14 +1,19 @@
 package hu.riskguard.epr.registry.internal;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.repository.BaseRepository;
 import hu.riskguard.epr.registry.domain.BootstrapCandidate;
 import hu.riskguard.epr.registry.domain.BootstrapCandidateStatus;
 import hu.riskguard.epr.registry.domain.BootstrapTriageFilter;
 import hu.riskguard.epr.registry.classifier.ClassificationResult;
+import hu.riskguard.epr.registry.classifier.KfSuggestion;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import org.jooq.impl.DSL;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -26,6 +31,9 @@ import static hu.riskguard.jooq.Tables.REGISTRY_BOOTSTRAP_CANDIDATES;
 @Repository
 public class BootstrapRepository extends BaseRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(BootstrapRepository.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     public BootstrapRepository(DSLContext dsl) {
         super(dsl);
     }
@@ -41,10 +49,13 @@ public class BootstrapRepository extends BaseRepository {
     public boolean insertCandidateIfNew(UUID tenantId, String productName, String vtsz,
                                         int frequency, BigDecimal totalQuantity, String unitOfMeasure,
                                         ClassificationResult classification) {
-        String suggestedKfCode = classification.suggestions().isEmpty()
-                ? null
-                : classification.suggestions().get(0).kfCode();
-        String suggestedComponents = null; // JSONB — populated by Story 9.3 classifier
+        // Primary-layer KF code for backward-compatible display in triage table
+        String suggestedKfCode = classification.suggestions().stream()
+                .filter(s -> "primary".equals(s.layer()))
+                .findFirst()
+                .map(KfSuggestion::kfCode)
+                .orElse(classification.suggestions().isEmpty() ? null : classification.suggestions().get(0).kfCode());
+        String suggestedComponents = serializeSuggestions(classification.suggestions());
         String strategyName = classification.strategy() != null
                 ? classification.strategy().name()
                 : null;
@@ -164,6 +175,30 @@ public class BootstrapRepository extends BaseRepository {
                 .where(condition)
                 .fetchOne(0, Long.class);
         return count != null ? count : 0L;
+    }
+
+    // ─── Serialization ─────────────────────────────────────────────────────────
+
+    private static String serializeSuggestions(List<KfSuggestion> suggestions) {
+        if (suggestions == null || suggestions.isEmpty()) return null;
+        try {
+            var list = suggestions.stream().map(s -> {
+                var node = MAPPER.createObjectNode();
+                node.put("layer", s.layer());
+                node.put("kfCode", s.kfCode());
+                node.put("description", s.description());
+                if (s.weightEstimateKg() != null) {
+                    node.put("weightEstimateKg", s.weightEstimateKg());
+                }
+                node.put("unitsPerProduct", s.unitsPerProduct());
+                node.put("score", s.score());
+                return node;
+            }).toList();
+            return MAPPER.writeValueAsString(list);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize suggested_components: {}", e.getMessage());
+            return null;
+        }
     }
 
     // ─── Normalization (mirrors RegistryBootstrapService.normalize) ───────────

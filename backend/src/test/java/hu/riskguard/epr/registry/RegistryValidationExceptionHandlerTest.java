@@ -43,7 +43,7 @@ class RegistryValidationExceptionHandlerTest {
     }
 
     @Test
-    void otherFieldValidation_fallsBackToGenericProblemDetail() throws Exception {
+    void otherFieldValidation_returnsValidationFailedWithFieldDetails() throws Exception {
         MethodArgumentNotValidException ex = buildNameBlankException();
 
         ResponseEntity<ProblemDetail> response = handler.handleValidation(ex);
@@ -51,10 +51,11 @@ class RegistryValidationExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         ProblemDetail body = response.getBody();
         assertThat(body).isNotNull();
-        // No specific URN — caller relies on the generic title.
         assertThat(body.getType())
-                .matches(t -> t == null || URI.create("about:blank").equals(t));
+                .isEqualTo(URI.create("urn:riskguard:error:registry-validation-failed"));
         assertThat(body.getTitle()).isEqualTo("Validation failed");
+        assertThat(body.getDetail()).contains("name").contains("must not be blank");
+        assertThat(body.getProperties()).containsKey("fieldErrors");
     }
 
     @Test
@@ -72,7 +73,7 @@ class RegistryValidationExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleValidation(ex);
 
         assertThat(response.getBody().getType())
-                .matches(t -> t == null || URI.create("about:blank").equals(t));
+                .isEqualTo(URI.create("urn:riskguard:error:registry-validation-failed"));
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

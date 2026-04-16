@@ -20,5 +20,21 @@ export function useApiError() {
     return key ? t(key) : t('common.states.error')
   }
 
-  return { mapErrorType }
+  /**
+   * Extracts a user-readable summary from a ProblemDetail response.
+   * Falls back to the generic i18n error message when the response
+   * does not contain a structured {@code detail} field.
+   */
+  function mapErrorDetail(err: unknown): string {
+    const e = err as { data?: { type?: string; detail?: string } }
+    const mapped = mapErrorType(e?.data?.type)
+    // If the backend returned a specific detail string (e.g. field-level
+    // validation messages), append it so the user knows what to fix.
+    if (e?.data?.detail && e.data.detail !== 'Validation failed') {
+      return `${mapped}: ${e.data.detail}`
+    }
+    return mapped
+  }
+
+  return { mapErrorType, mapErrorDetail }
 }

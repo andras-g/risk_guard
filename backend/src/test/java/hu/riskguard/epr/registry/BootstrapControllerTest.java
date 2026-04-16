@@ -162,7 +162,7 @@ class BootstrapControllerTest {
     private BootstrapApproveRequest buildApproveRequest() {
         ComponentUpsertRequest comp = new ComponentUpsertRequest(
                 null, "PET anyag", "11010101", new BigDecimal("0.1"), 0,
-                null, null, null, null, null, null, null, null);
+                1, null, null, null, null, null, null, null, null);
         return new BootstrapApproveRequest("ART-001", "Termék A", "39239090",
                 "DARAB", ProductStatus.ACTIVE, List.of(comp));
     }

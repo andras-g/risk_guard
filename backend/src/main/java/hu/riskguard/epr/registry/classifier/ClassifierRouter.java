@@ -66,7 +66,7 @@ public class ClassifierRouter implements KfCodeClassifierService {
         if (!geminiResult.suggestions().isEmpty()
                 && geminiResult.confidence().ordinal() >= confidenceThreshold.ordinal()) {
             if (tenantId != null) {
-                usageService.incrementUsage(tenantId);
+                usageService.incrementUsage(tenantId, geminiResult.inputTokens(), geminiResult.outputTokens());
             }
             return geminiResult;
         }

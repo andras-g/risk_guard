@@ -38,15 +38,19 @@ public class ClassifierUsageRepository extends BaseRepository {
 
     /**
      * Atomic upsert: inserts a new row with call_count=1 or increments an existing row.
+     * Accumulates input/output token counts for accurate cost metering.
      * Single SQL — no read-then-write race condition.
      */
-    public void upsertIncrement(UUID tenantId, String yearMonth) {
+    public void upsertIncrement(UUID tenantId, String yearMonth, int inputTokens, int outputTokens) {
         dsl.execute(
-                "INSERT INTO ai_classifier_usage (tenant_id, year_month, call_count) " +
-                "VALUES (?, ?, 1) " +
+                "INSERT INTO ai_classifier_usage (tenant_id, year_month, call_count, input_tokens, output_tokens) " +
+                "VALUES (?, ?, 1, ?, ?) " +
                 "ON CONFLICT (tenant_id, year_month) " +
-                "DO UPDATE SET call_count = ai_classifier_usage.call_count + 1, updated_at = now()",
-                tenantId, yearMonth
+                "DO UPDATE SET call_count = ai_classifier_usage.call_count + 1, " +
+                "input_tokens = ai_classifier_usage.input_tokens + EXCLUDED.input_tokens, " +
+                "output_tokens = ai_classifier_usage.output_tokens + EXCLUDED.output_tokens, " +
+                "updated_at = now()",
+                tenantId, yearMonth, inputTokens, outputTokens
         );
     }
 
@@ -58,7 +62,9 @@ public class ClassifierUsageRepository extends BaseRepository {
         return dsl.select(
                         AI_CLASSIFIER_USAGE.TENANT_ID,
                         TENANTS.NAME,
-                        AI_CLASSIFIER_USAGE.CALL_COUNT
+                        AI_CLASSIFIER_USAGE.CALL_COUNT,
+                        AI_CLASSIFIER_USAGE.INPUT_TOKENS,
+                        AI_CLASSIFIER_USAGE.OUTPUT_TOKENS
                 )
                 .from(AI_CLASSIFIER_USAGE)
                 .join(TENANTS).on(TENANTS.ID.eq(AI_CLASSIFIER_USAGE.TENANT_ID))
@@ -68,7 +74,8 @@ public class ClassifierUsageRepository extends BaseRepository {
                         r.get(AI_CLASSIFIER_USAGE.TENANT_ID),
                         r.get(TENANTS.NAME),
                         r.get(AI_CLASSIFIER_USAGE.CALL_COUNT),
-                        r.get(AI_CLASSIFIER_USAGE.CALL_COUNT) * 0.15
+                        r.get(AI_CLASSIFIER_USAGE.INPUT_TOKENS),
+                        r.get(AI_CLASSIFIER_USAGE.OUTPUT_TOKENS)
                 ));
     }
 }

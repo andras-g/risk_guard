@@ -30,4 +30,28 @@ describe('useApiError', () => {
     const { mapErrorType } = useApiError()
     expect(mapErrorType('')).toBe('common.states.error')
   })
+
+  describe('mapErrorDetail', () => {
+    it('includes detail from ProblemDetail response', () => {
+      const { mapErrorDetail } = useApiError()
+      const err = { data: { type: 'urn:riskguard:error:registry-validation-failed', detail: 'components[0].materialDescription: must not be blank' } }
+      expect(mapErrorDetail(err)).toBe('common.states.error: components[0].materialDescription: must not be blank')
+    })
+
+    it('returns mapped type without detail when detail is generic', () => {
+      const { mapErrorDetail } = useApiError()
+      const err = { data: { type: 'urn:riskguard:error:tier-upgrade-required', detail: 'Validation failed' } }
+      expect(mapErrorDetail(err)).toBe('common.errors.tierUpgradeRequired')
+    })
+
+    it('returns generic error when err has no data', () => {
+      const { mapErrorDetail } = useApiError()
+      expect(mapErrorDetail({})).toBe('common.states.error')
+    })
+
+    it('returns generic error for null', () => {
+      const { mapErrorDetail } = useApiError()
+      expect(mapErrorDetail(null)).toBe('common.states.error')
+    })
+  })
 })

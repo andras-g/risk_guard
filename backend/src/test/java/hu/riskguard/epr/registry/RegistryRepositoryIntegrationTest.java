@@ -119,7 +119,7 @@ class RegistryRepositoryIntegrationTest {
 
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET", "11020101", new BigDecimal("0.30"),
-                0, null, null, null, null, null, null, null, null);
+                0, 1, null, null, null, null, null, null, null, null);
         registryRepository.insertComponent(productId, TENANT_A, comp);
 
         // Tenant B should not see Tenant A's components

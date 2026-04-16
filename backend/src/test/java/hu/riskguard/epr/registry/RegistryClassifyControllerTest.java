@@ -50,11 +50,12 @@ class RegistryClassifyControllerTest {
     @Test
     void classify_validRequest_returnsClassifyResponse() {
         ClassificationResult geminiResult = new ClassificationResult(
-                List.of(new KfSuggestion("11010101", List.of("PET"), 0.90)),
+                List.of(new KfSuggestion("11010101", "PET", 0.90, "primary", null, 1)),
                 ClassificationStrategy.VERTEX_GEMINI,
                 ClassificationConfidence.HIGH,
-                "gemini-2.5-flash",
-                Instant.now()
+                "gemini-3.0-flash-preview",
+                Instant.now(),
+                120, 45
         );
         when(classifierService.classify("PET palack", "39239090")).thenReturn(geminiResult);
 

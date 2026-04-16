@@ -152,7 +152,8 @@ public class OkirkapuXmlExporter implements EprReportTarget {
             RegistryMatch match = matchOpt.get();
             for (ProductPackagingComponent component : match.components()) {
                 if (component.kfCode() == null || component.kfCode().isBlank()) continue;
-                BigDecimal weightKg = component.weightPerUnitKg().multiply(quantity);
+                BigDecimal weightKg = component.weightPerUnitKg().multiply(quantity)
+                        .divide(BigDecimal.valueOf(component.unitsPerProduct()), 6, java.math.RoundingMode.HALF_UP);
                 contributions.add(new RegistryWeightContribution(component.kfCode(), weightKg));
                 provenanceLines.add(new EprReportProvenance(
                         invoiceNumber, item.lineNumber(), vtszCode, productName, quantity,

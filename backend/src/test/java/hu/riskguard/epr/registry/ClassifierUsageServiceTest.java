@@ -63,11 +63,11 @@ class ClassifierUsageServiceTest {
     // ─── Test 3: incrementUsage delegates upsertIncrement with current month ──
 
     @Test
-    void incrementUsage_delegatesUpsertIncrementWithCurrentMonth() {
-        service.incrementUsage(TENANT_ID);
+    void incrementUsage_delegatesUpsertIncrementWithCurrentMonthAndTokenCounts() {
+        service.incrementUsage(TENANT_ID, 120, 45);
 
         ArgumentCaptor<String> yearMonthCaptor = ArgumentCaptor.forClass(String.class);
-        verify(repository).upsertIncrement(eq(TENANT_ID), yearMonthCaptor.capture());
+        verify(repository).upsertIncrement(eq(TENANT_ID), yearMonthCaptor.capture(), eq(120), eq(45));
         assertThat(yearMonthCaptor.getValue()).matches("\\d{4}-\\d{2}");
     }
 
@@ -76,8 +76,8 @@ class ClassifierUsageServiceTest {
     @Test
     void getAllTenantsUsage_returnsSummaryList() {
         List<ClassifierUsageSummary> summaries = List.of(
-                new ClassifierUsageSummary(TENANT_ID, "Tenant A", 42, 42 * 0.15),
-                new ClassifierUsageSummary(UUID.randomUUID(), "Tenant B", 7, 7 * 0.15)
+                new ClassifierUsageSummary(TENANT_ID, "Tenant A", 42, 5040, 1890),
+                new ClassifierUsageSummary(UUID.randomUUID(), "Tenant B", 7, 840, 315)
         );
         when(repository.findAllForMonth(anyString())).thenReturn(summaries);
 
@@ -85,6 +85,7 @@ class ClassifierUsageServiceTest {
 
         assertThat(result).hasSize(2);
         assertThat(result.get(0).callCount()).isEqualTo(42);
-        assertThat(result.get(0).estimatedCostFt()).isEqualTo(42 * 0.15);
+        assertThat(result.get(0).inputTokens()).isEqualTo(5040);
+        assertThat(result.get(0).outputTokens()).isEqualTo(1890);
     }
 }

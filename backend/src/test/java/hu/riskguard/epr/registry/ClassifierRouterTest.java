@@ -37,38 +37,42 @@ class ClassifierRouterTest {
 
     /** A HIGH-confidence Gemini result with one suggestion. */
     private static final ClassificationResult GEMINI_HIGH = new ClassificationResult(
-            List.of(new KfSuggestion("11010101", List.of("PET"), 0.90)),
+            List.of(new KfSuggestion("11010101", "PET", 0.90, "primary", null, 1)),
             ClassificationStrategy.VERTEX_GEMINI,
             ClassificationConfidence.HIGH,
-            "gemini-2.5-flash",
-            Instant.now()
+            "gemini-3.0-flash-preview",
+            Instant.now(),
+            120, 45
     );
 
     /** A MEDIUM-confidence Gemini result with one suggestion. */
     private static final ClassificationResult GEMINI_MEDIUM = new ClassificationResult(
-            List.of(new KfSuggestion("11020101", List.of("HDPE"), 0.65)),
+            List.of(new KfSuggestion("11020101", "HDPE", 0.65, "primary", null, 1)),
             ClassificationStrategy.VERTEX_GEMINI,
             ClassificationConfidence.MEDIUM,
-            "gemini-2.5-flash",
-            Instant.now()
+            "gemini-3.0-flash-preview",
+            Instant.now(),
+            115, 40
     );
 
     /** A LOW-confidence Gemini result with one suggestion. */
     private static final ClassificationResult GEMINI_LOW = new ClassificationResult(
-            List.of(new KfSuggestion("11030101", List.of("PVC"), 0.30)),
+            List.of(new KfSuggestion("11030101", "PVC", 0.30, "primary", null, 1)),
             ClassificationStrategy.VERTEX_GEMINI,
             ClassificationConfidence.LOW,
-            "gemini-2.5-flash",
-            Instant.now()
+            "gemini-3.0-flash-preview",
+            Instant.now(),
+            110, 38
     );
 
     /** A VTSZ-prefix result with one suggestion. */
     private static final ClassificationResult VTSZ_RESULT = new ClassificationResult(
-            List.of(new KfSuggestion("30010101", List.of("Üveg"), 0.65)),
+            List.of(new KfSuggestion("30010101", "Üveg", 0.65, "primary", null, 1)),
             ClassificationStrategy.VTSZ_PREFIX,
             ClassificationConfidence.MEDIUM,
             null,
-            Instant.now()
+            Instant.now(),
+            0, 0
     );
 
     @BeforeEach
@@ -175,7 +179,7 @@ class ClassifierRouterTest {
 
         router.classify("PET palack", "39239090");
 
-        verify(usageService).incrementUsage(TENANT_ID);
+        verify(usageService).incrementUsage(TENANT_ID, 120, 45);
     }
 
     // ─── Test 8: VTSZ fallback does NOT increment usage counter ───────────────
@@ -188,7 +192,7 @@ class ClassifierRouterTest {
 
         router.classify("Termék", "39239090");
 
-        verify(usageService, never()).incrementUsage(any());
+        verify(usageService, never()).incrementUsage(any(), anyInt(), anyInt());
     }
 
     // ─── Test 9: no tenant in context — cap check skipped, no increment ───────
@@ -204,6 +208,6 @@ class ClassifierRouterTest {
         // isCapExceeded should NOT be called (tenantId is null)
         verify(usageService, never()).isCapExceeded(any());
         // incrementUsage should NOT be called (tenantId is null)
-        verify(usageService, never()).incrementUsage(any());
+        verify(usageService, never()).incrementUsage(any(), anyInt(), anyInt());
     }
 }

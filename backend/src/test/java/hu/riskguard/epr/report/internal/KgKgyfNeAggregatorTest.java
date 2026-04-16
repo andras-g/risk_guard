@@ -84,6 +84,29 @@ class KgKgyfNeAggregatorTest {
         assertThat(result.get(0).totalWeightKg()).isEqualByComparingTo("1999999.998");
     }
 
+    /**
+     * AC#16 backward-compatibility: contributions pre-divided by unitsPerProduct
+     * (done in OkirkapuXmlExporter) must aggregate identically to undivided contributions
+     * when unitsPerProduct=1 (i.e., division by 1 is a no-op).
+     */
+    @Test
+    void backward_compat_ratio1_same_as_undivided() {
+        // Simulates 100 × 0.025 / 1 = 2.500 (primary, ratio=1)
+        // and 100 × 0.050 / 6 = 0.833333 (secondary, ratio=6)
+        // Both KF codes are different, so they should not be merged.
+        List<RegistryWeightContribution> input = List.of(
+                new RegistryWeightContribution("11010101", new BigDecimal("2.500000")),
+                new RegistryWeightContribution("41010201", new BigDecimal("0.833333"))
+        );
+        List<KfCodeAggregate> result = aggregator.aggregate(input);
+        assertThat(result).hasSize(2);
+        // Alphabetical sort: 11010101 before 41010201
+        assertThat(result.get(0).kfCode()).isEqualTo("11010101");
+        assertThat(result.get(0).totalWeightKg()).isEqualByComparingTo("2.500");
+        assertThat(result.get(1).kfCode()).isEqualTo("41010201");
+        assertThat(result.get(1).totalWeightKg()).isEqualByComparingTo("0.833");
+    }
+
     @Test
     void determinism_same_input_same_output() {
         List<RegistryWeightContribution> input = List.of(

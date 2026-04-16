@@ -1,8 +1,6 @@
 /bmad-code-review review story XXX and fix your findings on your own without further questions. Run E2E tests as well and if they are green then push everything to github 
 
 
-Done. Both users use sso_provider = 'local' now, so the normal login form works:
-
   ┌─────────────────────────┬───────────┬────────────┐
   │          Email          │ Password  │    Role    │
   ├─────────────────────────┼───────────┼────────────┤
@@ -11,5 +9,26 @@ Done. Both users use sso_provider = 'local' now, so the normal login form works:
   │ accountant@riskguard.hu │ Demo1234! │ ACCOUNTANT │
   └─────────────────────────┴───────────┴────────────┘
 
-  Just make sure the backend is started with the test or e2e profile so the seed migrations run (the test-seed/ location is only included in those profiles).
-  
+SQL to query current AI usage
+
+  -- Current month usage per tenant
+  SELECT t.name                     AS tenant_name,
+         u.year_month,
+         u.call_count,
+         u.call_count * 0.15        AS estimated_cost_ft,
+         u.updated_at
+    FROM ai_classifier_usage u
+    JOIN tenants t ON t.id = u.tenant_id
+   WHERE u.year_month = to_char(now() AT TIME ZONE 'Europe/Budapest', 'YYYY-MM')
+   ORDER BY u.call_count DESC;
+
+  -- All-time usage (all months)
+  SELECT t.name                     AS tenant_name,
+         u.year_month,
+         u.call_count,
+         u.call_count * 0.15        AS estimated_cost_ft,
+         u.updated_at
+    FROM ai_classifier_usage u
+    JOIN tenants t ON t.id = u.tenant_id
+   ORDER BY u.year_month DESC, u.call_count DESC;
+

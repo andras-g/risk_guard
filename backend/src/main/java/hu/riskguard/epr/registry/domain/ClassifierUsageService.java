@@ -42,11 +42,11 @@ public class ClassifierUsageService {
     }
 
     /**
-     * Atomically increments the call count for the current month.
+     * Atomically increments the call count and accumulates token counts for the current month.
      */
     @Transactional
-    public void incrementUsage(UUID tenantId) {
-        repository.upsertIncrement(tenantId, currentYearMonth());
+    public void incrementUsage(UUID tenantId, int inputTokens, int outputTokens) {
+        repository.upsertIncrement(tenantId, currentYearMonth(), inputTokens, outputTokens);
     }
 
     /**

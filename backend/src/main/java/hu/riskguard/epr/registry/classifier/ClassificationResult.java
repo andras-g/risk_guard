@@ -11,13 +11,17 @@ import java.util.List;
  * @param confidence        overall confidence level
  * @param modelVersion      version string of the model used (null for rule-based or no-op strategies)
  * @param timestamp         when the classification was performed
+ * @param inputTokens       prompt tokens consumed (0 for rule-based or failed calls)
+ * @param outputTokens      completion tokens consumed (0 for rule-based or failed calls)
  */
 public record ClassificationResult(
         List<KfSuggestion> suggestions,
         ClassificationStrategy strategy,
         ClassificationConfidence confidence,
         String modelVersion,
-        Instant timestamp
+        Instant timestamp,
+        int inputTokens,
+        int outputTokens
 ) {
 
     /**
@@ -30,7 +34,9 @@ public record ClassificationResult(
                 ClassificationStrategy.NONE,
                 ClassificationConfidence.LOW,
                 null,
-                Instant.now()
+                Instant.now(),
+                0,
+                0
         );
     }
 }

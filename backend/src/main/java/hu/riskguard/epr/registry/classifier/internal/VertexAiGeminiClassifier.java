@@ -26,8 +26,10 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -66,7 +68,7 @@ public class VertexAiGeminiClassifier implements KfCodeClassifierService {
     public VertexAiGeminiClassifier(
             @Value("${spring.ai.vertex.ai.gemini.project-id:risk-guard-dev}") String projectId,
             @Value("${spring.ai.vertex.ai.gemini.location:europe-west1}") String location,
-            @Value("${spring.ai.vertex.ai.gemini.chat.options.model:gemini-2.5-flash}") String model,
+            @Value("${spring.ai.vertex.ai.gemini.chat.options.model:gemini-3.0-flash-preview}") String model,
             CircuitBreakerRegistry circuitBreakerRegistry) throws IOException {
         this.projectId = projectId;
         this.location = location;
@@ -191,9 +193,17 @@ public class VertexAiGeminiClassifier implements KfCodeClassifierService {
                 return ClassificationResult.empty();
             }
 
+            // Extract token counts from usageMetadata
+            JsonNode usageMetadata = root.path("usageMetadata");
+            int inputTokens = usageMetadata.path("promptTokenCount").asInt(0);
+            int outputTokens = usageMetadata.path("candidatesTokenCount").asInt(0);
+
             String text = candidates.get(0).path("content").path("parts").path(0).path("text").asText("");
             if (text.isBlank()) {
-                return ClassificationResult.empty();
+                return new ClassificationResult(
+                        List.of(), ClassificationStrategy.VERTEX_GEMINI,
+                        ClassificationConfidence.LOW, model, Instant.now(),
+                        inputTokens, outputTokens);
             }
 
             // Strip markdown code fences if present
@@ -204,7 +214,10 @@ public class VertexAiGeminiClassifier implements KfCodeClassifierService {
 
             List<JsonNode> rawSuggestions = objectMapper.readValue(text, new TypeReference<List<JsonNode>>() {});
             if (rawSuggestions == null || rawSuggestions.isEmpty()) {
-                return ClassificationResult.empty();
+                return new ClassificationResult(
+                        List.of(), ClassificationStrategy.VERTEX_GEMINI,
+                        ClassificationConfidence.LOW, model, Instant.now(),
+                        inputTokens, outputTokens);
             }
 
             List<KfSuggestion> suggestions = new ArrayList<>();
@@ -212,23 +225,50 @@ public class VertexAiGeminiClassifier implements KfCodeClassifierService {
                 String kfCode = node.path("kfCode").asText(null);
                 String description = node.path("description").asText("");
                 double score = node.path("score").asDouble(0.0);
-                if (kfCode != null && !kfCode.isBlank()) {
-                    suggestions.add(new KfSuggestion(kfCode, List.of(description), score));
+                // Multi-layer fields (backward-compatible: defaults for old-format responses)
+                String layer = node.has("layer")
+                        ? node.path("layer").asText("primary").toLowerCase()
+                        : "primary";
+                BigDecimal weightEstimateKg = null;
+                if (node.has("weightEstimateKg") && !node.path("weightEstimateKg").isNull()) {
+                    try {
+                        weightEstimateKg = new BigDecimal(node.path("weightEstimateKg").asText());
+                    } catch (NumberFormatException e) {
+                        weightEstimateKg = null;
+                    }
                 }
-                if (suggestions.size() >= 3) break;
+                // Defense-in-depth: reject non-positive weight (AI hallucination guard)
+                if (weightEstimateKg != null && weightEstimateKg.signum() <= 0) {
+                    weightEstimateKg = null;
+                }
+                int unitsPerProduct = node.has("unitsPerProduct") ? node.path("unitsPerProduct").asInt(1) : 1;
+                // Defense-in-depth: reject non-positive unitsPerProduct (would cause
+                // ArithmeticException in OkirkapuXmlExporter's divide-by-unitsPerProduct)
+                if (unitsPerProduct <= 0 || unitsPerProduct > 10_000) {
+                    unitsPerProduct = 1;
+                }
+                if (kfCode != null && !kfCode.isBlank()) {
+                    suggestions.add(new KfSuggestion(kfCode, description, score, layer, weightEstimateKg, unitsPerProduct));
+                }
+                if (suggestions.size() >= 5) break;
             }
 
             if (suggestions.isEmpty()) {
-                return ClassificationResult.empty();
+                return new ClassificationResult(
+                        List.of(), ClassificationStrategy.VERTEX_GEMINI,
+                        ClassificationConfidence.LOW, model, Instant.now(),
+                        inputTokens, outputTokens);
             }
 
-            suggestions.sort((a, b) -> Double.compare(b.score(), a.score()));
+            // Sort by componentOrder (primary=0, secondary=1, tertiary=2), not by score
+            suggestions.sort(Comparator.comparingInt(s -> layerToOrder(s.layer())));
 
-            double topScore = suggestions.get(0).score();
+            // Confidence: minimum score across all layers (conservative: weakest link)
+            double minScore = suggestions.stream().mapToDouble(KfSuggestion::score).min().orElse(0.0);
             ClassificationConfidence confidence;
-            if (topScore >= 0.80) {
+            if (minScore >= 0.80) {
                 confidence = ClassificationConfidence.HIGH;
-            } else if (topScore >= 0.50) {
+            } else if (minScore >= 0.50) {
                 confidence = ClassificationConfidence.MEDIUM;
             } else {
                 confidence = ClassificationConfidence.LOW;
@@ -239,12 +279,23 @@ public class VertexAiGeminiClassifier implements KfCodeClassifierService {
                     ClassificationStrategy.VERTEX_GEMINI,
                     confidence,
                     model,
-                    Instant.now()
+                    Instant.now(),
+                    inputTokens,
+                    outputTokens
             );
 
         } catch (Exception e) {
             log.warn("Failed to parse Gemini response: {}", e.getMessage());
             return ClassificationResult.empty();
         }
+    }
+
+    private static int layerToOrder(String layer) {
+        return switch (layer) {
+            case "primary" -> 0;
+            case "secondary" -> 1;
+            case "tertiary" -> 2;
+            default -> 3;
+        };
     }
 }

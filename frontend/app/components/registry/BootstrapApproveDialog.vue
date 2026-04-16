@@ -27,10 +27,21 @@ const articleNumber = ref<string | null>(null)
 const primaryUnit = ref('')
 const productStatus = ref<'ACTIVE' | 'ARCHIVED' | 'DRAFT'>('ACTIVE')
 
+interface SuggestedComponent {
+  layer?: string
+  kfCode?: string
+  description?: string
+  weightEstimateKg?: number
+  unitsPerProduct?: number
+  score?: number
+}
+
 interface ComponentRow {
   materialDescription: string
   kfCode: string | null
   weightPerUnitKg: number | null
+  unitsPerProduct: number
+  _lowWeightConfidence: boolean
 }
 
 const components = ref<ComponentRow[]>([])
@@ -77,11 +88,28 @@ watch(() => props.candidate, (c) => {
   nameError.value = ''
   submitError.value = null
 
-  if (c.suggestedKfCode) {
+  // Multi-component pre-population from suggestedComponents JSON (Story 9.6)
+  let parsed: SuggestedComponent[] = []
+  if (c.suggestedComponents) {
+    try { parsed = JSON.parse(c.suggestedComponents) } catch { /* ignore */ }
+  }
+
+  if (parsed.length > 0) {
+    components.value = parsed.map((s, i) => ({
+      materialDescription: s.description || c.productName,
+      kfCode: s.kfCode || null,
+      weightPerUnitKg: s.weightEstimateKg ?? null,
+      unitsPerProduct: s.unitsPerProduct ?? 1,
+      _lowWeightConfidence: s.weightEstimateKg != null && (s.score == null || s.score < 0.7),
+    }))
+  }
+  else if (c.suggestedKfCode) {
     components.value = [{
       materialDescription: c.productName,
       kfCode: c.suggestedKfCode,
       weightPerUnitKg: null,
+      unitsPerProduct: 1,
+      _lowWeightConfidence: false,
     }]
   }
   else {
@@ -89,6 +117,8 @@ watch(() => props.candidate, (c) => {
       materialDescription: '',
       kfCode: null,
       weightPerUnitKg: null,
+      unitsPerProduct: 1,
+      _lowWeightConfidence: false,
     }]
   }
 }, { immediate: true })
@@ -96,7 +126,7 @@ watch(() => props.candidate, (c) => {
 // ─── Component rows ───────────────────────────────────────────────────────────
 
 function addComponent() {
-  components.value.push({ materialDescription: '', kfCode: null, weightPerUnitKg: null })
+  components.value.push({ materialDescription: '', kfCode: null, weightPerUnitKg: null, unitsPerProduct: 1, _lowWeightConfidence: false })
 }
 
 function removeComponent(idx: number) {
@@ -129,6 +159,7 @@ async function onConfirm() {
       kfCode: c.kfCode,
       weightPerUnitKg: c.weightPerUnitKg ?? 0,
       componentOrder: i,
+      unitsPerProduct: c.unitsPerProduct,
     })),
   }
 
@@ -246,6 +277,19 @@ function onClose() {
               :min="0"
               :min-fraction-digits="0"
               :max-fraction-digits="6"
+              :class="{ 'italic': comp._lowWeightConfidence }"
+              v-tooltip.top="comp._lowWeightConfidence ? t('registry.classify.weightEstimateTooltip') : undefined"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label :for="`ba-up-${idx}`" class="text-xs font-medium">
+              {{ t('registry.form.unitsPerProduct') }}
+            </label>
+            <InputNumber
+              :id="`ba-up-${idx}`"
+              v-model="comp.unitsPerProduct"
+              :min="1"
+              :show-buttons="true"
             />
           </div>
           <Button

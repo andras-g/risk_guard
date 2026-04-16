@@ -19,6 +19,10 @@ export default defineConfig({
     globals: true,
     // Resolve Nuxt auto-imports used in components (ref, computed, etc.)
     setupFiles: ['./vitest.setup.ts'],
+    pool: 'forks',
+    poolOptions: {
+      forks: { minForks: 1, maxForks: 3 },
+    },
   },
   resolve: {
     alias: {

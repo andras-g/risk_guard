@@ -19,6 +19,7 @@ public record ComponentUpsertCommand(
         String kfCode,
         BigDecimal weightPerUnitKg,
         int componentOrder,
+        int unitsPerProduct,
         RecyclabilityGrade recyclabilityGrade,
         BigDecimal recycledContentPct,
         Boolean reusable,

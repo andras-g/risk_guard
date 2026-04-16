@@ -2,8 +2,11 @@ import { useApi } from '~/composables/api/useApi'
 
 export interface KfSuggestionDto {
   kfCode: string
-  suggestedComponentDescriptions: string[]
+  description: string
   score: number
+  layer: 'primary' | 'secondary' | 'tertiary'
+  weightEstimateKg: number | null
+  unitsPerProduct: number
 }
 
 export interface ClassifyResponse {

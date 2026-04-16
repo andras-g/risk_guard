@@ -60,14 +60,18 @@ public class VtszPrefixFallbackClassifier implements KfCodeClassifierService {
                     ClassificationStrategy.VTSZ_PREFIX,
                     ClassificationConfidence.LOW,
                     null,
-                    java.time.Instant.now()
+                    java.time.Instant.now(),
+                    0, 0
             );
         }
 
         KfSuggestion suggestion = new KfSuggestion(
                 bestMapping.kfCode(),
-                List.of(bestMapping.materialName_hu()),
-                0.65 // MEDIUM-confidence rule-based match
+                bestMapping.materialName_hu(),
+                0.65, // MEDIUM-confidence rule-based match
+                "primary",
+                null, // no weight estimate from rule-based classifier
+                1
         );
 
         return new ClassificationResult(
@@ -75,7 +79,8 @@ public class VtszPrefixFallbackClassifier implements KfCodeClassifierService {
                 ClassificationStrategy.VTSZ_PREFIX,
                 ClassificationConfidence.MEDIUM,
                 null,
-                java.time.Instant.now()
+                java.time.Instant.now(),
+                0, 0
         );
     }
 

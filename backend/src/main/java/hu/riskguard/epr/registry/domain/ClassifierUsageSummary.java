@@ -10,5 +10,6 @@ public record ClassifierUsageSummary(
         UUID tenantId,
         String tenantName,
         int callCount,
-        double estimatedCostFt
+        long inputTokens,
+        long outputTokens
 ) {}
