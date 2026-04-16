@@ -7,6 +7,8 @@ import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -129,7 +131,11 @@ public class AdapterHealthRepository extends BaseRepository {
     /**
      * Atomically records a successful call — sets status=HEALTHY and last_success_at=now.
      * Does NOT touch failure_count or last_failure_at so concurrent error events are safe.
+     *
+     * <p>Runs in its own transaction so circuit breaker event callbacks work even when
+     * the outer call (e.g. {@code previewReport}) uses a read-only transaction.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordSuccess(String adapterName, Instant now) {
         OffsetDateTime odt = now.atOffset(ZoneOffset.UTC);
         dsl.execute("""
@@ -148,7 +154,10 @@ public class AdapterHealthRepository extends BaseRepository {
     /**
      * Atomically records a failed call — increments failure_count, sets last_failure_at=now,
      * and recomputes MTBF in SQL. No prior read is required; concurrent events are safe.
+     *
+     * <p>Runs in its own transaction — see {@link #recordSuccess} for rationale.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordFailure(String adapterName, Instant now) {
         OffsetDateTime odt = now.atOffset(ZoneOffset.UTC);
         dsl.execute("""
@@ -174,7 +183,10 @@ public class AdapterHealthRepository extends BaseRepository {
     /**
      * Records a circuit breaker state transition — updates only the status column.
      * All other counters and timestamps are left unchanged.
+     *
+     * <p>Runs in its own transaction — see {@link #recordSuccess} for rationale.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void recordStateTransition(String adapterName, String status, Instant now) {
         OffsetDateTime odt = now.atOffset(ZoneOffset.UTC);
         dsl.execute("""
