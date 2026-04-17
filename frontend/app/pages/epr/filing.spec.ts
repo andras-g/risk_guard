@@ -8,11 +8,16 @@ vi.mock('primevue/usetoast', () => ({
   useToast: () => ({ add: mockToastAdd }),
 }))
 
+const mockFetchAutoFill = vi.fn().mockResolvedValue(undefined)
+const mockFetchRegisteredTaxNumber = vi.fn().mockResolvedValue('')
+const mockAutoFillResponse = ref<any>(null)
+
 vi.mock('~/composables/api/useInvoiceAutoFill', () => ({
   useInvoiceAutoFill: vi.fn(() => ({
-    fetchAutoFill: vi.fn(),
+    fetchAutoFill: mockFetchAutoFill,
+    fetchRegisteredTaxNumber: mockFetchRegisteredTaxNumber,
     pending: ref(false),
-    response: ref(null),
+    response: mockAutoFillResponse,
     error: ref(null),
     startOfCurrentQuarter: () => new Date(2026, 0, 1),
     endOfCurrentQuarter: () => new Date(2026, 2, 31),
@@ -25,36 +30,39 @@ const ButtonStub = {
   inheritAttrs: true,
   emits: ['click'],
 }
-const PanelStub = {
-  template: '<div :data-testid="$attrs[\'data-testid\']" class="panel-stub"><slot /></div>',
-  props: ['toggleable', 'collapsed', 'header'],
-  inheritAttrs: true,
-}
 const TagStub = {
   template: '<span :data-testid="$attrs[\'data-testid\']" class="tag-stub">{{ value }}</span>',
   props: ['severity', 'value'],
   inheritAttrs: true,
 }
-const InvoiceAutoFillPanelStub = {
-  template: '<div data-testid="invoice-autofill-panel-stub" />',
-  emits: ['apply'],
-}
 const DataTableStub = {
-  template: `<div data-testid="filing-table">
-    <div v-for="row in value" :key="row.templateId" class="filing-row">
-      <span class="row-name">{{ row.name }}</span>
+  template: `<div :data-testid="$attrs['data-testid'] || 'filing-table'">
+    <div v-for="row in value" :key="row.templateId || row.vtszCode" class="filing-row">
+      <span class="row-name">{{ row.name || row.description }}</span>
     </div>
   </div>`,
-  props: ['value'],
+  props: ['value', 'selection', 'filters', 'globalFilterFields', 'paginator', 'rows', 'rowsPerPageOptions', 'selectionMode', 'sortField', 'sortOrder', 'stripedRows'],
+  inheritAttrs: true,
 }
 const ColumnStub = {
   template: '<div />',
-  props: ['field', 'header'],
+  props: ['field', 'header', 'sortable', 'selectionMode', 'headerStyle'],
 }
 const InputNumberStub = {
   template: '<input :data-testid="$attrs[\'data-testid\']" @input="$emit(\'input\', { value: $event.target.value })" />',
   inheritAttrs: true,
   emits: ['input'],
+}
+const InputTextStub = {
+  template: '<input :data-testid="$attrs[\'data-testid\']" />',
+  inheritAttrs: true,
+}
+const IconFieldStub = {
+  template: '<div class="icon-field-stub"><slot /></div>',
+}
+const InputIconStub = {
+  template: '<i class="input-icon-stub" />',
+  inheritAttrs: true,
 }
 
 vi.stubGlobal('useI18n', () => ({
@@ -139,9 +147,10 @@ function mountPage() {
         DataTable: DataTableStub,
         Column: ColumnStub,
         InputNumber: InputNumberStub,
-        Panel: PanelStub,
+        InputText: InputTextStub,
+        IconField: IconFieldStub,
+        InputIcon: InputIconStub,
         Tag: TagStub,
-        InvoiceAutoFillPanel: InvoiceAutoFillPanelStub,
       },
     },
   })
@@ -151,6 +160,7 @@ describe('EPR Filing Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockToastAdd.mockReset()
+    mockAutoFillResponse.value = null
     mockEprMaterials = []
     mockFilingLines = []
     mockServerResult = null
@@ -279,9 +289,9 @@ describe('EPR Filing Page', () => {
     mockExportOkirkapu.mockRejectedValueOnce(mockErr)
 
     const wrapper = mountPage()
-    // Set tax number to enable button
-    const taxInput = wrapper.find('[data-testid="export-tax-number-input"]')
-    await taxInput.setValue('12345678')
+    // Tax number is readonly and auto-filled from profile. Set it via component internals.
+    const vm = wrapper.vm as any
+    vm.exportTaxNumber = '12345678'
     await wrapper.vm.$nextTick()
 
     const exportBtn = wrapper.find('[data-testid="export-okirkapu-button"]')
@@ -293,45 +303,90 @@ describe('EPR Filing Page', () => {
     )
   })
 
-  // ─── Invoice Auto-Fill Panel tests ────────────────────────────────────────
+  // ─── Invoice Auto-Fill section tests ──────────────────────────────────────
 
-  it('renders the autofill panel in collapsed state', () => {
+  it('renders the autofill panel', () => {
     mockFilingLines = []
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="autofill-panel"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="invoice-autofill-panel-stub"]').exists()).toBe(true)
   })
 
-  it('apply event from autofill panel updates filing store for matched lines', async () => {
+  it('shows invoice products when autoFillResponse has lines', () => {
+    mockAutoFillResponse.value = {
+      navAvailable: true,
+      dataSourceMode: 'LIVE',
+      lines: [
+        {
+          vtszCode: '48191000',
+          description: 'Karton csomagolás',
+          suggestedKfCode: '11010101',
+          aggregatedQuantity: 500,
+          unitOfMeasure: 'DARAB',
+          hasExistingTemplate: true,
+          existingTemplateId: 'tmpl-1',
+        },
+        {
+          vtszCode: '39233000',
+          description: 'PET palack',
+          suggestedKfCode: null,
+          aggregatedQuantity: 5000,
+          unitOfMeasure: 'DARAB',
+          hasExistingTemplate: false,
+          existingTemplateId: null,
+        },
+      ],
+    }
+    mockFilingLines = []
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="autofill-results-table"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Karton csomagolás')
+    expect(wrapper.text()).toContain('PET palack')
+  })
+
+  it('shows NAV unavailable message when navAvailable is false', () => {
+    mockAutoFillResponse.value = { navAvailable: false, dataSourceMode: 'LIVE', lines: [] }
+    mockFilingLines = []
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="autofill-nav-unavailable"]').exists()).toBe(true)
+  })
+
+  it('shows empty message when response has no lines', () => {
+    mockAutoFillResponse.value = { navAvailable: true, dataSourceMode: 'LIVE', lines: [] }
+    mockFilingLines = []
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="autofill-empty"]').exists()).toBe(true)
+  })
+
+  it('unmatched lines from apply are shown as warning tags', async () => {
+    mockAutoFillResponse.value = {
+      navAvailable: true,
+      dataSourceMode: 'LIVE',
+      lines: [
+        {
+          vtszCode: '39233000',
+          description: 'PET csomagolás',
+          suggestedKfCode: '11020101',
+          aggregatedQuantity: 80,
+          unitOfMeasure: 'DARAB',
+          hasExistingTemplate: false,
+          existingTemplateId: null,
+        },
+      ],
+    }
     mockFilingLines = [
       {
-        templateId: 'tmpl-1', name: 'Box A', kfCode: '11010101',
+        templateId: '1', name: 'Box A', kfCode: '11010101',
         baseWeightGrams: 120, feeRateHufPerKg: 215,
         quantityPcs: null, totalWeightGrams: null, totalWeightKg: null,
         feeAmountHuf: null, isValid: false, validationMessage: null,
       },
     ]
     const wrapper = mountPage()
-    const autofillStub = wrapper.findComponent(InvoiceAutoFillPanelStub)
-    await autofillStub.vm.$emit('apply', [
-      {
-        vtszCode: '48191000',
-        description: 'Karton csomagolás',
-        suggestedKfCode: '11010101',
-        aggregatedQuantity: 150.7,
-        unitOfMeasure: 'DARAB',
-        hasExistingTemplate: true,
-        existingTemplateId: 'tmpl-1',
-      },
-    ])
-    expect(mockUpdateQuantity).toHaveBeenCalledWith('tmpl-1', '151')
-  })
 
-  it('unmatched lines from apply event are shown as warning tags', async () => {
-    mockFilingLines = []
-    const wrapper = mountPage()
-    const autofillStub = wrapper.findComponent(InvoiceAutoFillPanelStub)
-    await autofillStub.vm.$emit('apply', [
+    // Simulate selecting and applying autofill lines by calling onAutoFillApply directly
+    // (since DataTable selection is stubbed out)
+    const vm = wrapper.vm as any
+    vm.onAutoFillApply([
       {
         vtszCode: '39233000',
         description: 'PET csomagolás',

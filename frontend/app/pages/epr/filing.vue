@@ -3,13 +3,17 @@ import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputNumber from 'primevue/inputnumber'
-import Panel from 'primevue/panel'
+import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import Tag from 'primevue/tag'
+import { FilterMatchMode } from '@primevue/core/api'
 import { useToast } from 'primevue/usetoast'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useAuthStore } from '~/stores/auth'
 import { useEprStore } from '~/stores/epr'
 import { useEprFilingStore } from '~/stores/eprFiling'
+import { useInvoiceAutoFill } from '~/composables/api/useInvoiceAutoFill'
 import type { InvoiceAutoFillLineDto } from '~/composables/api/useInvoiceAutoFill'
 
 const { t } = useI18n()
@@ -20,18 +24,29 @@ const authStore = useAuthStore()
 const eprStore = useEprStore()
 const filingStore = useEprFilingStore()
 
-// Export period state — defaults to current quarter
+// Export period state — defaults to previous quarter (the most recently completed quarter,
+// matching DemoInvoiceFixtures and the typical EPR filing workflow where you report on
+// the quarter that just ended, not the current in-progress quarter).
 const currentDate = new Date()
 const currentYear = currentDate.getFullYear()
 const currentQuarter = Math.ceil((currentDate.getMonth() + 1) / 3)
-const quarterStartMonth = (currentQuarter - 1) * 3 + 1
+const prevQuarter = currentQuarter === 1 ? 4 : currentQuarter - 1
+const prevQuarterYear = currentQuarter === 1 ? currentYear - 1 : currentYear
+const prevQuarterStartMonth = (prevQuarter - 1) * 3 + 1
 const exportFrom = ref(
-  `${currentYear}-${String(quarterStartMonth).padStart(2, '0')}-01`,
+  `${prevQuarterYear}-${String(prevQuarterStartMonth).padStart(2, '0')}-01`,
 )
 const exportTo = ref(
-  new Date(currentYear, quarterStartMonth + 2, 0).toISOString().slice(0, 10),
+  new Date(prevQuarterYear, prevQuarterStartMonth + 2, 0).toISOString().slice(0, 10),
 )
 const exportTaxNumber = ref('')
+
+// Invoice auto-fill — auto-fetched on mount
+const { fetchAutoFill, fetchRegisteredTaxNumber, pending: autoFillPending, response: autoFillResponse, startOfCurrentQuarter, endOfCurrentQuarter } = useInvoiceAutoFill()
+const autoFillFilters = ref({
+  global: { value: null as string | null, matchMode: FilterMatchMode.CONTAINS },
+})
+const selectedAutoFillLines = ref<InvoiceAutoFillLineDto[]>([])
 
 // Accountant with home tenant active = no client selected yet
 const needsClientSelection = computed(() =>
@@ -44,11 +59,44 @@ onMounted(async () => {
   if (hasAccess.value) {
     await eprStore.fetchMaterials()
     filingStore.initFromTemplates(eprStore.materials)
+    // Auto-fill tax number from producer profile (if configured)
+    try {
+      const config = useRuntimeConfig()
+      const profile = await $fetch<{ taxNumber?: string }>('/api/v1/epr/producer-profile', {
+        baseURL: config.public.apiBase as string,
+        credentials: 'include',
+      })
+      if (profile?.taxNumber) {
+        exportTaxNumber.value = profile.taxNumber
+      }
+    }
+    catch {
+      // Profile not yet configured — leave tax number empty for manual entry
+    }
+    // Auto-fetch invoice lines for the previous quarter
+    const taxNum = exportTaxNumber.value || (await fetchRegisteredTaxNumber())
+    if (taxNum) {
+      try {
+        await fetchAutoFill(taxNum, startOfCurrentQuarter(), endOfCurrentQuarter())
+      }
+      catch {
+        // Silently ignore — the table will just be empty
+      }
+    }
   }
 })
 
 function formatHuf(value: number): string {
   return new Intl.NumberFormat('hu-HU', { style: 'decimal', maximumFractionDigits: 0 }).format(value) + ' Ft'
+}
+
+function formatQuantity(value: number): string {
+  return new Intl.NumberFormat('hu-HU', { style: 'decimal', maximumFractionDigits: 2 }).format(value)
+}
+
+function handleAutoFillApply() {
+  onAutoFillApply(selectedAutoFillLines.value)
+  selectedAutoFillLines.value = []
 }
 
 async function handleCalculate() {
@@ -206,16 +254,114 @@ async function handleExport() {
       </div>
     </div>
 
-    <!-- Invoice Auto-Fill Panel -->
-    <Panel
-      :toggleable="true"
-      :collapsed="true"
-      :header="t('epr.autofill.panelTitle')"
-      class="mb-6"
-      data-testid="autofill-panel"
-    >
-      <InvoiceAutoFillPanel @apply="onAutoFillApply" />
-    </Panel>
+    <!-- Invoice Products — previous quarter -->
+    <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6" data-testid="autofill-panel">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 class="text-lg font-semibold text-slate-800">
+          {{ t('epr.autofill.panelTitle') }}
+        </h2>
+        <div class="flex items-center gap-2">
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText
+              v-model="autoFillFilters.global.value"
+              :placeholder="t('epr.autofill.searchPlaceholder')"
+              class="w-64"
+              data-testid="autofill-search"
+            />
+          </IconField>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="autoFillPending" class="flex justify-center py-8">
+        <i class="pi pi-spin pi-spinner text-3xl text-slate-400" aria-hidden="true" />
+      </div>
+
+      <!-- No invoices available (NAV not configured) -->
+      <div
+        v-else-if="autoFillResponse && !autoFillResponse.navAvailable"
+        class="text-sm text-slate-500 py-4"
+        data-testid="autofill-nav-unavailable"
+      >
+        {{ t('epr.autofill.navUnavailable') }}
+        <router-link to="/admin/datasources" class="underline ml-1">
+          {{ t('epr.autofill.navUnavailableLink') }}
+        </router-link>
+      </div>
+
+      <!-- Empty result -->
+      <div
+        v-else-if="autoFillResponse && autoFillResponse.lines.length === 0"
+        class="text-sm text-slate-400 py-4"
+        data-testid="autofill-empty"
+      >
+        {{ t('epr.autofill.noResults') }}
+      </div>
+
+      <!-- Results table -->
+      <template v-else-if="autoFillResponse && autoFillResponse.lines.length > 0">
+        <DataTable
+          v-model:selection="selectedAutoFillLines"
+          v-model:filters="autoFillFilters"
+          :value="autoFillResponse.lines"
+          :global-filter-fields="['description', 'vtszCode', 'suggestedKfCode']"
+          :paginator="autoFillResponse.lines.length > 10"
+          :rows="10"
+          :rows-per-page-options="[10, 25, 50]"
+          selection-mode="multiple"
+          sort-field="aggregatedQuantity"
+          :sort-order="-1"
+          striped-rows
+          data-testid="autofill-results-table"
+        >
+          <Column selection-mode="multiple" header-style="width: 3rem" />
+          <Column field="description" :header="t('epr.autofill.columns.description')" sortable />
+          <Column field="vtszCode" :header="t('epr.autofill.columns.vtszCode')" sortable />
+          <Column field="suggestedKfCode" :header="t('epr.autofill.columns.suggestedKfCode')" sortable>
+            <template #body="{ data: line }">
+              <span v-if="line.suggestedKfCode">{{ line.suggestedKfCode }}</span>
+              <span v-else class="text-slate-400">—</span>
+            </template>
+          </Column>
+          <Column field="aggregatedQuantity" :header="t('epr.autofill.columns.quantity')" sortable>
+            <template #body="{ data: line }">
+              {{ formatQuantity(line.aggregatedQuantity) }}
+            </template>
+          </Column>
+          <Column field="unitOfMeasure" :header="t('epr.autofill.columns.unit')" sortable />
+          <Column :header="t('epr.autofill.columns.template')">
+            <template #body="{ data: line }">
+              <Tag
+                v-if="line.hasExistingTemplate"
+                severity="success"
+                :value="t('epr.autofill.templateMatched')"
+              />
+              <span v-else class="text-slate-400 text-xs">—</span>
+            </template>
+          </Column>
+        </DataTable>
+
+        <div class="flex justify-end mt-3">
+          <Button
+            :label="t('epr.autofill.applyButton')"
+            icon="pi pi-check"
+            :disabled="selectedAutoFillLines.length === 0"
+            data-testid="autofill-apply-button"
+            @click="handleAutoFillApply"
+          />
+        </div>
+      </template>
+
+      <!-- Not yet fetched (no tax number configured) -->
+      <div
+        v-else-if="!autoFillPending && !autoFillResponse"
+        class="text-sm text-slate-400 py-4"
+        data-testid="autofill-no-tax"
+      >
+        {{ t('epr.autofill.noTaxNumber') }}
+      </div>
+    </div>
 
     <!-- Unmatched lines from auto-fill -->
     <div
@@ -359,13 +505,13 @@ async function handleExport() {
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label for="export-tax-number-input" class="text-sm text-slate-600">{{ t('epr.autofill.taxNumberLabel') }}</label>
+            <label for="export-tax-number-input" class="text-sm text-slate-600">{{ t('epr.okirkapu.exportTaxNumberLabel') }}</label>
             <input
               id="export-tax-number-input"
-              v-model="exportTaxNumber"
+              :value="exportTaxNumber"
               type="text"
-              :placeholder="t('epr.autofill.taxNumberPlaceholder')"
-              class="border border-slate-300 rounded px-3 py-2 text-sm w-32"
+              readonly
+              class="border border-slate-300 rounded px-3 py-2 text-sm w-32 bg-slate-50 cursor-not-allowed"
               data-testid="export-tax-number-input"
             />
           </div>

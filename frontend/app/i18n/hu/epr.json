@@ -18,15 +18,17 @@
       },
       "fetchButton": "Számlák lekérdezése",
       "fetchError": "A számlák lekérdezése sikertelen. Kérjük, próbálja újra.",
-      "fromLabel": "Tól",
+      "fromLabel": "-tól",
       "navUnavailable": "A NAV Online Számla nem elérhető.",
       "navUnavailableLink": "Adatforrás beállítása",
       "noResults": "Nem található számlasor a kiválasztott időszakra.",
-      "panelTitle": "Előtöltés számlákból",
+      "noTaxNumber": "Nincs regisztrált adószám — a számlák lekérdezéséhez adja meg az adószámot a gyártói profilban.",
+      "panelTitle": "Termékek az előző negyedév számlái alapján",
+      "searchPlaceholder": "Keresés leírás, VTSZ vagy KF kód alapján...",
       "taxNumberLabel": "Szállító adószáma",
       "taxNumberPlaceholder": "12345678",
       "templateMatched": "Sablon egyezik",
-      "toLabel": "Ig"
+      "toLabel": "-ig"
     },
     "config": {
       "title": "EPR Konfiguráció",
@@ -40,7 +42,6 @@
       "columns": {
         "actions": "Műveletek",
         "baseWeight": "Alapsúly (g)",
-        "created": "Létrehozva",
         "kfCode": "KF Kód",
         "name": "Név",
         "recurring": "Visszatérő",
@@ -90,7 +91,7 @@
         "description": "Az anyagkönyvtár eléréséhez {tier} szintű előfizetés szükséges.",
         "title": "Magasabb előfizetési szint szükséges"
       },
-      "title": "Anyagkönyvtár",
+      "title": "EPR Anyagkönyvtár",
       "toast": {
         "copied": "{count} sablon sikeresen másolva",
         "copiedEmpty": "Nincs új másolható sablon a(z) Q{quarter} {year} negyedévből — lehet, hogy már léteznek a könyvtárában",
@@ -137,14 +138,15 @@
       "exportButton": "Negyedéves EPR bevallás letöltése (OKIRkapu XML)",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "ZIP generálása...",
+      "exportTaxNumberLabel": "Saját adószám",
       "exportTitle": "Negyedéves EPR bevallás – OKIRkapu beküldéshez",
       "openSettings": "Beállítások megnyitása",
       "panelTitle": "OKIRkapu XML Export",
       "preview": {
         "profileIncomplete": "A gyártói profil hiányos. Kérjük, töltse ki az összes szükséges mezőt.",
         "profileOpenSettings": "Beállítások megnyitása",
-        "registryMatch": "Nyilvántartási egyezések (XML-be kerül)",
-        "title": "Előzetes jelentés",
+        "registryMatch": "Azonosított tételek (bekerülnek az XML-be)",
+        "title": "Bejelentés előnézete",
         "unmatched": "Nem illeszkedett sorok (XML-ből kizárva)",
         "unmatchedRegisterShortcut": "Termék regisztrálása",
         "vtszFallback": "VTSZ visszaesési sorok (csak tájékoztató jellegű, XML-ből kizárva)"

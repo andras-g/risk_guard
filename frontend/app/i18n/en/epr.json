@@ -22,7 +22,9 @@
       "navUnavailable": "NAV Online Számla is not available.",
       "navUnavailableLink": "Configure data source",
       "noResults": "No invoice lines found for the selected period.",
-      "panelTitle": "Pre-fill from Invoices",
+      "noTaxNumber": "No registered tax number — configure your tax number in the producer profile to fetch invoices.",
+      "panelTitle": "Products from Previous Quarter's Invoices",
+      "searchPlaceholder": "Search by description, VTSZ or KF code...",
       "taxNumberLabel": "Supplier Tax Number",
       "taxNumberPlaceholder": "12345678",
       "templateMatched": "Template matched",
@@ -40,7 +42,6 @@
       "columns": {
         "actions": "Actions",
         "baseWeight": "Base Weight (g)",
-        "created": "Created",
         "kfCode": "KF Code",
         "name": "Name",
         "recurring": "Recurring",
@@ -90,7 +91,7 @@
         "description": "A {tier} subscription is required to access the material library.",
         "title": "Higher Subscription Tier Required"
       },
-      "title": "Material Library",
+      "title": "EPR Material Library",
       "toast": {
         "copied": "{count} templates copied successfully",
         "copiedEmpty": "No new templates to copy from Q{quarter} {year} — they may already exist in your library",
@@ -137,14 +138,15 @@
       "exportButton": "Download quarterly EPR filing (OKIRkapu XML)",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating ZIP...",
+      "exportTaxNumberLabel": "Your Tax Number",
       "exportTitle": "Quarterly EPR filing — ready for OKIRkapu submission",
       "openSettings": "Open Settings",
       "panelTitle": "OKIRkapu XML Export",
       "preview": {
         "profileIncomplete": "Producer profile is incomplete. Please fill in all required fields.",
         "profileOpenSettings": "Open Settings",
-        "registryMatch": "Registry Matches (included in XML)",
-        "title": "Report Preview",
+        "registryMatch": "Identified Items (included in XML)",
+        "title": "Filing Preview",
         "unmatched": "Unmatched Lines (not in XML)",
         "unmatchedRegisterShortcut": "Register Product",
         "vtszFallback": "VTSZ Fallback (informational only, excluded from XML)"
