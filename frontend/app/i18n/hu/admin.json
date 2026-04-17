@@ -75,6 +75,7 @@
         "underMaintenance": "A '{name}' adatforrás karbantartás alatt áll"
       },
       "subtitle": "Minden regisztrált adatforrás-adapter élő állapota",
+      "subtitleCustomer": "A NAV Online Számla hozzáférés beállítása és kezelése.",
       "title": "Adatforrások"
     },
     "classifier": {
@@ -86,7 +87,8 @@
       "columns": {
         "tenantName": "Bérlő",
         "callCount": "Hívások",
-        "estimatedCost": "Becsült költség (Ft)"
+        "inputTokens": "Bemeneti tokenek",
+        "outputTokens": "Kimeneti tokenek"
       },
       "errors": {
         "loadFailed": "Az osztályozó használati adatok betöltése sikertelen."

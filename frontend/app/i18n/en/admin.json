@@ -75,6 +75,7 @@
         "underMaintenance": "Data source '{name}' is Under Maintenance"
       },
       "subtitle": "Live health status of all registered data source adapters",
+      "subtitleCustomer": "Configure and manage your NAV Online Számla access.",
       "title": "Data Sources"
     },
     "classifier": {
@@ -86,7 +87,8 @@
       "columns": {
         "tenantName": "Tenant",
         "callCount": "Calls",
-        "estimatedCost": "Est. Cost (Ft)"
+        "inputTokens": "Input Tokens",
+        "outputTokens": "Output Tokens"
       },
       "errors": {
         "loadFailed": "Failed to load classifier usage data."

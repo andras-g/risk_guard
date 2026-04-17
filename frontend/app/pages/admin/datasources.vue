@@ -11,6 +11,7 @@ const healthStore = useHealthStore()
 const authStore = useAuthStore()
 
 const quarantining = computed(() => healthStore.quarantining)
+const isPlatformAdmin = computed(() => authStore.role === 'PLATFORM_ADMIN')
 
 async function handleQuarantine(adapterName: string, quarantined: boolean) {
   await healthStore.quarantineAdapter(adapterName, quarantined)
@@ -24,8 +25,10 @@ onMounted(() => {
     router.replace('/dashboard')
     return
   }
+  // One fetch for all roles — NavCredentialManager needs adapters[0].dataSourceMode.
+  // Only platform admins see the live dashboard, so only they get the 30s poll.
   healthStore.fetchHealth()
-  if (pollInterval === null) {
+  if (isPlatformAdmin.value && pollInterval === null) {
     pollInterval = setInterval(() => {
       healthStore.fetchHealth()
     }, 30_000)
@@ -57,10 +60,12 @@ onUnmounted(() => {
         <h1 class="text-2xl font-bold text-slate-800">
           {{ t('admin.datasources.title') }}
         </h1>
-        <p class="text-slate-500 mt-1">{{ t('admin.datasources.subtitle') }}</p>
+        <p class="text-slate-500 mt-1">
+          {{ isPlatformAdmin ? t('admin.datasources.subtitle') : t('admin.datasources.subtitleCustomer') }}
+        </p>
       </div>
 
-      <div class="flex flex-col items-end gap-1">
+      <div v-if="isPlatformAdmin" class="flex flex-col items-end gap-1">
         <Button
           :label="t('admin.datasources.refresh')"
           icon="pi pi-refresh"
@@ -79,12 +84,13 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Dashboard component -->
+    <!-- Dashboard component (platform admins only — operator-level telemetry) -->
     <AdminDataSourceHealthDashboard
+      v-if="isPlatformAdmin"
       :adapters="healthStore.adapters"
       :loading="healthStore.loading"
       :quarantining="quarantining"
-      :can-quarantine="authStore.role === 'PLATFORM_ADMIN'"
+      :can-quarantine="true"
       @quarantine="handleQuarantine"
     />
 
