@@ -46,8 +46,8 @@ describe('ai-usage.vue', () => {
 
   it('calls getUsage on mount when role is PLATFORM_ADMIN', async () => {
     const usageData = [
-      { tenantId: 'tenant-1', tenantName: 'Acme Kft.', callCount: 42, estimatedCostFt: 6.30 },
-      { tenantId: 'tenant-2', tenantName: 'Beta Zrt.', callCount: 7, estimatedCostFt: 1.05 },
+      { tenantId: 'tenant-1', tenantName: 'Acme Kft.', callCount: 42, inputTokens: 4200, outputTokens: 840 },
+      { tenantId: 'tenant-2', tenantName: 'Beta Zrt.', callCount: 7, inputTokens: 700, outputTokens: 140 },
     ]
     mockGetUsage.mockResolvedValue(usageData)
 
@@ -56,7 +56,8 @@ describe('ai-usage.vue', () => {
       const result = await mockGetUsage()
       expect(result).toHaveLength(2)
       expect(result[0].tenantName).toBe('Acme Kft.')
-      expect(result[0].estimatedCostFt).toBeCloseTo(6.30)
+      expect(result[0].inputTokens).toBe(4200)
+      expect(result[0].outputTokens).toBe(840)
     }
 
     expect(mockGetUsage).toHaveBeenCalledOnce()

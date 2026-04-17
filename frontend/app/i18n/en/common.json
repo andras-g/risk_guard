@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Back",
     "a11y": {
       "breadcrumb": "Breadcrumb navigation",
       "headerNav": "Header navigation",

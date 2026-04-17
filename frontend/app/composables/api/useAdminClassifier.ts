@@ -4,7 +4,8 @@ export interface ClassifierUsageSummaryResponse {
   tenantId: string
   tenantName: string
   callCount: number
-  estimatedCostFt: number
+  inputTokens: number
+  outputTokens: number
 }
 
 /**

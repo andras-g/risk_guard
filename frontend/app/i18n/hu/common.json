@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Vissza",
     "a11y": {
       "breadcrumb": "Navigációs útvonal",
       "headerNav": "Fejléc navigáció",

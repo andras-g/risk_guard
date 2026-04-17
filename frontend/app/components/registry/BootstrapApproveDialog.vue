@@ -82,7 +82,7 @@ watch(() => props.candidate, (c) => {
   name.value = c.productName || ''
   vtsz.value = c.vtsz || null
   articleNumber.value = null
-  primaryUnit.value = c.unitOfMeasure || 'pcs'
+  primaryUnit.value = c.unitOfMeasure || 'db'
   productStatus.value = 'ACTIVE'
   nameTouched.value = false
   nameError.value = ''
@@ -189,7 +189,7 @@ function onClose() {
     :header="t('registry.bootstrap.approveDialog.title')"
     :closable="true"
     modal
-    :style="{ width: '540px' }"
+    :style="{ width: '720px' }"
     @hide="onClose"
   >
     <div class="flex flex-col gap-4">
@@ -255,52 +255,58 @@ function onClose() {
           :key="idx"
           class="border rounded p-3 flex flex-col gap-2"
         >
-          <div class="flex flex-col gap-1">
-            <label :for="`ba-mat-${idx}`" class="text-xs font-medium">
-              {{ t('registry.form.materialDescription') }}
-            </label>
-            <InputText :id="`ba-mat-${idx}`" v-model="comp.materialDescription" />
+          <!-- Row 1: Material description + KF code -->
+          <div class="grid grid-cols-2 gap-2">
+            <div class="flex flex-col gap-1">
+              <label :for="`ba-mat-${idx}`" class="text-xs font-medium">
+                {{ t('registry.form.materialDescription') }}
+              </label>
+              <InputText :id="`ba-mat-${idx}`" v-model="comp.materialDescription" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label :for="`ba-kf-${idx}`" class="text-xs font-medium">
+                {{ t('registry.form.kfCode') }}
+              </label>
+              <KfCodeInput :id="`ba-kf-${idx}`" v-model="comp.kfCode" />
+            </div>
           </div>
-          <div class="flex flex-col gap-1">
-            <label :for="`ba-kf-${idx}`" class="text-xs font-medium">
-              {{ t('registry.form.kfCode') }}
-            </label>
-            <KfCodeInput :id="`ba-kf-${idx}`" v-model="comp.kfCode" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label :for="`ba-wt-${idx}`" class="text-xs font-medium">
-              {{ t('registry.form.weightPerUnitKg') }}
-            </label>
-            <InputNumber
-              :id="`ba-wt-${idx}`"
-              v-model="comp.weightPerUnitKg"
-              :min="0"
-              :min-fraction-digits="0"
-              :max-fraction-digits="6"
-              :class="{ 'italic': comp._lowWeightConfidence }"
-              v-tooltip.top="comp._lowWeightConfidence ? t('registry.classify.weightEstimateTooltip') : undefined"
+          <!-- Row 2: Weight + Units + Remove -->
+          <div class="flex gap-2 items-end">
+            <div class="flex flex-col gap-1 flex-1">
+              <label :for="`ba-wt-${idx}`" class="text-xs font-medium">
+                {{ t('registry.form.weightPerUnitKg') }}
+              </label>
+              <InputNumber
+                :id="`ba-wt-${idx}`"
+                v-model="comp.weightPerUnitKg"
+                :min="0"
+                :min-fraction-digits="0"
+                :max-fraction-digits="6"
+                :class="{ 'italic': comp._lowWeightConfidence }"
+                v-tooltip.top="comp._lowWeightConfidence ? t('registry.classify.weightEstimateTooltip') : undefined"
+              />
+            </div>
+            <div class="flex flex-col gap-1 flex-1">
+              <label :for="`ba-up-${idx}`" class="text-xs font-medium">
+                {{ t('registry.form.unitsPerProduct') }}
+              </label>
+              <InputNumber
+                :id="`ba-up-${idx}`"
+                v-model="comp.unitsPerProduct"
+                :min="1"
+                :show-buttons="true"
+              />
+            </div>
+            <Button
+              v-if="components.length > 1"
+              icon="pi pi-trash"
+              :aria-label="t('registry.form.removeComponent')"
+              severity="secondary"
+              size="small"
+              text
+              @click="removeComponent(idx)"
             />
           </div>
-          <div class="flex flex-col gap-1">
-            <label :for="`ba-up-${idx}`" class="text-xs font-medium">
-              {{ t('registry.form.unitsPerProduct') }}
-            </label>
-            <InputNumber
-              :id="`ba-up-${idx}`"
-              v-model="comp.unitsPerProduct"
-              :min="1"
-              :show-buttons="true"
-            />
-          </div>
-          <Button
-            v-if="components.length > 1"
-            :label="t('registry.form.removeComponent')"
-            icon="pi pi-trash"
-            severity="secondary"
-            size="small"
-            text
-            @click="removeComponent(idx)"
-          />
         </div>
       </div>
 

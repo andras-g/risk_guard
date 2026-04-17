@@ -1,5 +1,7 @@
 /bmad-code-review review story XXX and fix your findings on your own without further questions. Run E2E tests as well and if they are green then push everything to github 
 
+Kill a process on a given port: fuser -k 3000/tcp
+
 
   ┌─────────────────────────┬───────────┬────────────┐
   │          Email          │ Password  │    Role    │
@@ -32,3 +34,14 @@ SQL to query current AI usage
     JOIN tenants t ON t.id = u.tenant_id
    ORDER BY u.year_month DESC, u.call_count DESC;
 
+
+
+Na várj, váltsunk magyarra azért ott jobban otthon vagyok. Az invoice-ban eddig is productok vannak végülis, a VTSZ kód az fix, nem? Nem kell article number->product párosítás. Tegyük fel volt egy számla 1000 csavarról, 1 kalapácsról,  
+  6 bála szigetelőanyagrról, 500m 3*2.5 MBCU kábelről. Ekkor regisztrál a termékünkre a cég. Belép a NAV-hoz a rendszerünkön keresztül, beolvassa az összes számlát az utóbbi 3 hónapból (mondjuk 3000 db, hasonló hosszúságú mint amit       
+  leírtam), a mi rendszerünk pedig lehetőleg automatikusan mindenhez megpróbál találni csomagolást. Automatán létrejön tehát minden termékhez (VTSZ-hez ha jól értem) egy sor a Termék–Csomagolás Nyilvántartás-ban. Minden sor tartalmaz 0   
+  (nem ismerte fel, manuális kisegítés kell), 1 (csak elsődleges csomagolóanyaga van), 2-3 (dobozban, raklapon, egyéb nagyobb csomagban jön a termék, itt automatán vagy manuálisan definiálódik, hogy hány termékhez tartozik 1 doboz, hány
+  dobozhoz egy raklap - minden terméknél más és más lehet ez a szám) Csomagolási elem. Miután megvan a cég a Termék–Csomagolás Nyilvántartással, jön az EPR oldal (lehet hogy érdemes is megcserélni a workflow alapján a menü elemeket):     
+  itt nem vagyok benne biztos milyen anyagokat akarunk hozzáadni (ez igazából már megtörtént a Termék-Csomagolás Nyilvántartásban?). Aztán rákattint a Negyedéves EPR bejelentésre, VTSZ alapján csoportosítjuk az összes terméket, eladtunk  
+  mondjuk 10 kalapácsot, 3000 bála szigetelőanyagot meg még 300 másik terméket változó mennyiségben. Ez alatt a táblázat alatt látjuk, hogy  ezen termékeinkhez, milyen csomagolásokra is volt szükség (gombnyomás nélkül kiszámítódik,       
+  csak az ezen termékek által használt csomagolások látszódnak, az utóbbi 3 hónapban nem használt csomagolások nem), aggregálva (KF kód szerint). A Bejelentés előnézete nem tudom hogy hordoz-e értéket, de helyette a végösszeget           
+  kiirathatjuk (Bejelentési összesítő most is van). Negyedéves EPR bevallás letöltése pedig legenerálja az xml-t amit majd a cég elküld az OKIR-ba  

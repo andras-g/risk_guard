@@ -131,6 +131,7 @@
       "unitsPerProductTooltip": "Hány eladott termék fér egy csomagolási egységbe? Elsődleges = 1, 6-os multipack = 6, raklap = 480.",
       "validation": {
         "componentsRequired": "Legalább egy csomagolási elem hozzáadása kötelező",
+        "failed": "Az érvényesítés sikertelen — kérem, ellenőrizze a kiemelt mezőket",
         "kfCodeInvalid": "A KF-kódnak pontosan 8 számjegyből kell állnia",
         "kfCodeRequired": "A KF-kód megadása kötelező",
         "materialRequired": "Az anyagleírás megadása kötelező minden csomagolási elemhez",

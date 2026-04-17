@@ -35,7 +35,7 @@ describe('useApiError', () => {
     it('includes detail from ProblemDetail response', () => {
       const { mapErrorDetail } = useApiError()
       const err = { data: { type: 'urn:riskguard:error:registry-validation-failed', detail: 'components[0].materialDescription: must not be blank' } }
-      expect(mapErrorDetail(err)).toBe('common.states.error: components[0].materialDescription: must not be blank')
+      expect(mapErrorDetail(err)).toBe('registry.form.validation.failed: components[0].materialDescription: must not be blank')
     })
 
     it('returns mapped type without detail when detail is generic', () => {

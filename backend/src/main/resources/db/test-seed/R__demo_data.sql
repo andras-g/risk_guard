@@ -212,7 +212,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Audit log entries showing search history for the demo SME user
 INSERT INTO search_audit_log (
     id, tenant_id, tax_number, searched_by,
-    sha256_hash, disclaimer_text, check_source, verdict_id, searched_at
+    sha256_hash, disclaimer_text, check_source, data_source_mode, verdict_id, searched_at
 ) VALUES
 (
     '00000000-0000-4000-c000-000000000061',
@@ -221,7 +221,7 @@ INSERT INTO search_audit_log (
     '00000000-0000-4000-b000-000000000002',
     'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
     'Az adatok tájékoztató jellegűek. A RiskGuard nem vállal felelősséget az adatok pontosságáért.',
-    'DEMO',
+    'MANUAL', 'DEMO',
     '00000000-0000-4000-c000-000000000011',
     now() - INTERVAL '2 hours'
 ),
@@ -232,7 +232,7 @@ INSERT INTO search_audit_log (
     '00000000-0000-4000-b000-000000000002',
     'c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4',
     'Az adatok tájékoztató jellegűek. A RiskGuard nem vállal felelősséget az adatok pontosságáért.',
-    'DEMO',
+    'MANUAL', 'DEMO',
     '00000000-0000-4000-c000-000000000013',
     now() - INTERVAL '1 hour'
 ),
@@ -243,7 +243,7 @@ INSERT INTO search_audit_log (
     '00000000-0000-4000-b000-000000000002',
     'e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6',
     'Az adatok tájékoztató jellegűek. A RiskGuard nem vállal felelősséget az adatok pontosságáért.',
-    'DEMO',
+    'MANUAL', 'DEMO',
     '00000000-0000-4000-c000-000000000015',
     now() - INTERVAL '30 minutes'
 )
@@ -799,12 +799,149 @@ INSERT INTO producer_profiles (
 ON CONFLICT (tenant_id) DO NOTHING;
 
 -- =============================================================================
--- SECTIONS 14-17: REMOVED (Story 9.6)
--- Demo tenants start with empty registries. Users can observe the full
--- bootstrap flow: NAV invoice pull → AI classification → triage → approve.
--- Products, components, bootstrap candidates, audit log, and classifier usage
--- seed data removed so the demo environment exercises the complete E2E flow.
+-- SECTION 14: Product Registry — Bemutató Kereskedelmi Kft. (tax 12345678)
 -- =============================================================================
+-- Products + components matching DemoInvoiceFixtures VTSZ codes so the OKIRkapu
+-- XML export pipeline (RegistryLookupService.findByVtszOrArticleNumber) can
+-- resolve invoice lines to REGISTRY_MATCH with weight contributions.
+INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+VALUES
+(
+    '00000000-0000-4000-f000-000000009001',
+    '00000000-0000-4000-b000-000000000001',
+    'CSA-M6X30', 'Csavar M6x30 (100db)', '73181500', 'pcs', 'ACTIVE',
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+),
+(
+    '00000000-0000-4000-f000-000000009002',
+    '00000000-0000-4000-b000-000000000001',
+    'PET-05L', 'PET palack 0,5L', '39233000', 'pcs', 'ACTIVE',
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+),
+(
+    '00000000-0000-4000-f000-000000009003',
+    '00000000-0000-4000-b000-000000000001',
+    'KDB-403020', 'Kartondoboz 40x30x20', '48191000', 'pcs', 'ACTIVE',
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO product_packaging_components (
+    id, product_id, material_description, kf_code,
+    weight_per_unit_kg, units_per_product, component_order,
+    created_at, updated_at
+) VALUES
+-- Csavar M6x30: steel screw packaging → KF 91010101, 0.006 kg/unit (6g steel per 1 screw)
+(
+    '00000000-0000-4000-f000-00000000a001',
+    '00000000-0000-4000-f000-000000009001',
+    'Acél kötőelem', '91010101',
+    0.006000, 1, 1,
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+),
+-- PET palack: PET plastic → KF 11020101, 0.025 kg/unit (25g per bottle)
+(
+    '00000000-0000-4000-f000-00000000a002',
+    '00000000-0000-4000-f000-000000009002',
+    'PET palack csomagolás', '11020101',
+    0.025000, 1, 1,
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+),
+-- Kartondoboz: paper/cardboard → KF 11010101, 0.350 kg/unit (350g per box)
+(
+    '00000000-0000-4000-f000-00000000a003',
+    '00000000-0000-4000-f000-000000009003',
+    'Karton csomagolás', '11010101',
+    0.350000, 1, 1,
+    now() - INTERVAL '30 days', now() - INTERVAL '30 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 15: Product Registry — Zöld Élelmiszer Kft. (tax 99887766)
+-- =============================================================================
+-- DemoInvoiceFixtures VTSZ: 72142000 (rebar), 25232900 (cement)
+INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+VALUES
+(
+    '00000000-0000-4000-f000-000000009011',
+    '00000000-0000-4000-b000-000000000020',
+    'BA-12-B500B', 'Betonacél Ø12 B500B (6m)', '72142000', 'pcs', 'ACTIVE',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
+),
+(
+    '00000000-0000-4000-f000-000000009012',
+    '00000000-0000-4000-b000-000000000020',
+    'CEM-II-25KG', 'Cement CEM II/B-M 32,5 R (25kg)', '25232900', 'pcs', 'ACTIVE',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO product_packaging_components (
+    id, product_id, material_description, kf_code,
+    weight_per_unit_kg, units_per_product, component_order,
+    created_at, updated_at
+) VALUES
+-- Betonacél: steel bar → KF 91010101, 8.88 kg/unit (6m rebar ~8.88kg)
+(
+    '00000000-0000-4000-f000-00000000a011',
+    '00000000-0000-4000-f000-000000009011',
+    'Acél rúd/profil', '91010101',
+    8.880000, 1, 1,
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
+),
+-- Cement: cement bag packaging → KF 91010101, 0.050 kg/unit (50g paper sack per 25kg bag)
+(
+    '00000000-0000-4000-f000-00000000a012',
+    '00000000-0000-4000-f000-000000009012',
+    'Cement zsák csomagolás', '91010101',
+    0.050000, 1, 1,
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- SECTION 16: Product Registry — Prémium Bútor Zrt. (tax 55667788)
+-- =============================================================================
+-- DemoInvoiceFixtures VTSZ: 19059090 (bread), 11010015 (flour)
+INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+VALUES
+(
+    '00000000-0000-4000-f000-000000009021',
+    '00000000-0000-4000-b000-000000000021',
+    'KEN-F-500G', 'Kenyér (fehér, 500g)', '19059090', 'pcs', 'ACTIVE',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
+),
+(
+    '00000000-0000-4000-f000-000000009022',
+    '00000000-0000-4000-b000-000000000021',
+    'LISZT-BL55-1KG', 'Búzaliszt BL-55 (1kg)', '11010015', 'pcs', 'ACTIVE',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
+)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO product_packaging_components (
+    id, product_id, material_description, kf_code,
+    weight_per_unit_kg, units_per_product, component_order,
+    created_at, updated_at
+) VALUES
+-- Kenyér: bakery packaging (paper/plastic film) → KF 61010101, 0.008 kg/unit
+(
+    '00000000-0000-4000-f000-00000000a021',
+    '00000000-0000-4000-f000-000000009021',
+    'Pékárú csomagolás (PE fólia)', '61010101',
+    0.008000, 1, 1,
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
+),
+-- Búzaliszt: flour bag packaging → KF 61010101, 0.015 kg/unit (15g paper bag per 1kg flour)
+(
+    '00000000-0000-4000-f000-00000000a022',
+    '00000000-0000-4000-f000-000000009022',
+    'Liszt zsák csomagolás (papír)', '61010101',
+    0.015000, 1, 1,
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
+)
+ON CONFLICT (id) DO NOTHING;
 
 -- =============================================================================
 -- SECTION 18: OKIRkapu XML Exports (Story 9.4 — filing history)

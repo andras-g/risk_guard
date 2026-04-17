@@ -84,9 +84,14 @@ async function load() {
 
       <Column field="tenantName" :header="t('admin.classifier.columns.tenantName')" />
       <Column field="callCount" :header="t('admin.classifier.columns.callCount')" />
-      <Column :header="t('admin.classifier.columns.estimatedCost')">
+      <Column :header="t('admin.classifier.columns.inputTokens')">
         <template #body="{ data }">
-          {{ data.estimatedCostFt.toFixed(2) }} Ft
+          {{ data.inputTokens.toLocaleString() }}
+        </template>
+      </Column>
+      <Column :header="t('admin.classifier.columns.outputTokens')">
+        <template #body="{ data }">
+          {{ data.outputTokens.toLocaleString() }}
         </template>
       </Column>
     </DataTable>

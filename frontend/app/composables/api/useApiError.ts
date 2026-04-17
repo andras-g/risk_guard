@@ -12,6 +12,7 @@ export function useApiError() {
     'urn:riskguard:error:invalid-credentials': 'auth.login.error.invalidCredentials',
     'urn:riskguard:error:too-many-attempts': 'auth.login.error.tooManyAttempts',
     'urn:riskguard:error:registry-components-required': 'registry.form.validation.componentsRequired',
+    'urn:riskguard:error:registry-validation-failed': 'registry.form.validation.failed',
   }
 
   function mapErrorType(type: string | undefined): string {

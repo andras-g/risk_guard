@@ -48,8 +48,8 @@ test.describe('Registry classify popover — Story 9.5 regression', () => {
     await expect(suggestBtn).toBeEnabled({ timeout: 5_000 })
     await suggestBtn.click()
 
-    // The Popover should render. We look for the accept button as an anchor.
-    const acceptBtn = page.locator('[data-testid="accept-kf"]')
+    // The Popover should render. We look for the first layer's accept button as an anchor.
+    const acceptBtn = page.locator('[data-testid="accept-kf-layer-0"]')
     // If the backend returns LOW/no suggestion the toast path is hit instead.
     // In that case the popover never opens — the regression is still covered
     // by the Escape/sidebar-toggle parts below when a suggestion DOES arrive,

@@ -131,6 +131,7 @@
       "unitsPerProductTooltip": "How many sold product units fit in one packaging unit? Primary = 1, 6-pack = 6, pallet = 480.",
       "validation": {
         "componentsRequired": "At least one packaging component is required",
+        "failed": "Validation failed — please check the highlighted fields",
         "kfCodeInvalid": "KF code must be exactly 8 digits",
         "kfCodeRequired": "KF code is required",
         "materialRequired": "Material description is required for every packaging component",
