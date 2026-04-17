@@ -70,6 +70,13 @@ public class ClassifierRouter implements KfCodeClassifierService {
             }
             return geminiResult;
         }
+        if (geminiResult.suggestions().isEmpty()) {
+            log.debug("Gemini returned no suggestions for product='{}' vtsz='{}' — falling back to VTSZ prefix",
+                    productName, vtsz);
+        } else {
+            log.debug("Gemini confidence {} below threshold {} for product='{}' — suggestions dropped: {}",
+                    geminiResult.confidence(), confidenceThreshold, productName, geminiResult.suggestions());
+        }
 
         // Step 3: Fall through to VTSZ prefix
         return fallbackToVtsz(productName, vtsz);

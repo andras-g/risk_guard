@@ -243,15 +243,15 @@ public class AdapterHealthRepository extends BaseRepository {
     }
 
     private AdapterHealthRow mapRow(Record r) {
-        OffsetDateTime successOdt = r.get(field("last_success_at", OffsetDateTime.class));
-        OffsetDateTime failureOdt = r.get(field("last_failure_at", OffsetDateTime.class));
+        Instant successAt = toInstant(r.get(field("last_success_at")));
+        Instant failureAt = toInstant(r.get(field("last_failure_at")));
         BigDecimal mtbfBd = r.get(field("mtbf_hours", BigDecimal.class));
 
         return new AdapterHealthRow(
                 r.get(field("adapter_name", String.class)),
                 r.get(field("status", String.class)),
-                toInstant(successOdt),
-                toInstant(failureOdt),
+                successAt,
+                failureAt,
                 r.get(field("failure_count", Integer.class)),
                 mtbfBd != null ? mtbfBd.doubleValue() : null
         );
@@ -261,7 +261,16 @@ public class AdapterHealthRepository extends BaseRepository {
         return instant != null ? instant.atOffset(ZoneOffset.UTC) : null;
     }
 
-    private Instant toInstant(OffsetDateTime odt) {
-        return odt != null ? odt.toInstant() : null;
+    /**
+     * Converts a raw JDBC timestamp value to {@link Instant}.
+     * Handles both {@link OffsetDateTime} (jOOQ typed field) and {@link java.sql.Timestamp}
+     * (string-based DSL fallback) to avoid ClassCastException.
+     */
+    private Instant toInstant(Object value) {
+        if (value == null) return null;
+        if (value instanceof OffsetDateTime odt) return odt.toInstant();
+        if (value instanceof java.sql.Timestamp ts) return ts.toInstant();
+        if (value instanceof Instant inst) return inst;
+        throw new IllegalArgumentException("Cannot convert " + value.getClass() + " to Instant");
     }
 }
