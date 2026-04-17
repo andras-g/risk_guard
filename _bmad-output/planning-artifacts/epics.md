@@ -874,3 +874,309 @@ So that I can provide proof of a specific risk check if requested by legal autho
 - CSV matches the currently MOHU-acceptable format (per Task 01 findings; MOHU portal requirement).
 - Export bundle includes a human-readable summary alongside the machine CSV.
 
+---
+
+## Epic 10: Invoice-driven Product-Centric EPR Filing
+**Goal:** Transform EPR filing from a manual template-quantity entry flow into a fully automated product-first pipeline. The Registry becomes the single source of truth for product-packaging mapping, and quarterly EPR filing is derived — not entered. `Anyagkönyvtár` as a standalone page is absorbed into the Registry. On tenant onboarding, the AI classifier populates the Registry in batch from the last 3 months of NAV invoices; thereafter, `(invoice lines × Registry components × multi-layer packaging ratios)` aggregates automatically to per-KF-code totals for the OKIRkapu XML export.
+
+**Paradigm shift vs. Epic 9:** The `epr_material_templates` table from Epic 9 persists as an internal building-block table, but is no longer exposed as a menu item — Registry components reference it via a nullable FK. Filing shifts from "user enters a quantity per template" to "system computes from invoices". No user has used the Epic 9 template-quantity flow (per the Epic 9 retrospective), so there is no backward-compatibility concern.
+
+**Compliance model:** Option (C) — the live Registry drives the filing calculation, while every submitted OKIRkapu XML is preserved read-only in `epr_exports` as the authoritative record of what was actually submitted. Filing recomputation after Registry edits is by design; the submitted XML is the immutable audit trail.
+
+**Reference:** Epic 9 retrospective — `_bmad-output/implementation-artifacts/epic-9-retro-2026-04-17.md`. Each story below is a skeleton; full dev-ready form is generated via `bmad-create-story` immediately before dev pickup, with a mandatory AC-to-task translation walkthrough (retro action T1).
+
+**Cross-cutting constraints (from Epic 9 retrospective):**
+- **T1** — Every story file MUST include a pre-implementation AC-to-task translation walkthrough checklist item. Enforced, not best-effort.
+- **T2** — Audit trail architecture review (domain-event emitter vs. aspect-based interception vs. centralized audit builder) completed as Task 0 of Story 10.1 via `bmad-technical-research`, before schema SQL is authored. The chosen pattern applies consistently to all new audit paths in Stories 10.2–10.9.
+- **T3** — All numeric calculations in the filing pipeline use `BigDecimal`; AI-returned numeric values are bound-checked before use in compliance math. Enforced by ArchUnit on `hu.riskguard.epr.aggregation.*`.
+- **T4** — `triggerBootstrap` tx-pool refactor (break the `@Transactional`-across-NAV-HTTP anti-pattern) is bundled into Story 10.1.
+- **T5** — Spring AI / GCP SDK compatibility matrix updated in `tech-radar.md` before Story 10.3.
+- **T6** — i18n alphabetical-ordering pre-commit hook lands before Story 10.1 merges.
+
+**Sequencing:** Strictly sequential. Each story is developed, then code-reviewed by a separate agent, before the next is picked up. Accountant acceptance is held until after Story 10.9.
+
+### Story 10.1: Registry Schema + Menu Restructure + Tx-Pool Refactor
+**Goal:** Lay the schema foundation for product-centric EPR filing. Extend `products_components` with multi-layer packaging identity and a nullable FK to the existing material template library. Absorb `Anyagkönyvtár` into the Registry as picker-only access. Refactor the `@Transactional`-across-NAV-HTTP anti-pattern in `EprService` / `RegistryBootstrapService` so the 3000-invoice onboarding flow (Story 10.4) does not exhaust the connection pool.
+
+**Dependencies:** Epic 9 Story 9.1 (Registry foundation). Retro action T2 (audit architecture review) as Task 0. Retro action T4 (tx-pool refactor) in scope.
+
+**Architecture:**
+- Schema additions to `products_components`:
+  - `material_template_id UUID NULL REFERENCES epr_material_templates(id) ON DELETE RESTRICT`
+  - `wrapping_level INT NOT NULL DEFAULT 1 CHECK (wrapping_level BETWEEN 1 AND 3)` — 1=primary, 2=collector, 3=transport
+  - `items_per_parent DECIMAL(12,4) NOT NULL`
+- Data migration: existing `unitsPerProduct` → `items_per_parent`; all existing rows get `wrapping_level=1`. Rollback SQL provided.
+- Menu changes: `AppSidebar.vue` removes the `Anyagkönyvtár` link for all roles. `/epr` route is deleted (no redirect — confirmed no production users).
+- `epr_material_templates` table survives as internal-only; accessed via a new Registry-scoped picker UI (`useMaterialTemplatePicker` composable) — never injected into a Vue page outside `components/registry/*` (ArchUnit rule).
+- Tx-pool refactor: orchestrator pattern replaces the `@Transactional`-across-HTTP-calls pattern in `RegistryBootstrapService.triggerBootstrap` and any equivalent in `EprService`. NAV HTTP calls occur outside transactions; persistence uses per-batch small transactions.
+- T2 decision doc written to `_bmad-output/planning-artifacts/audit-architecture-review-*.md` before any migration SQL is authored.
+
+**Acceptance Criteria:**
+- **Task 0 (T2):** Audit architecture decision documented and user-approved before migration SQL is authored; chosen pattern applied consistently in all new audit paths in Stories 10.2–10.9.
+- Flyway migration adds the three new columns to `products_components`; idempotent on fresh and existing DBs.
+- Existing Registry rows migrate without data loss — snapshot test asserts field parity plus `wrapping_level=1` and `items_per_parent = old.unitsPerProduct`.
+- `material_template_id` FK accepts NULL, rejects non-existent UUIDs; `ON DELETE RESTRICT` prevents template deletion when referenced (UI handles the error message).
+- `AppSidebar.vue` no longer shows `Anyagkönyvtár` for any role — verified by `AppSidebar.spec.ts`.
+- `/epr` route deleted; `MaterialInventoryBlock.vue` and its spec deleted; new `useMaterialTemplatePicker` composable provides read + "add new" flow within the Registry edit context.
+- `RegistryBootstrapService.triggerBootstrap` no longer holds `@Transactional` across NAV HTTP calls. ArchUnit rule forbids this pattern in `hu.riskguard.epr.registry.*` and `hu.riskguard.epr.domain.EprService`.
+- Load test: 100 invoices × 3-second mocked NAV latency completes with `spring.datasource.hikari.maximum-pool-size=10` without pool saturation.
+- Rollback SQL tested round-trip on dev DB.
+- AC-to-task walkthrough (T1) filed before dev starts.
+
+### Story 10.2: KF Wizard "Browse" Button on Registry
+**Goal:** Add a manual drill-down KF-code helper to Registry component rows, complementing the existing AI "Suggest" button. Opens `EprWizardStepper` in a resolve-only dialog; writes the resolved `kfCode` + `materialClassification` back to the component row.
+
+**Dependencies:** Story 10.1. Epic 9 wizard infrastructure (Stories 9.3 + Material Library wizard).
+
+**Architecture:**
+- New component `frontend/app/components/registry/KfCodeWizardDialog.vue` — wraps `EprWizardStepper` in a PrimeVue `Dialog` (720px, modal, `appendTo="body"`, z-index ≥ 60 per Story 9.5 popover-hoisting pattern). Same dialog on desktop and mobile initially.
+- New store action `eprWizardStore.startResolveOnly()` — initializes wizard state without a template ID. Final confirm emits a `resolved` event and does NOT call `/confirmAndLink`.
+- Registry KF column layout: `[KfCodeInput] [AI Suggest] [Browse]`. Browse icon: `pi pi-sitemap`.
+- New `classification_source` enum value `MANUAL_WIZARD` (tagged on rows resolved via this flow).
+- Override dialog (`EprOverrideDialog`) hidden in resolve-only mode — direct typing into `KfCodeInput` covers that need.
+
+**Acceptance Criteria:**
+- Browse button present on every component row in `/registry/[id]` KF column for both desktop and mobile layouts.
+- Dialog wizard walks the same 3 steps as the Material Library wizard; Esc closes the dialog and restores focus to the originating Browse button (WCAG 2.4.3).
+- `resolved` event updates the row's `kfCode` and `materialClassification`; sets `classification_source = 'MANUAL_WIZARD'`.
+- Multiple Browse opens in a session each target the correct row via `_tempId` — no state leak between rows.
+- Row deletion mid-dialog closes the dialog gracefully without orphaned state.
+- `resolveAndClose()` backend path does NOT call `/confirmAndLink` — verified by mocking the store action.
+- Existing AI Suggest flow unchanged — `registry-classify-popover.e2e.ts` passes without modification.
+- `KfCodeWizardDialog.spec.ts` covers: opens, walks 3 steps, emits `resolved` on confirm, emits `update:visible(false)` on close, handles row deletion.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.3: AI Batch Classifier — Full Packaging Stack Endpoint
+**Goal:** New backend endpoint that accepts a list of `(VTSZ + description)` pairs and returns a full 1–3-layer packaging chain per pair (each layer with `kfCode`, `weightEstimateKg`, `itemsPerParent`, description). Backbone for Story 10.4's tenant-onboarding bootstrap.
+
+**Dependencies:** Epic 9 Story 9.3 (`ClassifierRouter`, `VertexAiGeminiClassifier`, `VtszPrefixFallbackClassifier`, usage-cap tracking). Retro actions T3 and T5.
+
+**Architecture:**
+- New endpoint `POST /api/v1/classifier/batch-packaging`; accepts 1–100 pairs (request validation: each pair has non-blank VTSZ ≤ 8 chars and non-blank description ≤ 500 chars).
+- Response DTO: per-pair result with `layers: [{level, kfCode, weightEstimateKg, itemsPerParent, description}]` and `classificationStrategy ∈ {GEMINI, VTSZ_PREFIX_FALLBACK, UNRESOLVED}`. Includes `ClassifierUsageInfo { callsUsedThisMonth, callsRemaining }`.
+- Per-pair failures (Gemini timeout, parse error) do not abort the batch; the failed pair returns `layers: []` + `UNRESOLVED`.
+- Usage cap counted per pair — a 100-pair batch increments the counter 100 times.
+- Bounded concurrency, default 10 (configurable via `classifier.batch.concurrency`); target is Vertex AI Pro tier.
+- New prompt template `classifier-prompts/packaging-stack-v1.txt` extends the existing Gemini prompt with full packaging-chain schema; few-shot examples seeded from `DemoInvoiceFixtures`.
+- T3 bounds on AI outputs: `weightEstimateKg`, `itemsPerParent` ∈ (0, 10000]; `level` ∈ {1,2,3}; `kfCode` matches `^\d{8}$`; more than 3 layers truncated to the first 3. Violations drop the layer with a WARN log.
+- `BigDecimal` constructed from JSON via `new BigDecimal(jsonNode.asText())` — never `BigDecimal.valueOf(asDouble())` (retro T3 / Story 9.3 R2-P2 lesson).
+- `@TierRequired(PRO_EPR)`; role-gated SME_ADMIN / ACCOUNTANT / PLATFORM_ADMIN; tenant ID resolved from JWT, never from request body.
+- Single-pair classifier endpoint (Story 9.3) untouched — remains in place for Registry row-level Suggest.
+- Rate limit at gateway level: max 3 concurrent batch requests per tenant.
+
+**Acceptance Criteria:**
+- Endpoint contract: 1–100 pairs accepted; <1 or >100 returns 400; invalid pair returns 400 with indexed error detail; OpenAPI doc updated.
+- Golden tests with 10 representative Hungarian category pairs produce stable multi-layer output (VCR-style recorded responses).
+- Per-pair failure isolation verified: one Gemini timeout in a 20-pair batch does NOT abort the other 19.
+- Monthly cap enforced: batch rejected with 429 + `Retry-After` header + `ClassifierUsageInfo` in body when `callsRemaining < batchSize`. Partial consumption is all-or-nothing.
+- Each T3 bound violation covered by a dedicated unit test (6+ tests: weight bounds, items_per_parent bounds, level, kfCode, truncation to 3, empty-response handling).
+- Fallback to VTSZ-prefix when Gemini empty/errors; fallback result tagged `VTSZ_PREFIX_FALLBACK` with `modelVersion: null`.
+- Concurrency honored — load test with mocked 2-second per-pair latency: 20 pairs complete in ~8s (not 40s serial, not instant parallel).
+- PLATFORM_ADMIN `/admin/ai-usage` dashboard shows batch calls correctly (per Story 9.3 usage tracking).
+- Audit event emitted per classified pair via T2-selected architecture.
+- `tech-radar.md` updated per T5 with any SDK version pins introduced.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.4: Tenant Onboarding — "Feltöltés számlák alapján"
+**Goal:** Orchestrate the end-to-end Registry bootstrap flow: fetch the last 3 months of NAV invoices, dedup by `(VTSZ + description)`, batch-classify via Story 10.3, populate Registry rows with multi-layer packaging. Replaces Story 9.2's triage-queue approach with direct Registry population.
+
+**Dependencies:** Stories 10.1 and 10.3. Epic 9 Story 9.2's NAV invoice client is reused; Story 9.2's triage UI and service are deleted.
+
+**Architecture:**
+- New backend service `InvoiceDrivenRegistryBootstrapService` in `hu.riskguard.epr.registry.bootstrap` (named distinctly from 9.2's `RegistryBootstrapService`, which is deleted).
+- Async job pattern: `POST /api/v1/registry/bootstrap-from-invoices` returns `202 Accepted` with `jobId` + `Location` header; worker processes in background.
+- New table `epr_bootstrap_jobs` tracks status (`PENDING, RUNNING, COMPLETED, FAILED, FAILED_PARTIAL, CANCELLED`), period, counters (total_pairs, classified_pairs, vtsz_fallback_pairs, unresolved_pairs, created_products), triggered_by_user_id, timestamps.
+- Dedup key: `vtsz || '~' || LOWER(TRIM(description))`.
+- Classifier called in 100-pair chunks; concurrency per Story 10.3 configuration.
+- Per-pair commit (not all-or-nothing). A partial failure leaves successfully classified pairs persisted; job status → `FAILED_PARTIAL`.
+- Overwrite semantics: existing `products` row matching `(tenant_id, vtsz, description)` is `DELETE`d (cascade deletes components) and re-inserted with the new classifier output. Rows NOT in the invoice set are preserved (user-added manual rows survive).
+- Row tagging: `classifier_source = 'AI_SUGGESTED_CONFIRMED'` for Gemini rows, `'VTSZ_FALLBACK'` for prefix-fallback rows (yellow `Bizonytalan` badge), product row with zero components + `review_state = 'MISSING_PACKAGING'` for UNRESOLVED pairs (red `Hiányos` badge).
+- NAV fetch uses existing Epic 8 NAV Online Számla client; per-page transaction boundary (T4-compliant); `@TierRequired(PRO_EPR)`; 412 if NAV credentials or producer profile incomplete.
+- Tenant tax-number ownership verified before invoice fetch (8-digit strict equality, matches Story 9.4's fix).
+- In-flight guard: a second `POST` while an existing job is PENDING/RUNNING returns 409.
+- Cancellation endpoint `DELETE …/{jobId}` flips status to `CANCELLED`; worker checks the flag between batches and exits cleanly.
+- Frontend: `InvoiceBootstrapDialog.vue` — period selector (default last 3 full months, user-overridable), destructive-overwrite confirmation for non-empty Registry, progress UI with 2-second polling, completion summary (N created, M fallback, K hiányos). Registry toolbar filter chips: `Csak hiányos`, `Csak bizonytalan`.
+- Removed: `registry/bootstrap.vue`, `BootstrapApproveDialog.vue`, `RegistryBootstrapService` (9.2 triage version), `epr_registry_bootstrap_candidates` table (migration drops after preserving any `APPROVED` rows; in practice zero in existing dev data).
+
+**Acceptance Criteria:**
+- `POST …/bootstrap-from-invoices` returns 202 with jobId + Location; worker transitions through states correctly.
+- `GET …/{jobId}` returns current counters; 404 on unknown id; 403 on cross-tenant.
+- `DELETE …/{jobId}` transitions to CANCELLED; in-flight pairs may still commit (best-effort).
+- No `@Transactional` method in `InvoiceDrivenRegistryBootstrapService` holds a NAV HTTP call (ArchUnit rule extended from Story 10.1).
+- Dedup sensitivity tested against whitespace/case/trim variations.
+- Overwrite: `(tenant, vtsz, description)` matches are re-inserted with cascade; manually-added rows not in the invoice set are untouched.
+- Classification strategy tagged correctly per pair; UI badges render in the Registry toolbar filters.
+- In-flight guard returns 409 correctly; cancellation works mid-batch.
+- Story 9.2 triage UI files, `RegistryBootstrapService`, and `epr_registry_bootstrap_candidates` table removed; migration handles any residual `APPROVED` rows.
+- Load test: 3000 invoices × ~5 lines × ~30% dedup ratio → ~1000 unique pairs classify without Hikari pool saturation.
+- Audit events for row creation/deletion emitted via T2-selected architecture.
+- `InvoiceDrivenRegistryBootstrapServiceTest` — 10+ unit tests; `BootstrapJobControllerTest` — 6+ tests; frontend `InvoiceBootstrapDialog.spec.ts`; E2E `invoice-bootstrap.e2e.ts`.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.5: Product-First Aggregation Service
+**Goal:** Backend service that computes per-KF-code weight and fee totals for a reporting period by walking invoice lines → Registry products → multi-layer components. Replaces today's `EprService.calculateFiling`. Backbone of Story 10.6's filing UI and Story 10.9's submission freeze-on-submit.
+
+**Dependencies:** Story 10.1 (`wrapping_level`, `items_per_parent`, FK), Story 10.4 (populated Registry). Epic 9 Story 9.6 (multi-layer weight formula corrected for 10× overreporting). Retro action T3.
+
+**Architecture:**
+- New service `InvoiceDrivenFilingAggregator` in `hu.riskguard.epr.aggregation`.
+- Returns `FilingAggregationResult { soldProducts, kfTotals, unresolved, metadata }`:
+  - `soldProducts: List<SoldProductLine>` — grouped by `(vtsz, description)` with `totalQuantity`, `unitOfMeasure`, `matchingInvoiceLines` for Story 10.6's top table.
+  - `kfTotals: List<KfCodeTotal>` — per-KF with `totalWeightKg`, `feeRateHufPerKg`, `totalFeeHuf`, `contributingProductCount`, `classificationLabel` (resolved from the contributing template's `materialClassification`) for Story 10.6's bottom table and OKIRkapu XML.
+  - `unresolved: List<UnresolvedInvoiceLine>` — per-line with `reason ∈ {NO_MATCHING_PRODUCT, UNSUPPORTED_UNIT_OF_MEASURE, ZERO_COMPONENTS, VTSZ_FALLBACK}`.
+  - `metadata: AggregationMetadata` — invoice count, resolved count, config version, period, aggregation duration.
+- Aggregation math: for each invoice line with quantity Q and `unitOfMeasure='DARAB'`, for each matching product P and component C at `wrapping_level N`: `units_at_level_N = Q / cumulative_items_per_parent_up_to_N`; `weight_contribution = units × C.weightPerUnitKg`. All arithmetic in `BigDecimal` with `MathContext.DECIMAL64`.
+- `UNSUPPORTED_UNIT_OF_MEASURE`: invoice lines with units other than `DARAB` surface as unresolved; Epic 10 explicitly defers support for `KG`, `LITER`, `METER`, `M2` (see `future-epics.md` "Non-DARAB Unit-of-Measure Support").
+- `VTSZ_FALLBACK` pairs DO contribute to `kfTotals` — the aggregation is performed using the fallback-suggested components, and the contributing row is flagged `hasFallback: true`.
+- Defensive bounds (T3): component `weightPerUnitKg`, `items_per_parent` outside (0, 10000] → skipped with WARN; `wrapping_level` not in {1,2,3} → skipped with WARN; orphaned chain (e.g., level 3 without level 2) → treated as standalone with `cumul = items_per_parent`, logged INFO.
+- Overflow threshold: per-KF `totalWeightKg > 100,000,000 kg` → WARN + manual-audit flag (threshold generous enough for any realistic Hungarian producer).
+- Rounding: `totalWeightKg` to 3 decimals HALF_UP; `totalFeeHuf` to integer forints HALF_UP; grand total is sum of per-KF rounded fees.
+- Caffeine cache keyed on `(tenantId, periodStart, periodEnd, registryMaxUpdatedAt, activeConfigVersion)`; TTL 1 hour; invalidated on any `products` or `products_components` write.
+- Existing `EprService.calculateFiling(...)` deleted. `POST /api/v1/epr/filing/calculate` endpoint deleted.
+- `OkirkapuXmlExporter.export(...)` signature changed to accept `List<KfCodeTotal>` directly; existing marshaller untouched.
+- Audit: one aggregation event per run via T2-selected architecture (metadata only; provenance stays in Story 10.8).
+
+**Acceptance Criteria:**
+- Aggregation correctness: unit tests cover single-product single-layer, multi-layer integer ratios, multi-layer fractional ratios, multi-product same-KF aggregation, empty-period edge cases.
+- Unresolved classification per-reason correctness: `NO_MATCHING_PRODUCT`, `UNSUPPORTED_UNIT_OF_MEASURE`, `ZERO_COMPONENTS` NOT counted into `kfTotals`; `VTSZ_FALLBACK` IS counted with `hasFallback=true`.
+- ArchUnit rule: no `double` / `float` in `hu.riskguard.epr.aggregation.*`.
+- ArchUnit rule: `BigDecimal.valueOf(double)` forbidden; all `BigDecimal` constructed from `String` or integer.
+- Rounding: 3-decimal weights and integer fees; tested at 0.0005 / 0.0004 boundary.
+- Overflow threshold 100,000,000 kg triggers WARN + audit flag — verified with synthetic oversized input.
+- Defensive-bounds handling for each violation class (6+ tests).
+- Caffeine cache: hit rate > 80% on repeat queries within TTL; invalidation on Registry write verified.
+- `POST /api/v1/epr/filing/calculate` returns 404 (endpoint deleted).
+- OKIRkapu XML round-trip: aggregator output → exporter → XML validates against XSD; golden test for known inputs.
+- Load test p95: 3000 invoices × 5 lines × 3 components → < 500ms warm, < 2000ms cold.
+- `InvoiceDrivenFilingAggregatorTest` — 15+ unit tests; integration test with seeded DB; OKIRkapu E2E.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.6: EPR Filing UI Rebuild — Two-Tier Display
+**Goal:** Rewrite `/epr/filing` as a read-only, auto-computed two-tier display driven by Story 10.5. Top table shows sold products grouped by `(VTSZ + description)`; bottom table shows aggregated packaging per KF code. Summary cards and OKIRkapu export button retained; preview panel moves to Story 10.8's collapsed audit mode.
+
+**Dependencies:** Story 10.1, 10.5. Story 10.7 handles the empty-Registry case. Epic 9 Story 9.4's OKIRkapu XML export button + producer-profile check reused verbatim.
+
+**Architecture:**
+- `frontend/app/pages/epr/filing.vue` rewritten.
+- New components: `frontend/app/components/Epr/EprSoldProductsTable.vue`, `frontend/app/components/Epr/EprKfTotalsTable.vue`.
+- `useEprFilingStore` rewritten: state `{ period, aggregation, isLoading, isExporting, exportError }`. Removed: `lines`, `validLines`, `serverResult`, `hasValidLines`, `calculate()`.
+- New endpoint `GET /api/v1/epr/filing/aggregation?from=YYYY-MM-DD&to=YYYY-MM-DD` returns `FilingAggregationResult`; tier-gated PRO_EPR; 412 on incomplete producer profile; `Cache-Control: max-age=60, private`.
+- Period selector default: last completed quarter (e.g., on 2026-04-17 → `2026-01-01…2026-03-31`); user override allowed. Change triggers debounced (500ms) aggregation fetch.
+- Top table: columns VTSZ, description, totalQuantity (locale-formatted), unitOfMeasure, matchingInvoiceLines, status badge (green `Kész` / yellow `Bizonytalan` / red `Hiányos`). Default sort `totalQuantity DESC`; always-on paginator (10/25/50). Row click → `/registry/{productId}` if unique match; otherwise `/registry?vtsz=…&q=…` (filtered list). Filter chips: `Csak hiányos`, `Csak bizonytalan`.
+- Bottom table: columns `kfCode` (formatted `12 34 56 78`), `classificationLabel`, `totalWeightKg` (3 decimals, kg suffix), `feeRateHufPerKg`, `totalFeeHuf` (locale Ft), `contributingProductCount`. Default sort `totalFeeHuf DESC`. Read-only — no inputs, no per-row actions.
+- Summary cards: total-KF-codes, grand-total-weight (3 decimals), grand-total-fee. All derive from `aggregation.kfTotals` (no separate server call). Dash placeholder `—` pre-load.
+- Unresolved panel: appears when `aggregation.unresolved.length > 0`; collapsed by default. Expanded: invoice #, line, VTSZ, description, quantity, unit, reason (i18n). Per-row "Regisztráld a terméket" CTA routes to Registry with VTSZ + description query params. `UNSUPPORTED_UNIT_OF_MEASURE` reason carries a distinct tooltip: "Jelenleg csak DARAB mértékegység támogatott".
+- OKIRkapu export button disabled when `aggregation.kfTotals` empty (0 kg total). Story 9.4's producer-profile-incomplete warning banner reused.
+- Removed from current filing.vue: `InvoiceAutoFillPanel.vue` (Story 8.3 component) + spec deleted; `calculate` / `filing/calculate` frontend+backend paths (per Story 10.5 AC); manual quantity `InputNumber` inputs; `Alkalmazás a bejelentésre` button; `EprMaterialTemplate` fetching on filing page.
+- i18n: new keys `epr.filing.soldProducts.*`, `epr.filing.kfTotals.*`, `epr.filing.unresolved.*`; removed keys `epr.autofill.*`, `epr.filing.calculateButton`, `epr.filing.calculateError`. Alphabetical ordering enforced by T6 hook.
+
+**Acceptance Criteria:**
+- Page renders: period selector → sold-products table → KF-totals table → summary cards → unresolved panel (if any) → export buttons.
+- Debounced fetch (500ms) on period change; loading skeleton in both tables; action buttons disabled during load.
+- Status badges on sold-products rows match aggregator provenance tags.
+- Filter chips filter client-side.
+- KF totals table read-only; row totals + grand-total invariants hold against `aggregation.kfTotals`.
+- Unresolved panel per-row CTA routes with correct VTSZ + description query params; `UNSUPPORTED_UNIT_OF_MEASURE` has a distinct tooltip.
+- Export button disabled on empty aggregation.
+- Old `useEprFilingStore` state / actions removed cleanly; no `filing.spec.ts` references to deprecated fields.
+- Deprecated i18n keys audited and removed; new keys in both HU and EN, alphabetical.
+- `filing.spec.ts` rewritten; `EprSoldProductsTable.spec.ts` + `EprKfTotalsTable.spec.ts` created; E2E `filing-workflow.e2e.ts` extended.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.7: Empty-Registry Block + Guided Onboarding
+**Goal:** When the tenant's Registry has no product with any packaging components, block `/epr/filing` access and render a guided onboarding CTA. Same block on empty `/registry`. No backdoor to the template-quantity mode.
+
+**Dependencies:** Stories 10.1, 10.4, 10.6.
+
+**Architecture:**
+- New endpoint `GET /api/v1/registry/summary` returns `{ totalProducts, productsWithComponents }`; Caffeine cache 10s TTL; role-gated SME_ADMIN / ACCOUNTANT / PLATFORM_ADMIN; tier PRO_EPR.
+- Composable `useRegistryCompleteness` exposes `{ isEmpty, totalProducts, productsWithComponents, refresh }`. `isEmpty := productsWithComponents === 0`.
+- Shared component `frontend/app/components/registry/RegistryOnboardingBlock.vue` — single idle state with headline ("A Termék–Csomagolás Nyilvántartás üres"), body (varies by `context: 'filing' | 'registry'` prop), primary CTA **"Feltöltés számlák alapján"** (opens Story 10.4's `InvoiceBootstrapDialog`), secondary CTA **"Kézi termék hozzáadása"** (routes to `/registry/new`), helper link "Mire jó ez?" (opens a PrimeVue `Dialog` modal with 2–3 paragraphs of explanatory copy).
+- Filing gate: `/epr/filing` on mount calls `refresh()` → if `isEmpty`, renders `<RegistryOnboardingBlock context="filing" />` in place of the filing UI. Post-bootstrap (dialog closes after job completes) → `refresh()` → filing UI appears reactively, no reload.
+- `/registry` with `totalProducts === 0`: renders `<RegistryOnboardingBlock context="registry" />`.
+- `/registry` with `totalProducts > 0 && productsWithComponents === 0`: renders the DataTable with an inline banner "Minden termék hiányos — végy fel csomagolást" + auto-activates the "Csak hiányos" filter chip (distinct from the onboarding-block state because the user already has rows to edit).
+- Helper modal content drafted during dev; reviewed as part of the story's AC-to-task walkthrough.
+
+**Acceptance Criteria:**
+- `GET /api/v1/registry/summary` returns correct counts per tenant; role-gated; cached.
+- `isEmpty` computed correctly (threshold: ≥1 component with non-null kfCode).
+- Filing page shows onboarding block when Registry empty; reactive transition to filing UI when Registry populated (no reload).
+- Registry page renders onboarding block on fully-empty, or "all hiányos" banner + auto-filter on partially-populated.
+- Helper link opens modal with HU + EN copy.
+- Keyboard accessibility: Tab order, Enter activates primary CTA, Esc closes modal.
+- No path reachable that renders a manual template-quantity filing UI.
+- `useRegistryCompleteness.spec.ts`; `RegistryOnboardingBlock.spec.ts`; `filing.spec.ts` extended; `RegistrySummaryControllerTest`; E2E `empty-registry-onboarding.e2e.ts`.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.8: Audit / Részletek Collapsible Panel
+**Goal:** Replace today's always-rendered `Bejelentés előnézete` panel with a collapsed-by-default audit panel. Per-invoice-line provenance lazy-loaded on expand; full-dataset CSV export from the panel header.
+
+**Dependencies:** Stories 10.5, 10.6.
+
+**Architecture:**
+- New endpoint `GET /api/v1/epr/filing/aggregation/provenance?from=&to=&page=&size=` returns paginated `ProvenancePage` with per-line `ProvenanceLine { invoiceNumber, lineNumber, vtsz, description, quantity, unitOfMeasure, resolvedProductId, productName, componentId, wrappingLevel, componentKfCode, weightContributionKg, provenanceTag }`. Page size default 50, max 500 (server-enforced). `provenanceTag ∈ {REGISTRY_MATCH, VTSZ_FALLBACK, UNRESOLVED, UNSUPPORTED_UNIT}`.
+- No caching on provenance endpoint — always fresh (audit-grade).
+- Role-gated SME_ADMIN / ACCOUNTANT / PLATFORM_ADMIN; tier PRO_EPR; 412 on incomplete producer profile.
+- CSV export endpoint `GET /aggregation/provenance.csv?from=&to=` — UTF-8 with BOM, semicolon delimiter (Hungarian locale), streams full dataset without pagination. Filename via `Content-Disposition: attachment; filename="provenance-{tenantShortId}-{from}-{to}.csv"`.
+- Frontend: PrimeVue `Panel` wraps a new `frontend/app/components/Epr/EprProvenanceTable.vue` component with lazy loading (`:lazy="true"`, `@page="..."`, server-side pagination).
+- Panel collapsed by default. CSV export icon in the panel header (PrimeVue `#icons` slot).
+- Lazy-fetch: first expand triggers fetch (page 0, size 50). Subsequent collapse/expand reuses cached data. Period change invalidates cache but does NOT auto-fetch — user must re-expand.
+- Per-line rendering: `weightContributionKg` at 4 decimals; CSV matches UI precision.
+- Badge colors per `provenanceTag` consistent with Story 10.6 status badges: green `REGISTRY_MATCH`, yellow `VTSZ_FALLBACK`, red `UNRESOLVED`, orange `UNSUPPORTED_UNIT`.
+- Product-name column links to `/registry/{resolvedProductId}` when not null.
+- Removed: `POST /api/v1/epr/filing/okirkapu-preview` endpoint; `previewData`, `previewLoading`, `previewError` frontend state; `handlePreview()` function; "Előnézet" button — all deleted.
+- i18n: rename `epr.okirkapu.preview.title` → `epr.filing.audit.panelTitle`; new keys `epr.filing.audit.columns.*`, `epr.filing.audit.exportCsv`, `epr.filing.audit.tagLabel.*`, `epr.filing.audit.emptyMessage`; legacy `epr.okirkapu.preview.*` keys removed.
+
+**Acceptance Criteria:**
+- Provenance endpoint paginated correctly; `page`/`size` enforced (default 50, max 500).
+- Sum invariant: `Σ weightContributionKg per kfCode == kfTotals[kfCode].totalWeightKg` from Story 10.5.
+- UNRESOLVED / UNSUPPORTED_UNIT lines included with zero contribution (total row count == invoice line count for the period).
+- `provenanceTag` correctly populated per line.
+- Tenant isolation: cross-tenant request returns 403.
+- CSV export: streams UTF-8 + BOM, semicolon-delimited; `Content-Disposition` filename set; tested with 50,000 rows on 512MB heap without OOM.
+- Panel collapsed by default; first expand triggers fetch; cached for the current period; period change invalidates.
+- `okirkapu-preview` endpoint + related frontend state deleted; no regression path required (no prior users).
+- Audit event on each provenance fetch (page load) and each CSV export via T2-selected architecture.
+- `InvoiceDrivenFilingAggregatorProvenanceTest`; `FilingAggregationProvenanceControllerTest`; `EprProvenanceTable.spec.ts`; `filing.spec.ts` extended.
+- AC-to-task walkthrough (T1) filed.
+
+### Story 10.9: Submission History (Compliance Model C — Minimum)
+**Goal:** Preserve every submitted OKIRkapu XML read-only as the authoritative record of what was actually filed. Re-downloadable from a history panel on `/epr/filing`. Scope is deliberately minimum-viable: no multi-year audit archive, no snapshot breakdown, no tamper-defense ceremony. The XML itself is the record.
+
+**Dependencies:** Epic 9 Story 9.4 (existing `epr_exports` table + OKIRkapu XML exporter), Story 10.5 (aggregation result provides totals), Story 10.6 (filing page hosts the panel).
+
+**Architecture:**
+- Schema extension of `epr_exports`:
+  - `total_fee_huf DECIMAL(18,2)`
+  - `total_weight_kg DECIMAL(18,3)`
+  - `xml_content BYTEA`
+  - `submitted_by_user_id UUID NULL REFERENCES users(id) ON DELETE SET NULL`
+  - `file_name VARCHAR(255)`
+  - No `aggregation_snapshot` column — the XML is the record; redundant storage rejected.
+- Composite index `(tenant_id, period_end DESC)`.
+- Migration deletes pre-10.9 `epr_exports` rows (confirmed dev-only test data, no production users).
+- Story 9.4's OKIRkapu export flow extended to populate the new columns on successful export; the exporter's existing file-hash computation is reused. `xml_content` stored inline in DB (typical quarterly XML < 500KB; future migration to object storage when XMLs exceed ~10MB).
+- New REST endpoints:
+  - `GET /api/v1/epr/submissions?page=0&size=25` → paginated list
+  - `GET /api/v1/epr/submissions/{id}` → single summary
+  - `GET /api/v1/epr/submissions/{id}/download` → re-download XML
+- Role-gated SME_ADMIN / ACCOUNTANT / PLATFORM_ADMIN; tier PRO_EPR; tenant isolation.
+- Frontend: collapsed `Panel` on `/epr/filing` below Story 10.8's audit panel. Lazy-loaded DataTable. Columns: Periódus, Beküldve (relative date with tooltip absolute), Összeg (Ft, or dash for legacy), Súly (kg, or dash for legacy), Beküldte (user email or "Törölt felhasználó" on null), Letöltés button (disabled if `xml_content` null, tooltip "Fájl nem elérhető"). Default sort `period_end DESC`.
+- No detail dialog. No snapshot-compare UI. No legacy-row detail panel.
+- Audit event on every download.
+
+**Acceptance Criteria:**
+- Flyway migration adds the 5 new columns + index; idempotent on fresh/existing DBs; rollback tested.
+- Pre-10.9 `epr_exports` rows deleted by the migration (verified against dev-data fixture).
+- Story 9.4 OKIRkapu export flow populates all new columns on success; `xml_content` bytes match the computed `file_hash` stored in DB.
+- List endpoint: paginated (default `size=25`, max `size=100`); default sort `period_end DESC`; tenant-scoped; role-gated.
+- Detail endpoint: returns summary; 404 on unknown id; 403 on cross-tenant.
+- Download endpoint: returns `xml_content` with correct `Content-Type: application/xml` and `Content-Disposition: attachment; filename="..."`; 404 if `xml_content` null (defensive, no legacy rows exist post-migration but case is covered).
+- Cross-tenant download returns 403.
+- Frontend panel: collapsed by default; lazy fetch on first expand; session-cached.
+- "Törölt felhasználó" rendered on `submitted_by_user_id IS NULL`.
+- Audit event emitted on each download via T2-selected architecture.
+- `EprSubmissionHistoryControllerTest` — 6+ tests; integration test for export → list → download round-trip; `EprSubmissionsTable.spec.ts`; E2E `submission-history.e2e.ts`.
+- AC-to-task walkthrough (T1) filed.
+- **Post-migration task:** demo seed data refreshed — run a complete Story 10.4 bootstrap → Story 10.6 filing → Story 10.9 submission against each demo tenant so the Submission History panel shows realistic content for demo users. Tracked as the final task of Story 10.9's dev checklist.
+

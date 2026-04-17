@@ -51,3 +51,17 @@ So that I can manage my company's administrative records.
 **Given** the user settings menu
 **When** I visit the "Billing" tab
 **Then** I see my current tier, next billing date, and a list of historical invoices with download links.
+
+---
+
+## Non-DARAB Unit-of-Measure Support
+
+**Context:** Epic 10 Story 10.5's invoice-driven aggregator handles only invoice lines with `unitOfMeasure='DARAB'`. Lines in other units (`KG`, `LITER`, `METER`, `M2`) are classified as `UNSUPPORTED_UNIT_OF_MEASURE` and surface in the unresolved panel for manual intervention. This is a deliberate Epic 10 scope deferral — DARAB coverage is sufficient for most common packaging scenarios and avoids per-product unit-conversion complexity in the initial product-first filing rollout.
+
+**Scope for a future story:**
+- Extend Registry components (or the `products` row) with a per-product unit-of-measure conversion: "1 product unit = N invoice units", with the semantics depending on the invoice unit (kg, meter, liter, m²).
+- Extend the aggregator to multiply invoice quantity by the conversion factor before applying `items_per_parent` ratios across `wrapping_level`s.
+- UI: a conversion-factor field on the Registry product editor, with a helper to explain when it's needed (based on the invoice line's unit).
+- Use case: building-materials retailers (tüzép) selling cement in kg, cable in meters, insulation in m², where the invoice quantity is a weight / length / area rather than a piece count.
+
+**Why deferred from Epic 10:** unit conversion introduces per-product mapping complexity (different products may have different conversion semantics, e.g. a single SKU sold in both kg and pieces) that's better tackled once the DARAB flow is stable and has real user feedback.
