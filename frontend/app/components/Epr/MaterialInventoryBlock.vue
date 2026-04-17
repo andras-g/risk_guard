@@ -8,10 +8,8 @@ import InputSwitch from 'primevue/inputswitch'
 import Select from 'primevue/select'
 import { FilterMatchMode } from '@primevue/core/api'
 import type { MaterialTemplateResponse } from '~/types/epr'
-import { useDateRelative } from '~/composables/formatting/useDateRelative'
 
 const { t } = useI18n()
-const { formatRelative } = useDateRelative()
 
 function filingReadyTooltip(data: MaterialTemplateResponse): string {
   const parts = [formatKfCode(data.kfCode)]
@@ -84,12 +82,11 @@ const filteredEntries = computed(() => {
       :key="i"
       class="flex gap-4 p-4 border-b border-slate-100"
     >
-      <Skeleton width="25%" height="1.25rem" />
+      <Skeleton width="30%" height="1.25rem" />
+      <Skeleton width="15%" height="1.25rem" />
+      <Skeleton width="15%" height="1.25rem" />
       <Skeleton width="15%" height="1.25rem" />
       <Skeleton width="10%" height="1.25rem" />
-      <Skeleton width="10%" height="1.25rem" />
-      <Skeleton width="10%" height="1.25rem" />
-      <Skeleton width="15%" height="1.25rem" />
       <Skeleton width="15%" height="1.25rem" />
     </div>
   </div>
@@ -100,8 +97,9 @@ const filteredEntries = computed(() => {
     v-model:filters="filters"
     :value="filteredEntries"
     :global-filter-fields="['name']"
-    :rows="20"
-    :paginator="filteredEntries.length > 20"
+    :rows="10"
+    paginator
+    :rows-per-page-options="[10, 25, 50]"
     :row-class="(data: MaterialTemplateResponse) => data.verified && data.confidence === 'LOW' ? 'border-l-4 border-amber-400' : ''"
     striped-rows
     table-style="width: 100%"
@@ -153,7 +151,16 @@ const filteredEntries = computed(() => {
       sortable
     >
       <template #body="{ data }">
-        <span class="text-slate-600">{{ data.kfCode || '—' }}</span>
+        <div class="flex flex-col gap-0.5">
+          <span class="text-slate-600">{{ data.kfCode || '—' }}</span>
+          <span
+            v-if="data.materialClassification"
+            class="text-xs text-slate-400"
+            data-testid="classification-path"
+          >
+            {{ data.materialClassification }}
+          </span>
+        </div>
       </template>
     </Column>
 
@@ -210,18 +217,6 @@ const filteredEntries = computed(() => {
             {{ t('epr.materialLibrary.oneTimeBadge') }}
           </span>
         </div>
-      </template>
-    </Column>
-
-    <Column
-      field="createdAt"
-      :header="t('epr.materialLibrary.columns.created')"
-      sortable
-    >
-      <template #body="{ data }">
-        <span class="text-sm text-slate-500">
-          {{ formatRelative(data.createdAt) }}
-        </span>
       </template>
     </Column>
 

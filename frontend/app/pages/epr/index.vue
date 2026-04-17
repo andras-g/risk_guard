@@ -28,6 +28,7 @@ const showFormDialog = ref(false)
 const showCopyDialog = ref(false)
 const showOverrideDialog = ref(false)
 const editingTemplate = ref<MaterialTemplateResponse | null>(null)
+const wizardContainerRef = ref<HTMLElement | null>(null)
 
 // Fetch materials on mount (only if tier allows and a client is selected)
 onMounted(async () => {
@@ -104,6 +105,14 @@ async function handleClassify(entry: MaterialTemplateResponse) {
 // The store sets lastConfirmSuccess or lastCloseReason before clearing activeStep,
 // so we can read them synchronously here to determine which toast to show.
 watch(() => wizardStore.isActive, (isActive, wasActive) => {
+  if (isActive && !wasActive) {
+    // Wizard renders below the table on desktop; scroll it into view so
+    // users don't miss that clicking Classify/Reclassify opened the stepper.
+    nextTick(() => {
+      wizardContainerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return
+  }
   if (!isActive && wasActive) {
     if (wizardStore.lastConfirmSuccess) {
       toast.add({ severity: 'success', summary: t('epr.wizard.successToast'), life: 3000 })
@@ -257,6 +266,9 @@ async function handleCopyFromQuarter(data: { sourceYear: number; sourceQuarter: 
             <div class="text-sm text-slate-500 space-y-1">
               <div>{{ t('epr.materialLibrary.columns.baseWeight') }}: {{ material.baseWeightGrams }} g</div>
               <div>{{ t('epr.materialLibrary.columns.kfCode') }}: {{ material.kfCode || '—' }}</div>
+              <div v-if="material.materialClassification" class="text-xs text-slate-400">
+                {{ material.materialClassification }}
+              </div>
             </div>
             <div class="flex gap-2 mt-3">
               <Button
@@ -306,6 +318,7 @@ async function handleCopyFromQuarter(data: { sourceYear: number; sourceQuarter: 
         <!-- Wizard below DataTable on desktop (>1024px per UX Spec §8.2) -->
         <div
           v-if="wizardStore.isActive"
+          ref="wizardContainerRef"
           class="hidden md:block mt-6"
           data-testid="epr-wizard-container"
         >

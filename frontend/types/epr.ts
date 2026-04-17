@@ -17,6 +17,7 @@ export interface MaterialTemplateResponse {
   overrideReason: string | null
   confidence: string | null
   feeRate: number | null
+  materialClassification: string | null
 }
 
 export interface MaterialTemplateRequest {

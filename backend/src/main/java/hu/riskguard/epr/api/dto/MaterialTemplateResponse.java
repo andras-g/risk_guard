@@ -20,8 +20,9 @@ import java.util.UUID;
  * @param updatedAt        last update timestamp
  * @param overrideKfCode   manually overridden KF-code (null if no override)
  * @param overrideReason   free-text reason for override (null if no override)
- * @param confidence       confidence level of the latest calculation (null if not yet classified)
- * @param feeRate          fee rate from the latest linked calculation (null if not yet classified)
+ * @param confidence            confidence level of the latest calculation (null if not yet classified)
+ * @param feeRate               fee rate from the latest linked calculation (null if not yet classified)
+ * @param materialClassification human-readable classification path from the latest calculation (null if not yet classified)
  */
 public record MaterialTemplateResponse(
         UUID id,
@@ -35,7 +36,8 @@ public record MaterialTemplateResponse(
         String overrideKfCode,
         String overrideReason,
         String confidence,
-        BigDecimal feeRate
+        BigDecimal feeRate,
+        String materialClassification
 ) {
 
     /**
@@ -54,6 +56,7 @@ public record MaterialTemplateResponse(
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -65,7 +68,8 @@ public record MaterialTemplateResponse(
                                                   String overrideKfCode,
                                                   String overrideReason,
                                                   String confidence,
-                                                  BigDecimal feeRate) {
+                                                  BigDecimal feeRate,
+                                                  String materialClassification) {
         return new MaterialTemplateResponse(
                 record.getId(),
                 record.getName(),
@@ -78,7 +82,8 @@ public record MaterialTemplateResponse(
                 overrideKfCode,
                 overrideReason,
                 confidence,
-                feeRate
+                feeRate,
+                materialClassification
         );
     }
 }

@@ -127,6 +127,7 @@ describe('MaterialFormDialog', () => {
       overrideReason: null,
       confidence: null,
       feeRate: null,
+      materialClassification: null,
     }
     const wrapper = mountDialog({ visible: true, editTemplate })
     await wrapper.vm.$nextTick()

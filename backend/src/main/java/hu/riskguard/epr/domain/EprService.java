@@ -108,7 +108,8 @@ public class EprService {
     public List<MaterialTemplateResponse> listTemplatesWithOverride(UUID tenantId) {
         return eprRepository.findAllByTenantWithOverride(tenantId).stream()
                 .map(two -> MaterialTemplateResponse.from(
-                        two.template(), two.overrideKfCode(), two.overrideReason(), two.confidence(), two.feeRate()))
+                        two.template(), two.overrideKfCode(), two.overrideReason(),
+                        two.confidence(), two.feeRate(), two.materialClassification()))
                 .toList();
     }
 

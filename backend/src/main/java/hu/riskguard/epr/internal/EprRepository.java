@@ -198,6 +198,7 @@ public class EprRepository extends BaseRepository {
                         EPR_CALCULATIONS.OVERRIDE_REASON,
                         EPR_CALCULATIONS.CONFIDENCE,
                         EPR_CALCULATIONS.FEE_RATE,
+                        EPR_CALCULATIONS.MATERIAL_CLASSIFICATION,
                         org.jooq.impl.DSL.rowNumber().over(
                                 org.jooq.impl.DSL.partitionBy(EPR_CALCULATIONS.TEMPLATE_ID)
                                         .orderBy(EPR_CALCULATIONS.CREATED_AT.desc())
@@ -212,7 +213,8 @@ public class EprRepository extends BaseRepository {
                         latestCalc.field("override_kf_code", String.class),
                         latestCalc.field("override_reason", String.class),
                         latestCalc.field("confidence", String.class),
-                        latestCalc.field("fee_rate", BigDecimal.class))
+                        latestCalc.field("fee_rate", BigDecimal.class),
+                        latestCalc.field("material_classification", String.class))
                 .from(EPR_MATERIAL_TEMPLATES)
                 .leftJoin(latestCalc)
                 .on(latestCalc.field("template_id", UUID.class).eq(EPR_MATERIAL_TEMPLATES.ID)
@@ -224,7 +226,8 @@ public class EprRepository extends BaseRepository {
                         r.get("override_kf_code", String.class),
                         r.get("override_reason", String.class),
                         r.get("confidence", String.class),
-                        r.get("fee_rate", BigDecimal.class)
+                        r.get("fee_rate", BigDecimal.class),
+                        r.get("material_classification", String.class)
                 ));
     }
 
@@ -236,7 +239,8 @@ public class EprRepository extends BaseRepository {
             String overrideKfCode,
             String overrideReason,
             String confidence,
-            BigDecimal feeRate
+            BigDecimal feeRate,
+            String materialClassification
     ) {}
 
     // ─── Wizard / Config methods ────────────────────────────────────────────

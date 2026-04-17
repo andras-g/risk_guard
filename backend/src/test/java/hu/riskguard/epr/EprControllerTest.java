@@ -76,10 +76,10 @@ class EprControllerTest {
         UUID id2 = UUID.randomUUID();
         MaterialTemplateResponse resp1 = new MaterialTemplateResponse(
                 id1, "T1", new BigDecimal("10"), null, false, true,
-                OffsetDateTime.now(), OffsetDateTime.now(), null, null, null, null);
+                OffsetDateTime.now(), OffsetDateTime.now(), null, null, null, null, null);
         MaterialTemplateResponse resp2 = new MaterialTemplateResponse(
                 id2, "T2", new BigDecimal("20"), null, false, false,
-                OffsetDateTime.now(), OffsetDateTime.now(), null, null, null, null);
+                OffsetDateTime.now(), OffsetDateTime.now(), null, null, null, null, null);
         when(eprService.listTemplatesWithOverride(TENANT_ID)).thenReturn(List.of(resp1, resp2));
 
         List<MaterialTemplateResponse> result = controller.listTemplates(jwt);

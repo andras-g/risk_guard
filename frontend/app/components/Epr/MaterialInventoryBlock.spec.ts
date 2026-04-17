@@ -59,6 +59,7 @@ function buildEntry(overrides: Partial<MaterialTemplateResponse> = {}): Material
     overrideReason: null,
     confidence: null,
     feeRate: null,
+    materialClassification: null,
     ...overrides,
   }
 }
