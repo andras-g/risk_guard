@@ -1,5 +1,6 @@
 package hu.riskguard.epr.registry.domain;
 
+import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.datasource.domain.DataSourceService;
 import hu.riskguard.datasource.domain.InvoiceDirection;
 import hu.riskguard.datasource.domain.InvoiceQueryResult;

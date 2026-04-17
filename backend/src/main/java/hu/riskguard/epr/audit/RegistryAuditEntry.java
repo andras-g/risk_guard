@@ -1,4 +1,4 @@
-package hu.riskguard.epr.registry.domain;
+package hu.riskguard.epr.audit;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

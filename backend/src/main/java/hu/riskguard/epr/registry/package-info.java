@@ -11,14 +11,15 @@
  *   <li>{@code internal/} — repository implementations (package-private)</li>
  * </ul>
  *
- * <p>Table ownership: {@code products}, {@code product_packaging_components},
- * {@code registry_entry_audit_log}. No other module may write to
- * {@code product_packaging_components} — enforced by
+ * <p>Table ownership: {@code products}, {@code product_packaging_components}. No other
+ * module may write to {@code product_packaging_components} — enforced by
  * {@code EpicNineInvariantsTest.only_registry_package_writes_to_product_packaging_components}.
+ * The {@code registry_entry_audit_log} table was moved to {@code hu.riskguard.epr.audit}
+ * per ADR-0003; audit access routes through {@code AuditService}.
  *
- * <p>Tenant isolation: {@code products} and {@code registry_entry_audit_log} carry explicit
- * {@code tenant_id}. {@code product_packaging_components} has NO {@code tenant_id} column —
- * tenant isolation is transitive via {@code product_id → products.tenant_id}. All repository
- * queries MUST join through {@code products} and filter on {@code tenant_id}.
+ * <p>Tenant isolation: {@code products} carries an explicit {@code tenant_id}.
+ * {@code product_packaging_components} has NO {@code tenant_id} column — tenant isolation
+ * is transitive via {@code product_id → products.tenant_id}. All repository queries MUST
+ * join through {@code products} and filter on {@code tenant_id}.
  */
 package hu.riskguard.epr.registry;

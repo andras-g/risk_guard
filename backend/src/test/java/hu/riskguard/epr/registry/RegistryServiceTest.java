@@ -1,7 +1,9 @@
 package hu.riskguard.epr.registry;
 
+import hu.riskguard.epr.audit.AuditService;
+import hu.riskguard.epr.audit.AuditSource;
+import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.registry.domain.*;
-import hu.riskguard.epr.registry.internal.RegistryAuditRepository;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
 import hu.riskguard.jooq.tables.records.ProductPackagingComponentsRecord;
 import hu.riskguard.jooq.tables.records.ProductsRecord;
@@ -21,8 +23,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link RegistryService} with mocked repositories.
@@ -36,7 +43,7 @@ class RegistryServiceTest {
     private RegistryRepository registryRepository;
 
     @Mock
-    private RegistryAuditRepository auditRepository;
+    private AuditService auditService;
 
     private RegistryService registryService;
 
@@ -47,7 +54,7 @@ class RegistryServiceTest {
 
     @BeforeEach
     void setUp() {
-        registryService = new RegistryService(registryRepository, auditRepository);
+        registryService = new RegistryService(registryRepository, auditService);
     }
 
     // ─── Test 1: create with components emits audit rows ─────────────────────
@@ -77,8 +84,13 @@ class RegistryServiceTest {
         assertThat(result.components().get(0).materialDescription()).isEqualTo("PET bottle");
 
         // Audit rows: product fields (name, article, vtsz, primary_unit, status) + component fields
-        verify(auditRepository, atLeastOnce()).insertAuditRow(
-                eq(newProductId), eq(TENANT_ID), contains("CREATE."), any(), any(), eq(USER_ID), eq(AuditSource.MANUAL));
+        verify(auditService, atLeastOnce()).recordRegistryFieldChange(argThat(ev ->
+                ev != null
+                        && ev.productId().equals(newProductId)
+                        && ev.tenantId().equals(TENANT_ID)
+                        && ev.fieldChanged().contains("CREATE.")
+                        && USER_ID.equals(ev.changedByUserId())
+                        && ev.source() == AuditSource.MANUAL));
     }
 
     // ─── Test 2: update with diff produces audit rows only for changed fields ─
@@ -108,12 +120,14 @@ class RegistryServiceTest {
         registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
 
         // Should emit audit for "name" change only (not article_number, vtsz, etc.)
-        ArgumentCaptor<String> fieldCaptor = ArgumentCaptor.forClass(String.class);
-        verify(auditRepository, atLeastOnce()).insertAuditRow(
-                eq(PRODUCT_ID), eq(TENANT_ID), fieldCaptor.capture(),
-                any(), any(), eq(USER_ID), eq(AuditSource.MANUAL));
-        assertThat(fieldCaptor.getAllValues()).contains("name");
-        assertThat(fieldCaptor.getAllValues()).doesNotContain("article_number", "vtsz", "primary_unit");
+        ArgumentCaptor<FieldChangeEvent> captor = ArgumentCaptor.forClass(FieldChangeEvent.class);
+        verify(auditService, atLeastOnce()).recordRegistryFieldChange(captor.capture());
+        List<String> fields = captor.getAllValues().stream().map(FieldChangeEvent::fieldChanged).toList();
+        assertThat(fields).contains("name");
+        assertThat(fields).doesNotContain("article_number", "vtsz", "primary_unit");
+        assertThat(captor.getAllValues()).allMatch(ev ->
+                ev.productId().equals(PRODUCT_ID) && ev.tenantId().equals(TENANT_ID)
+                        && USER_ID.equals(ev.changedByUserId()) && ev.source() == AuditSource.MANUAL);
     }
 
     // ─── Test 3: update with no changes produces zero audit rows ─────────────
@@ -141,7 +155,7 @@ class RegistryServiceTest {
         registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
 
         // No field diff → no audit rows AND no updateProduct UPDATE (would bump updated_at).
-        verifyNoInteractions(auditRepository);
+        verify(auditService, never()).recordRegistryFieldChange(any());
         verify(registryRepository, never()).updateProduct(any(), any(), any());
     }
 
@@ -170,9 +184,14 @@ class RegistryServiceTest {
 
         registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
 
-        verify(auditRepository).insertAuditRow(
-                eq(PRODUCT_ID), eq(TENANT_ID), contains("component_order"),
-                eq("0"), eq("2"), eq(USER_ID), eq(AuditSource.MANUAL));
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.productId().equals(PRODUCT_ID)
+                        && ev.tenantId().equals(TENANT_ID)
+                        && ev.fieldChanged().contains("component_order")
+                        && "0".equals(ev.oldValue())
+                        && "2".equals(ev.newValue())
+                        && USER_ID.equals(ev.changedByUserId())
+                        && ev.source() == AuditSource.MANUAL));
     }
 
     // ─── Test 4: list with filters delegates correctly ────────────────────────
@@ -217,9 +236,14 @@ class RegistryServiceTest {
         registryService.archive(TENANT_ID, PRODUCT_ID, USER_ID);
 
         verify(registryRepository).archive(PRODUCT_ID, TENANT_ID);
-        verify(auditRepository).insertAuditRow(
-                eq(PRODUCT_ID), eq(TENANT_ID), eq("status"),
-                eq("ACTIVE"), eq("ARCHIVED"), eq(USER_ID), eq(AuditSource.MANUAL));
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.productId().equals(PRODUCT_ID)
+                        && ev.tenantId().equals(TENANT_ID)
+                        && "status".equals(ev.fieldChanged())
+                        && "ACTIVE".equals(ev.oldValue())
+                        && "ARCHIVED".equals(ev.newValue())
+                        && USER_ID.equals(ev.changedByUserId())
+                        && ev.source() == AuditSource.MANUAL));
     }
 
     // ─── Test 7: archive already archived is no-op ────────────────────────────
@@ -235,7 +259,7 @@ class RegistryServiceTest {
         registryService.archive(TENANT_ID, PRODUCT_ID, USER_ID);
 
         verify(registryRepository, never()).archive(any(), any());
-        verifyNoInteractions(auditRepository);
+        verify(auditService, never()).recordRegistryFieldChange(any());
     }
 
     // ─── Test 8: PPWR nullable fields roundtrip ───────────────────────────────
@@ -299,9 +323,14 @@ class RegistryServiceTest {
 
         registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
 
-        verify(auditRepository).insertAuditRow(
-                eq(PRODUCT_ID), eq(TENANT_ID), contains("weight_per_unit_kg"),
-                eq("0.70"), eq("0.75"), eq(USER_ID), eq(AuditSource.MANUAL));
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.productId().equals(PRODUCT_ID)
+                        && ev.tenantId().equals(TENANT_ID)
+                        && ev.fieldChanged().contains("weight_per_unit_kg")
+                        && "0.70".equals(ev.oldValue())
+                        && "0.75".equals(ev.newValue())
+                        && USER_ID.equals(ev.changedByUserId())
+                        && ev.source() == AuditSource.MANUAL));
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

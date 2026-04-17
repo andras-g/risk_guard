@@ -280,3 +280,9 @@
 
 - D1: Static ObjectMapper in BootstrapRepository [BootstrapRepository.java:35] — thread-safe for current usage but fragile if JavaTimeModule or Jdk8Module are needed later. Pre-existing pattern across repo.
 - D2: candidatesTokenCount field naming in Vertex AI response [VertexAiGeminiClassifier.java:196] — field name may vary across API versions; token counts could silently be 0. Not blocking current functionality.
+
+## Deferred from: code review of 10-1-task-0-audit-architecture (2026-04-17)
+
+- W1: Audit row timestamp relies on DB `DEFAULT now()` rather than being stamped at write time [RegistryAuditRepository.java insertAuditRow] — pre-existing Epic 9 pattern inherited by the relocated repository; harden if future migration loses the default or deterministic Clock-backed tests are needed.
+- W2: `AuditSource.valueOf(cmd.classificationSource())` in `RegistryService` swallow/fallback path [RegistryService.java:~296] — pre-existing caller-side parsing; revisit when introducing `FieldChangeEvent`-based call sites (Story 10.3 / 10.8) so strategy/modelVersion mapping lives inside the facade.
+- W3: Perf sanity-check deferred to story-exit journal — no regression signal yet; no baseline from Epic 9 to compare against. Revisit if Story 10.4's 3000-invoice load test surfaces audit-write overhead (ADR-0003 revisit trigger §"Audit write volume outgrows the transactional path").

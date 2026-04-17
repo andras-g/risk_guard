@@ -1,6 +1,9 @@
 package hu.riskguard.epr.registry.domain;
 
-import hu.riskguard.epr.registry.internal.RegistryAuditRepository;
+import hu.riskguard.epr.audit.AuditService;
+import hu.riskguard.epr.audit.AuditSource;
+import hu.riskguard.epr.audit.RegistryAuditEntry;
+import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,12 +28,12 @@ import java.util.*;
 public class RegistryService {
 
     private final RegistryRepository registryRepository;
-    private final RegistryAuditRepository auditRepository;
+    private final AuditService auditService;
 
     public RegistryService(RegistryRepository registryRepository,
-                           RegistryAuditRepository auditRepository) {
+                           AuditService auditService) {
         this.registryRepository = registryRepository;
-        this.auditRepository = auditRepository;
+        this.auditService = auditService;
     }
 
     // ─── List ────────────────────────────────────────────────────────────────
@@ -187,12 +190,12 @@ public class RegistryService {
         registryRepository.findProductByIdAndTenant(productId, tenantId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Product not found: " + productId));
-        return auditRepository.listAuditByProduct(productId, tenantId, page, size);
+        return auditService.listRegistryEntryAudit(productId, tenantId, page, size);
     }
 
     @Transactional(readOnly = true)
     public long countAuditLog(UUID tenantId, UUID productId) {
-        return auditRepository.countAuditByProduct(productId, tenantId);
+        return auditService.countRegistryEntryAudit(productId, tenantId);
     }
 
     // ─── Audit helpers ───────────────────────────────────────────────────────
@@ -215,7 +218,8 @@ public class RegistryService {
 
     private void emitAudit(UUID productId, UUID tenantId, UUID userId,
                             String field, String oldVal, String newVal, AuditSource source) {
-        auditRepository.insertAuditRow(productId, tenantId, field, oldVal, newVal, userId, source);
+        auditService.recordRegistryFieldChange(new FieldChangeEvent(
+                productId, tenantId, field, oldVal, newVal, userId, source, null, null));
     }
 
     /** Returns true when an audit row was written (old != new). */
@@ -302,8 +306,10 @@ public class RegistryService {
                     kfModelVersion = cmd.classificationModelVersion();
                 }
             }
-            auditRepository.insertAuditRow(productId, tenantId, prefix + "kf_code",
-                    old.kfCode(), cmd.kfCode(), userId, kfSource, kfStrategy, kfModelVersion);
+            auditService.recordRegistryFieldChange(new FieldChangeEvent(
+                    productId, tenantId, prefix + "kf_code",
+                    old.kfCode(), cmd.kfCode(), userId, kfSource,
+                    kfStrategy, kfModelVersion));
         }
 
         // component_order changes must be audited (AC 5: per-field audit coverage)

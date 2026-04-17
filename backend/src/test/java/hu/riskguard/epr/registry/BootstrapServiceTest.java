@@ -1,6 +1,7 @@
 package hu.riskguard.epr.registry;
 
 import hu.riskguard.datasource.domain.*;
+import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.registry.classifier.ClassificationConfidence;
 import hu.riskguard.epr.registry.classifier.ClassificationResult;
 import hu.riskguard.epr.registry.classifier.ClassificationStrategy;

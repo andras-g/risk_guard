@@ -1,7 +1,7 @@
 package hu.riskguard.epr.registry.api.dto;
 
-import hu.riskguard.epr.registry.domain.AuditSource;
-import hu.riskguard.epr.registry.domain.RegistryAuditEntry;
+import hu.riskguard.epr.audit.AuditSource;
+import hu.riskguard.epr.audit.RegistryAuditEntry;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

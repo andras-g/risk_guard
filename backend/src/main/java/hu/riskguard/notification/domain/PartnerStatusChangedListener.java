@@ -21,9 +21,12 @@ import java.util.UUID;
  * (watchlist data owner). It ensures that user-initiated searches also update watchlist entries
  * reactively, not just the background WatchlistMonitor cycle.
  *
- * <p>Uses {@code @EventListener} (not {@code @TransactionalEventListener}) because the event
- * is published OUTSIDE a transaction boundary — both from {@code ScreeningService.search()}
- * (after TX2 commit) and from {@code WatchlistMonitor} (non-transactional loop).
+ * <p>Uses {@code @ApplicationModuleListener}, which Spring Modulith implements as an async
+ * transactional listener with {@code Propagation.REQUIRES_NEW}. The handler therefore runs
+ * on a separate thread and inside its own transaction, independent of the publisher's
+ * transactional state. Both publishers — {@code ScreeningService.search()} (after TX2 commit)
+ * and {@code WatchlistMonitor} (non-transactional loop) — publish outside an active
+ * transaction, and this listener does not depend on that.
  *
  * <p><b>Cross-tenant:</b> A single tax number may appear on multiple tenants' watchlists.
  * This listener finds ALL matching entries across tenants and updates each one.

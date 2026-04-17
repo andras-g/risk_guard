@@ -1,23 +1,29 @@
-package hu.riskguard.epr.registry.internal;
+package hu.riskguard.epr.audit.internal;
 
 import hu.riskguard.core.repository.BaseRepository;
-import hu.riskguard.epr.registry.domain.AuditSource;
-import hu.riskguard.epr.registry.domain.RegistryAuditEntry;
+import hu.riskguard.epr.audit.AuditSource;
+import hu.riskguard.epr.audit.RegistryAuditEntry;
 import org.jooq.DSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static hu.riskguard.jooq.Tables.REGISTRY_ENTRY_AUDIT_LOG;
 
 /**
- * jOOQ repository for audit log inserts and reads.
- * Owns {@code registry_entry_audit_log} table.
+ * jOOQ repository for {@code registry_entry_audit_log} inserts and reads.
+ *
+ * <p>Accessed exclusively through {@link hu.riskguard.epr.audit.AuditService};
+ * direct dependencies from outside the audit package are forbidden by
+ * {@code EpicTenInvariantsTest.only_audit_package_writes_to_audit_tables}.
  */
 @Repository
 public class RegistryAuditRepository extends BaseRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(RegistryAuditRepository.class);
 
     public RegistryAuditRepository(DSLContext dsl) {
         super(dsl);
@@ -59,7 +65,7 @@ public class RegistryAuditRepository extends BaseRepository {
                 .from(REGISTRY_ENTRY_AUDIT_LOG)
                 .where(REGISTRY_ENTRY_AUDIT_LOG.PRODUCT_ID.eq(productId))
                 .and(REGISTRY_ENTRY_AUDIT_LOG.TENANT_ID.eq(tenantId))
-                .orderBy(REGISTRY_ENTRY_AUDIT_LOG.TIMESTAMP.desc())
+                .orderBy(REGISTRY_ENTRY_AUDIT_LOG.TIMESTAMP.desc(), REGISTRY_ENTRY_AUDIT_LOG.ID.desc())
                 .limit(size)
                 .offset((long) page * size)
                 .fetch(r -> new RegistryAuditEntry(
@@ -70,7 +76,7 @@ public class RegistryAuditRepository extends BaseRepository {
                         r.get(REGISTRY_ENTRY_AUDIT_LOG.OLD_VALUE),
                         r.get(REGISTRY_ENTRY_AUDIT_LOG.NEW_VALUE),
                         r.get(REGISTRY_ENTRY_AUDIT_LOG.CHANGED_BY_USER_ID),
-                        AuditSource.valueOf(r.get(REGISTRY_ENTRY_AUDIT_LOG.SOURCE)),
+                        parseSourceSafely(r.get(REGISTRY_ENTRY_AUDIT_LOG.SOURCE)),
                         r.get(REGISTRY_ENTRY_AUDIT_LOG.TIMESTAMP)
                 ));
     }
@@ -81,5 +87,22 @@ public class RegistryAuditRepository extends BaseRepository {
                 .where(REGISTRY_ENTRY_AUDIT_LOG.PRODUCT_ID.eq(productId))
                 .and(REGISTRY_ENTRY_AUDIT_LOG.TENANT_ID.eq(tenantId))
                 .fetchOne(0, Long.class);
+    }
+
+    /**
+     * Map a persisted {@code source} value to its enum, tolerating unknowns so a row
+     * written under a since-removed enum constant does not break audit-log pagination.
+     * Audit trails must stay forward-compatible with their own history.
+     */
+    static AuditSource parseSourceSafely(String raw) {
+        if (raw == null) {
+            return AuditSource.UNKNOWN;
+        }
+        try {
+            return AuditSource.valueOf(raw);
+        } catch (IllegalArgumentException e) {
+            log.warn("Unknown AuditSource '{}' in registry_entry_audit_log; mapping to UNKNOWN", raw);
+            return AuditSource.UNKNOWN;
+        }
     }
 }
