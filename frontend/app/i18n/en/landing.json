@@ -1,43 +1,43 @@
 {
   "landing": {
+    "disclaimer": "RiskGuard provides informational services only. Data is sourced from Hungarian government registries.",
+    "features": {
+      "evidence": {
+        "description": "SHA-256 authenticated audit log for every search — legally admissible documentation.",
+        "title": "Court-ready evidence"
+      },
+      "speed": {
+        "description": "Government data retrieval and analysis completed in seconds.",
+        "title": "Results in under 30 seconds"
+      },
+      "verdicts": {
+        "description": "Clear risk classification for every partner — no subjective assessment, just facts.",
+        "title": "Deterministic verdicts"
+      }
+    },
     "hero": {
+      "cta": "Start screening",
       "headline": "Partner risk screening in seconds",
-      "tagline": "Verify the credibility of your business partners using real-time Hungarian government data — no registration required.",
-      "searchPlaceholder": "Tax number (e.g. 1234-5678)",
       "searchAriaLabel": "Partner risk search by tax number",
-      "cta": "Start screening"
+      "searchPlaceholder": "Tax number (e.g. 1234-5678)",
+      "tagline": "Verify the credibility of your business partners using real-time Hungarian government data — no registration required."
     },
     "search": {
       "invalidTaxNumber": "Invalid Hungarian tax number. Enter an 8 or 11-digit tax number.",
       "serviceUnavailable": "Service temporarily unavailable. Please try again later."
     },
-    "features": {
-      "verdicts": {
-        "title": "Deterministic verdicts",
-        "description": "Clear risk classification for every partner — no subjective assessment, just facts."
-      },
-      "speed": {
-        "title": "Results in under 30 seconds",
-        "description": "Government data retrieval and analysis completed in seconds."
-      },
-      "evidence": {
-        "title": "Court-ready evidence",
-        "description": "SHA-256 authenticated audit log for every search — legally admissible documentation."
-      }
+    "seo": {
+      "description": "Verify the credibility of your business partners using real-time Hungarian government data. Instant screening without registration.",
+      "title": "RiskGuard — Partner Risk Screening"
     },
     "socialProof": {
-      "trustedBy": "Trusted by accountants and SMEs",
-      "partnerCount": "100+ verified partners",
       "badge": {
-        "secure": "Secure",
+        "compliant": "Compliant",
         "realtime": "Real-time",
-        "compliant": "Compliant"
-      }
-    },
-    "disclaimer": "RiskGuard provides informational services only. Data is sourced from Hungarian government registries.",
-    "seo": {
-      "title": "RiskGuard — Partner Risk Screening",
-      "description": "Verify the credibility of your business partners using real-time Hungarian government data. Instant screening without registration."
+        "secure": "Secure"
+      },
+      "partnerCount": "100+ verified partners",
+      "trustedBy": "Trusted by accountants and SMEs"
     }
   }
 }

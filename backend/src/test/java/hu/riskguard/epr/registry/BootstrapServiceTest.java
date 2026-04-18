@@ -51,8 +51,23 @@ class BootstrapServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Synchronous test txManager: TransactionTemplate.execute() still invokes the callback;
+        // getTransaction()/commit()/rollback() are no-ops. Covers tests that don't exercise the
+        // insert-batch path (approve, reject, navUnavailable) without requiring Mockito stubbing.
+        org.springframework.transaction.PlatformTransactionManager txManager =
+                new org.springframework.transaction.PlatformTransactionManager() {
+                    @Override
+                    public org.springframework.transaction.TransactionStatus getTransaction(
+                            org.springframework.transaction.TransactionDefinition def) {
+                        return new org.springframework.transaction.support.SimpleTransactionStatus();
+                    }
+                    @Override
+                    public void commit(org.springframework.transaction.TransactionStatus status) { /* no-op */ }
+                    @Override
+                    public void rollback(org.springframework.transaction.TransactionStatus status) { /* no-op */ }
+                };
         bootstrapService = new RegistryBootstrapService(
-                dataSourceService, classifierService, bootstrapRepository, registryService);
+                dataSourceService, classifierService, bootstrapRepository, registryService, txManager);
     }
 
     // ─── Test 1: happy path — 3 invoice lines, 2 unique dedup keys ───────────
@@ -354,7 +369,8 @@ class BootstrapServiceTest {
     private ApproveCommand buildApproveCommand() {
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET", "11010101", new BigDecimal("0.1"), 0,
-                1, null, null, null, null, null, null, null, null);
+                new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         return new ApproveCommand("ART-001", "Termék A", "12345678", "DARAB",
                 ProductStatus.ACTIVE, List.of(comp));
     }

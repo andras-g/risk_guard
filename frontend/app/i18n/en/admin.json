@@ -1,45 +1,44 @@
 {
   "admin": {
     "auditSearch": {
-      "title": "GDPR Audit Search",
+      "atLeastOneRequired": "Enter a tax number or tenant ID to search",
+      "columns": {
+        "checkSource": "Source",
+        "searchedAt": "Searched At",
+        "sha256Hash": "SHA-256 Hash",
+        "sourceUrls": "Source URLs",
+        "taxNumber": "Tax Number",
+        "tenantId": "Tenant ID",
+        "userId": "User ID",
+        "verdictStatus": "Verdict"
+      },
+      "errors": {
+        "loadFailed": "Search failed"
+      },
+      "noRecords": "No records found for this search",
+      "searchButton": "Search",
       "subtitle": "Search the audit log to provide proof of a specific risk check for legal or user requests.",
       "taxNumberLabel": "Tax Number",
       "taxNumberPlaceholder": "12345678-9-01",
       "tenantIdLabel": "Tenant ID (UUID)",
       "tenantIdPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      "searchButton": "Search",
-      "noRecords": "No records found for this search",
-      "atLeastOneRequired": "Enter a tax number or tenant ID to search",
-      "columns": {
-        "searchedAt": "Searched At",
-        "taxNumber": "Tax Number",
-        "sha256Hash": "SHA-256 Hash",
-        "sourceUrls": "Source URLs",
-        "userId": "User ID",
-        "tenantId": "Tenant ID",
-        "checkSource": "Source",
-        "verdictStatus": "Verdict"
-      },
-      "errors": {
-        "loadFailed": "Search failed"
-      }
+      "title": "GDPR Audit Search"
     },
-    "eprConfig": {
-      "title": "EPR Config Manager",
-      "subtitle": "Edit the EPR fee tables and KF-code structure. Validate before publishing.",
-      "currentVersion": "Active version: v{version}",
-      "activatedAt": "Activated: {date}",
-      "validate": "Validate",
-      "publish": "Publish",
-      "validationPassed": "Config is valid — ready to publish",
-      "validationFailed": "Validation failed: {count} error(s)",
-      "publishSuccess": "EPR Config v{version} published successfully",
-      "publishConfirm": "Publish this config as the new active version?",
+    "classifier": {
+      "columns": {
+        "callCount": "Calls",
+        "inputTokens": "Input Tokens",
+        "outputTokens": "Output Tokens",
+        "tenantName": "Tenant"
+      },
+      "empty": "No usage recorded for this period.",
       "errors": {
-        "loadFailed": "Failed to load active EPR config",
-        "validateFailed": "Validation request failed",
-        "publishFailed": "Publish failed"
-      }
+        "loadFailed": "Failed to load classifier usage data."
+      },
+      "period": "Current period: {period}",
+      "refresh": "Refresh",
+      "subtitle": "Monthly AI KF-code classification call counts and estimated costs per tenant.",
+      "title": "AI Classifier Usage"
     },
     "datasources": {
       "a11y": {
@@ -53,9 +52,18 @@
         "mtbf": "MTBF (hours)",
         "successRate": "Success Rate"
       },
+      "banner": {
+        "title": "Data Source Maintenance",
+        "underMaintenance": "Data source '{name}' is Under Maintenance"
+      },
       "lastUpdated": "Last updated",
       "pollInterval": "Auto-refreshes every 30 seconds",
+      "quarantine": "Quarantine",
+      "quarantineConfirm": "Quarantine this adapter?",
+      "quarantineLabel": "Force Quarantine",
+      "quarantine_release": "Release Quarantine",
       "refresh": "Refresh",
+      "releaseConfirm": "Release quarantine?",
       "states": {
         "circuitOpen": "Circuit Open",
         "degraded": "Degraded",
@@ -65,56 +73,48 @@
         "notConfigured": "Not Configured",
         "quarantined": "Quarantined"
       },
-      "quarantine": "Quarantine",
-      "quarantine_release": "Release Quarantine",
-      "quarantineLabel": "Force Quarantine",
-      "quarantineConfirm": "Quarantine this adapter?",
-      "releaseConfirm": "Release quarantine?",
-      "banner": {
-        "title": "Data Source Maintenance",
-        "underMaintenance": "Data source '{name}' is Under Maintenance"
-      },
       "subtitle": "Live health status of all registered data source adapters",
       "subtitleCustomer": "Configure and manage your NAV Online Számla access.",
       "title": "Data Sources"
     },
-    "classifier": {
-      "title": "AI Classifier Usage",
-      "subtitle": "Monthly AI KF-code classification call counts and estimated costs per tenant.",
-      "period": "Current period: {period}",
-      "refresh": "Refresh",
-      "empty": "No usage recorded for this period.",
-      "columns": {
-        "tenantName": "Tenant",
-        "callCount": "Calls",
-        "inputTokens": "Input Tokens",
-        "outputTokens": "Output Tokens"
-      },
+    "eprConfig": {
+      "activatedAt": "Activated: {date}",
+      "currentVersion": "Active version: v{version}",
       "errors": {
-        "loadFailed": "Failed to load classifier usage data."
-      }
+        "loadFailed": "Failed to load active EPR config",
+        "publishFailed": "Publish failed",
+        "validateFailed": "Validation request failed"
+      },
+      "publish": "Publish",
+      "publishConfirm": "Publish this config as the new active version?",
+      "publishSuccess": "EPR Config v{version} published successfully",
+      "subtitle": "Edit the EPR fee tables and KF-code structure. Validate before publishing.",
+      "title": "EPR Config Manager",
+      "validate": "Validate",
+      "validationFailed": "Validation failed: {count} error(s)",
+      "validationPassed": "Config is valid — ready to publish"
     },
     "navCredentials": {
-      "title": "NAV Online Számla Credentials",
+      "deleteButton": "Remove Credentials",
+      "deleteError": "Failed to remove NAV credentials",
+      "deleteSuccess": "NAV credentials removed",
+      "demoModeInfo": "Demo mode: credentials are stored locally without NAV verification. Switch to test/live mode for real validation.",
       "description": "Enter your NAV technical user credentials. They are verified and encrypted before storage.",
+      "exchangeKey": "Exchange Key",
       "login": "Login",
       "password": "Password",
-      "signingKey": "Signing Key",
-      "exchangeKey": "Exchange Key",
-      "taxNumber": "Tax Number (8 digits)",
       "saveButton": "Save & Verify",
-      "deleteButton": "Remove Credentials",
-      "saveSuccess": "NAV credentials saved and verified",
       "saveError": "Failed to save NAV credentials",
-      "deleteSuccess": "NAV credentials removed",
-      "deleteError": "Failed to remove NAV credentials",
-      "demoModeInfo": "Demo mode: credentials are stored locally without NAV verification. Switch to test/live mode for real validation.",
+      "saveSuccess": "NAV credentials saved and verified",
+      "signingKey": "Signing Key",
       "status": {
-        "not_configured": "Not Configured",
-        "valid": "Valid",
         "expired": "Expired",
-        "invalid": "Invalid"
-      }
+        "invalid": "Invalid",
+        "not_configured": "Not Configured",
+        "valid": "Valid"
+      },
+      "taxNumber": "Tax Number (8 digits)",
+      "title": "NAV Online Számla Credentials"
     }
   }
 }

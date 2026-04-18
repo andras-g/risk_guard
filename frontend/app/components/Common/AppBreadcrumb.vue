@@ -73,6 +73,14 @@ const ROUTE_LABELS: Record<string, string> = {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/**
+ * Route segments whose top-level index page no longer exists. A parent segment of such a
+ * route renders as a non-clickable label so users never land on a deleted page.
+ * Story 10.1 removed `/epr` (Anyagkönyvtár); `/epr/filing` still exists until Story 10.6/10.7
+ * rebuilds it.
+ */
+const OBSOLETE_PARENT_SEGMENTS = new Set<string>(['epr'])
+
 const items = computed(() => {
   const segments = currentPath.value.split('/').filter(Boolean)
   if (segments.length === 0) return []
@@ -94,10 +102,13 @@ const items = computed(() => {
     }
 
     const isLast = index === segments.length - 1
+    const isObsoleteParent = !isLast && OBSOLETE_PARENT_SEGMENTS.has(segment)
 
     return {
       label,
-      url: isLast ? undefined : '/' + segments.slice(0, index + 1).join('/')
+      url: isLast || isObsoleteParent
+        ? undefined
+        : '/' + segments.slice(0, index + 1).join('/')
     }
   })
 })

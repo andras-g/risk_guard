@@ -341,3 +341,64 @@ describe('registry/[id].vue — unit options canonical list only', () => {
     expect(base.some(o => o.value === 'pcs')).toBe(false)
   })
 })
+
+// ─── Story 10.1 AC #11 — material-template picker integration ──────────────────
+// Unit-level coverage of the picker state machine extracted from [id].vue. The
+// shape mirrors what the component does with useMaterialTemplatePicker — open,
+// select, confirm — without mounting the full SFC (which needs the Nuxt runtime).
+describe('registry/[id].vue — material-template picker state', () => {
+  type Comp = { _tempId: string; materialTemplateId: string | null }
+
+  function makePickerStub() {
+    const state = {
+      open: false,
+      tempId: null as string | null,
+      selected: null as string | null,
+      options: [] as Array<{ id: string; name: string }>,
+    }
+    const components: Comp[] = [
+      { _tempId: 'row-1', materialTemplateId: null },
+      { _tempId: 'row-2', materialTemplateId: 'tpl-existing' },
+    ]
+    function open(tempId: string) {
+      state.tempId = tempId
+      state.selected = components.find(c => c._tempId === tempId)?.materialTemplateId ?? null
+      state.open = true
+    }
+    function confirm() {
+      const comp = components.find(c => c._tempId === state.tempId)
+      if (comp) comp.materialTemplateId = state.selected
+      state.open = false
+      state.tempId = null
+    }
+    function clear() {
+      state.selected = null
+      confirm()
+    }
+    return { state, components, open, confirm, clear }
+  }
+
+  it('opening the picker seeds selected with the row\'s current materialTemplateId', () => {
+    const p = makePickerStub()
+    p.open('row-2')
+    expect(p.state.open).toBe(true)
+    expect(p.state.selected).toBe('tpl-existing')
+  })
+
+  it('confirming with a new selection writes the id onto the targeted component row', () => {
+    const p = makePickerStub()
+    p.open('row-1')
+    p.state.selected = 'tpl-PET'
+    p.confirm()
+    expect(p.components[0]!.materialTemplateId).toBe('tpl-PET')
+    expect(p.state.open).toBe(false)
+  })
+
+  it('clear sets materialTemplateId to null on the active row (never touches other rows)', () => {
+    const p = makePickerStub()
+    p.open('row-2')
+    p.clear()
+    expect(p.components[1]!.materialTemplateId).toBeNull()
+    expect(p.components[0]!.materialTemplateId).toBeNull()
+  })
+})

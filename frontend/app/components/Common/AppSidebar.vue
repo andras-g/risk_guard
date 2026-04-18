@@ -148,7 +148,6 @@ const mainNavItems = computed(() => {
     { key: 'flightControl', to: '/flight-control', icon: 'pi-objects-column', accountantOnly: true },
     { key: 'screening', to: '/screening', icon: 'pi-search' },
     { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
-    { key: 'epr', to: '/epr', icon: 'pi-file-export' },
     // Registry requires PRO_EPR tier — hidden for ALAP/PRO users (AC 12)
     ...(hasProEpr.value ? [{ key: 'registry', to: '/registry', icon: 'pi-box' }] : []),
   ]

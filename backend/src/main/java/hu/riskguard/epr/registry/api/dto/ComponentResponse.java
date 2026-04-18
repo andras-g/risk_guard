@@ -15,6 +15,9 @@ public record ComponentResponse(
         String kfCode,
         BigDecimal weightPerUnitKg,
         int componentOrder,
+        BigDecimal itemsPerParent,
+        int wrappingLevel,
+        UUID materialTemplateId,
         RecyclabilityGrade recyclabilityGrade,
         BigDecimal recycledContentPct,
         Boolean reusable,
@@ -26,9 +29,11 @@ public record ComponentResponse(
     public static ComponentResponse from(ProductPackagingComponent c) {
         return new ComponentResponse(
                 c.id(), c.productId(), c.materialDescription(), c.kfCode(),
-                c.weightPerUnitKg(), c.componentOrder(), c.recyclabilityGrade(),
-                c.recycledContentPct(), c.reusable(), c.substancesOfConcern(),
-                c.supplierDeclarationRef(), c.createdAt(), c.updatedAt()
+                c.weightPerUnitKg(), c.componentOrder(),
+                c.itemsPerParent(), c.wrappingLevel(), c.materialTemplateId(),
+                c.recyclabilityGrade(), c.recycledContentPct(), c.reusable(),
+                c.substancesOfConcern(), c.supplierDeclarationRef(),
+                c.createdAt(), c.updatedAt()
         );
     }
 }

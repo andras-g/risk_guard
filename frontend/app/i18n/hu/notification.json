@@ -1,5 +1,10 @@
 {
   "notification": {
+    "email": {
+      "alertsEnabled": "E-mail értesítések engedélyezve",
+      "digestMode": "Összefoglaló mód aktív"
+    },
+    "emailNotifications": "E-mail értesítések",
     "flightControl": {
       "columnAtRisk": "Kockázatos",
       "columnClient": "Ügyfél neve",
@@ -28,6 +33,13 @@
       "switchToClient": "Váltás az ügyfélre →",
       "viewPartners": "Partnerek megtekintése →"
     },
+    "portfolio": {
+      "emptyBody": "Minden ügyfelének partnerei stabilak. Azonnal értesítjük, ha bármi változik.",
+      "emptyTitle": "Nincs friss riasztás",
+      "statusChange": "{previous} → {new}",
+      "title": "Portfólió riasztások",
+      "viewDetails": "Részletek"
+    },
     "watchlist": {
       "addButton": "Partner hozzáadása",
       "addDialog": {
@@ -46,24 +58,24 @@
         "trend": "Tendencia",
         "verdictStatus": "Verdikt állapot"
       },
+      "confirmNo": "Mégse",
       "confirmRemove": "{companyName} eltávolítása a figyelőlistáról?",
       "confirmYes": "Eltávolítás",
-      "confirmNo": "Mégse",
       "drawerTitle": "Partner adatai",
       "duplicateToast": "A partner már a figyelőlistán van",
       "emptyCta": "Keressen egy partnert a kezdéshez",
+      "emptyDescription": "Adja hozzá a partnereket a keresési eredményekből, vagy használja a fenti Partner hozzáadása gombot.",
+      "emptyTitle": "Még nincs partner a figyelőlistáján",
       "export": {
         "all": "összes",
         "downloadLabel": "PDF exportálás",
         "shareLabel": "Jelentés megosztása"
       },
       "exportError": "PDF generálása sikertelen. Kérjük, próbálja újra.",
-      "emptyDescription": "Adja hozzá a partnereket a keresési eredményekből, vagy használja a fenti Partner hozzáadása gombot.",
-      "emptyTitle": "Még nincs partner a figyelőlistáján",
       "lastMonitored": "Utolsó monitorozás",
       "lastScreened": "Utolsó szűrés",
-      "neverScreened": "Soha",
       "monitoringActive": "Monitorozás aktív",
+      "neverScreened": "Soha",
       "onWatchlist": "Figyelőlistán",
       "removeButton": "Eltávolítás",
       "removedToast": "Partner eltávolítva a figyelőlistáról",
@@ -73,18 +85,6 @@
       "viewAuditHistory": "Audit előzmények",
       "viewScreening": "Teljes szűrés megtekintése",
       "watchlistSince": "Figyelőlistán van"
-    },
-    "email": {
-      "alertsEnabled": "E-mail értesítések engedélyezve",
-      "digestMode": "Összefoglaló mód aktív"
-    },
-    "emailNotifications": "E-mail értesítések",
-    "portfolio": {
-      "emptyBody": "Minden ügyfelének partnerei stabilak. Azonnal értesítjük, ha bármi változik.",
-      "emptyTitle": "Nincs friss riasztás",
-      "statusChange": "{previous} → {new}",
-      "title": "Portfólió riasztások",
-      "viewDetails": "Részletek"
     }
   }
 }

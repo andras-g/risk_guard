@@ -35,11 +35,11 @@ vi.mock('~/stores/auth', () => ({
  * Co-located with AppMobileDrawer.vue per architecture rules.
  */
 
+// Story 10.1: epr nav link removed; Anyagkönyvtár page deleted.
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
-  { key: 'epr', to: '/epr', icon: 'pi-file-export' }
+  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' }
 ]
 
 function computeUserInitials(name: string | null): string {
@@ -79,8 +79,9 @@ describe('AppMobileDrawer — visibility binding', () => {
 })
 
 describe('AppMobileDrawer — navigation items', () => {
-  it('has 4 main navigation items with labels', () => {
-    expect(mainNavItems).toHaveLength(4)
+  it('has 3 main navigation items after Story 10.1 (epr link removed)', () => {
+    expect(mainNavItems).toHaveLength(3)
+    expect(mainNavItems.some(i => i.key === 'epr')).toBe(false)
   })
 
   it('each item uses i18n key pattern common.nav.{key}', () => {
@@ -189,6 +190,14 @@ describe('AppMobileDrawer — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="drawer-nav"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-dashboard"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-screening"]').exists()).toBe(true)
+  })
+
+  // Story 10.1 AC #8 / R3-P4: symmetric with AppSidebar spec — mount the real component
+  // and assert no /epr href survives after Anyagkönyvtár deletion.
+  it('renders no anchor pointing at /epr (Story 10.1 AC #8)', () => {
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-nav-epr"]').exists()).toBe(false)
+    expect(wrapper.findAll('a[href="/epr"]')).toHaveLength(0)
   })
 
   it('renders the LocaleSwitcher in the drawer', () => {

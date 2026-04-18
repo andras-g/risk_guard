@@ -24,8 +24,8 @@
         "okirClientId": "OKIR Client ID (KUJ)"
       },
       "saveButton": "Save Profile",
-      "savedSuccess": "Producer profile saved successfully",
       "saveError": "Failed to save profile",
+      "savedSuccess": "Producer profile saved successfully",
       "sections": {
         "address": "Registered Address",
         "contact": "Contact Person",

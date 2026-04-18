@@ -102,7 +102,8 @@ class RegistryControllerTest {
     void create_validRequest_returnsCreatedProduct() {
         ComponentUpsertRequest compReq = new ComponentUpsertRequest(
                 null, "PET bottle", "11020101", new BigDecimal("0.45"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductUpsertRequest request = new ProductUpsertRequest(
                 "ART-001", "Activia 125g", "3923", "pcs",
                 ProductStatus.ACTIVE, List.of(compReq));

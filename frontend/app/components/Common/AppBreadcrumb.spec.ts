@@ -16,12 +16,16 @@ const ROUTE_LABELS: Record<string, string> = {
   screening: 'common.breadcrumb.screening',
   watchlist: 'common.breadcrumb.watchlist',
   epr: 'common.breadcrumb.epr',
+  filing: 'common.breadcrumb.filing',
   admin: 'common.breadcrumb.admin',
   registry: 'common.breadcrumb.registry',
   new: 'common.breadcrumb.new'
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Story 10.1 R3-P9: parent segments whose index page is deleted render non-clickable.
+const OBSOLETE_PARENT_SEGMENTS = new Set<string>(['epr'])
 
 function generateBreadcrumbItems(path: string, editing?: { id: string, name: string } | null) {
   const segments = path.split('/').filter(Boolean)
@@ -43,10 +47,13 @@ function generateBreadcrumbItems(path: string, editing?: { id: string, name: str
     }
 
     const isLast = index === segments.length - 1
+    const isObsoleteParent = !isLast && OBSOLETE_PARENT_SEGMENTS.has(segment)
 
     return {
       label,
-      url: isLast ? undefined : '/' + segments.slice(0, index + 1).join('/')
+      url: isLast || isObsoleteParent
+        ? undefined
+        : '/' + segments.slice(0, index + 1).join('/')
     }
   })
 }
@@ -68,10 +75,15 @@ describe('AppBreadcrumb — segment generation', () => {
     expect(items[1]!.url).toBeUndefined()
   })
 
-  it('generates single segment for /epr', () => {
-    const items = generateBreadcrumbItems('/epr')
-    expect(items).toHaveLength(1)
+  // Story 10.1 R3-P9: /epr index page was deleted; breadcrumb renders the segment
+  // non-clickable when it appears as a parent of /epr/filing so users never land on 404.
+  it('renders epr parent segment non-clickable on /epr/filing (Story 10.1)', () => {
+    const items = generateBreadcrumbItems('/epr/filing')
+    expect(items).toHaveLength(2)
     expect(items[0]!.label).toBe('common.breadcrumb.epr')
+    expect(items[0]!.url).toBeUndefined() // obsolete parent — not a link
+    expect(items[1]!.label).toBe('common.breadcrumb.filing')
+    expect(items[1]!.url).toBeUndefined() // last segment
   })
 
   it('generates single segment for /watchlist', () => {
@@ -158,7 +170,7 @@ describe('AppBreadcrumb — i18n key compliance', () => {
 
   it('all primary routes have i18n label mappings', () => {
     expect(Object.keys(ROUTE_LABELS)).toEqual([
-      'dashboard', 'screening', 'watchlist', 'epr', 'admin', 'registry', 'new'
+      'dashboard', 'screening', 'watchlist', 'epr', 'filing', 'admin', 'registry', 'new'
     ])
   })
 })

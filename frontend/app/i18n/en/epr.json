@@ -1,13 +1,7 @@
 {
   "epr": {
-    "selectCustomer": {
-      "title": "Select a customer first",
-      "description": "Use the customer switcher in the top bar to select which client's EPR data you want to manage."
-    },
     "autofill": {
       "applyButton": "Apply to Filing",
-      "scopeWarningTitle": "Designed for packaging-material distributors",
-      "scopeWarningBody": "Invoice-based auto-fill is best suited for businesses that primarily sell packaging materials (bags, bottles, cartons). If your invoices list packaged products (e.g. food items, machine parts), results may be incomplete or inaccurate — a product-packaging registry is required for correct EPR calculation.",
       "columns": {
         "description": "Description",
         "quantity": "Quantity",
@@ -24,6 +18,8 @@
       "noResults": "No invoice lines found for the selected period.",
       "noTaxNumber": "No registered tax number — configure your tax number in the producer profile to fetch invoices.",
       "panelTitle": "Products from Previous Quarter's Invoices",
+      "scopeWarningBody": "Invoice-based auto-fill is best suited for businesses that primarily sell packaging materials (bags, bottles, cartons). If your invoices list packaged products (e.g. food items, machine parts), results may be incomplete or inaccurate — a product-packaging registry is required for correct EPR calculation.",
+      "scopeWarningTitle": "Designed for packaging-material distributors",
       "searchPlaceholder": "Search by description, VTSZ or KF code...",
       "taxNumberLabel": "Supplier Tax Number",
       "taxNumberPlaceholder": "12345678",
@@ -36,6 +32,35 @@
     },
     "export": {
       "title": "MOHU Export"
+    },
+    "filing": {
+      "backToLibrary": "Back to Library",
+      "calculateButton": "Calculate Totals",
+      "calculateError": "Calculation failed: {message}",
+      "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
+      "exportButton": "Export OKIRkapu XML",
+      "exportError": "Export failed: {message}",
+      "exportGenerating": "Generating XML...",
+      "exportLocaleNotice": "The export can be uploaded to the OKIR portal (kapu.okir.hu).",
+      "grandTotalFee": "Grand Total Fee",
+      "grandTotalWeight": "Grand Total Weight",
+      "newFilingButton": "New Filing",
+      "summaryTitle": "Filing Summary",
+      "table": {
+        "baseWeight": "Base Weight (g)",
+        "feeAmount": "Fee Amount (HUF)",
+        "feeRate": "Fee Rate (HUF/kg)",
+        "kfCode": "KF Code",
+        "name": "Name",
+        "quantity": "Quantity (pcs)",
+        "totalWeight": "Total Weight (kg)"
+      },
+      "title": "Quarterly EPR Filing",
+      "totalLines": "Materials included",
+      "validation": {
+        "mustBeInteger": "Quantity must be a whole number (pcs)",
+        "mustBePositive": "Quantity must be greater than 0"
+      }
     },
     "materialLibrary": {
       "addButton": "Add Material",
@@ -105,35 +130,6 @@
         "weightPositive": "Weight must be greater than 0"
       }
     },
-    "filing": {
-      "backToLibrary": "Back to Library",
-      "calculateButton": "Calculate Totals",
-      "calculateError": "Calculation failed: {message}",
-      "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
-      "exportButton": "Export OKIRkapu XML",
-      "exportError": "Export failed: {message}",
-      "exportGenerating": "Generating XML...",
-      "exportLocaleNotice": "The export can be uploaded to the OKIR portal (kapu.okir.hu).",
-      "grandTotalFee": "Grand Total Fee",
-      "grandTotalWeight": "Grand Total Weight",
-      "newFilingButton": "New Filing",
-      "summaryTitle": "Filing Summary",
-      "table": {
-        "baseWeight": "Base Weight (g)",
-        "feeAmount": "Fee Amount (HUF)",
-        "feeRate": "Fee Rate (HUF/kg)",
-        "kfCode": "KF Code",
-        "name": "Name",
-        "quantity": "Quantity (pcs)",
-        "totalWeight": "Total Weight (kg)"
-      },
-      "title": "Quarterly EPR Filing",
-      "totalLines": "Materials included",
-      "validation": {
-        "mustBeInteger": "Quantity must be a whole number (pcs)",
-        "mustBePositive": "Quantity must be greater than 0"
-      }
-    },
     "okirkapu": {
       "exportButton": "Download quarterly EPR filing (OKIRkapu XML)",
       "exportError": "Export failed: {message}",
@@ -153,6 +149,15 @@
       },
       "profileIncomplete": "Complete your producer profile before exporting",
       "profileIncompleteDetail": "Required fields (legal name, address, contact person) are missing."
+    },
+    "registry": {
+      "template": {
+        "stillReferenced": "This template is in use by one or more products and cannot be deleted. Remove the reference from every product first."
+      }
+    },
+    "selectCustomer": {
+      "description": "Use the customer switcher in the top bar to select which client's EPR data you want to manage.",
+      "title": "Select a customer first"
     },
     "title": "EPR Manager",
     "wizard": {
@@ -181,8 +186,8 @@
       "hints": {
         "step1": "Select the main product category (e.g., packaging, electronics, tires).",
         "step2": "What material is the item you are reporting made of?",
-        "step3group": "Select the packaging usage level.",
         "step3depositGroup": "Select the container type that this material component belongs to. For example, a wooden closure on a PET bottle: the material is \"Wood\", the container is \"PET bottle\".",
+        "step3group": "Select the packaging usage level.",
         "step3subgroup": "Select the specific subtype to finalize the classification."
       },
       "kfCodeLabel": "KF Code",

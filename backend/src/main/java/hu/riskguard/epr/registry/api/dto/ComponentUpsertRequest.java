@@ -5,6 +5,8 @@ import hu.riskguard.epr.registry.domain.ComponentUpsertCommand;
 import hu.riskguard.epr.registry.domain.RecyclabilityGrade;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -20,7 +22,9 @@ public record ComponentUpsertRequest(
         @Pattern(regexp = "^[0-9]{8}$") String kfCode,
         @NotNull @DecimalMin("0") BigDecimal weightPerUnitKg,
         @NotNull @Min(0) Integer componentOrder,
-        @Min(1) Integer unitsPerProduct,
+        @DecimalMin("0.0001") @Digits(integer = 8, fraction = 4) BigDecimal itemsPerParent,
+        @Min(1) @Max(3) Integer wrappingLevel,
+        UUID materialTemplateId,
         RecyclabilityGrade recyclabilityGrade,
         @DecimalMin("0") @DecimalMax("100") BigDecimal recycledContentPct,
         Boolean reusable,
@@ -31,10 +35,13 @@ public record ComponentUpsertRequest(
         String classificationStrategy,
         String classificationModelVersion
 ) {
+    private static final BigDecimal DEFAULT_ITEMS_PER_PARENT = new BigDecimal("1.0000");
+
     public static ComponentUpsertRequest from(ComponentUpsertCommand cmd) {
         return new ComponentUpsertRequest(
                 cmd.id(), cmd.materialDescription(), cmd.kfCode(), cmd.weightPerUnitKg(),
-                cmd.componentOrder(), cmd.unitsPerProduct(),
+                cmd.componentOrder(), cmd.itemsPerParent(), cmd.wrappingLevel(),
+                cmd.materialTemplateId(),
                 cmd.recyclabilityGrade(), cmd.recycledContentPct(),
                 cmd.reusable(), cmd.substancesOfConcern(), cmd.supplierDeclarationRef(),
                 cmd.classificationSource(), cmd.classificationStrategy(), cmd.classificationModelVersion()
@@ -44,7 +51,9 @@ public record ComponentUpsertRequest(
     public ComponentUpsertCommand toCommand() {
         return new ComponentUpsertCommand(
                 id, materialDescription, kfCode, weightPerUnitKg, componentOrder,
-                unitsPerProduct != null ? unitsPerProduct : 1,
+                itemsPerParent != null ? itemsPerParent : DEFAULT_ITEMS_PER_PARENT,
+                wrappingLevel != null ? wrappingLevel : 1,
+                materialTemplateId,
                 recyclabilityGrade, recycledContentPct, reusable, substancesOfConcern,
                 supplierDeclarationRef, classificationSource, classificationStrategy, classificationModelVersion
         );

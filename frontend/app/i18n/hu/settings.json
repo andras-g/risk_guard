@@ -24,8 +24,8 @@
         "okirClientId": "OKIR ügyfélszám (KUJ)"
       },
       "saveButton": "Profil mentése",
-      "savedSuccess": "Gyártói profil sikeresen mentve",
       "saveError": "A profil mentése sikertelen",
+      "savedSuccess": "Gyártói profil sikeresen mentve",
       "sections": {
         "address": "Székhely cím",
         "contact": "Kapcsolattartó",

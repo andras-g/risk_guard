@@ -1,5 +1,15 @@
 {
   "screening": {
+    "actions": {
+      "addToWatchlist": "Add to Watchlist",
+      "addToWatchlistTooltip": "Add this partner to your Watchlist for monitoring",
+      "backToDashboard": "Back to Screening",
+      "copyHash": "Copy audit hash to clipboard",
+      "exportPdf": "Export PDF",
+      "exportPdfError": "PDF generation failed: {message}",
+      "exportPdfTooltip": "Export verdict as PDF for audit documentation",
+      "searchNow": "Search now"
+    },
     "audit": {
       "columns": {
         "companyName": "Company Name",
@@ -45,16 +55,6 @@
         "unavailable": "Hash cannot be verified — data may have been refreshed"
       }
     },
-    "actions": {
-      "addToWatchlist": "Add to Watchlist",
-      "addToWatchlistTooltip": "Add this partner to your Watchlist for monitoring",
-      "backToDashboard": "Back to Screening",
-      "copyHash": "Copy audit hash to clipboard",
-      "exportPdf": "Export PDF",
-      "exportPdfError": "PDF generation failed: {message}",
-      "exportPdfTooltip": "Export verdict as PDF for audit documentation",
-      "searchNow": "Search now"
-    },
     "company": {
       "address": "Address",
       "cta": "Check this company's live risk status",
@@ -69,18 +69,18 @@
     "disclaimer": {
       "text": "This search result is provided for informational purposes only. Data is sourced from Hungarian government registries and may not reflect real-time status."
     },
+    "freshness": {
+      "fresh": "Fresh",
+      "label": "Data Freshness:",
+      "stale": "Stale",
+      "unavailable": "Unavailable"
+    },
     "guest": {
       "companyLimitReached": "Demo limit reached — sign up to monitor unlimited partners",
       "dailyLimitReached": "Daily limit reached — sign up for unlimited checks",
       "progressIndicator": "{used} of {limit} companies used",
       "signUpCta": "Sign Up",
       "signUpForUnlimited": "Sign up for unlimited access"
-    },
-    "freshness": {
-      "fresh": "Fresh",
-      "label": "Data Freshness:",
-      "stale": "Stale",
-      "unavailable": "Unavailable"
     },
     "pdf": {
       "generated": "Generated",
@@ -106,11 +106,11 @@
     "riskSignals": {
       "DATA_EXPIRED": "Data expired",
       "INSOLVENCY_PROCEEDINGS_ACTIVE": "Insolvency proceedings active",
-      "noSignals": "No risk signals detected",
-      "noSignalsForCached": "Risk signal details not available for cached results",
       "PUBLIC_DEBT_DETECTED": "Active public debt detected",
       "SOURCE_UNAVAILABLE": "Source unavailable: {name}",
       "TAX_NUMBER_SUSPENDED": "Tax number suspended",
+      "noSignals": "No risk signals detected",
+      "noSignalsForCached": "Risk signal details not available for cached results",
       "title": "Risk Signals"
     },
     "search": {
@@ -140,11 +140,11 @@
       "manualReviewRequired": "Manual Review Required",
       "reliable": "Reliable",
       "reliableEn": "Reliable",
+      "searchFailed": "Search failed. Please try again.",
       "stale": "Stale",
       "staleWarning": "Data is stale (>48 hours)",
       "status": "Status",
       "taxNumber": "Tax Number",
-      "searchFailed": "Search failed. Please try again.",
       "taxSuspended": "Tax Suspended",
       "taxSuspendedEn": "Tax Suspended",
       "unavailable": "Unavailable",

@@ -65,7 +65,8 @@ class RegistryServiceTest {
         UUID newCompId = UUID.randomUUID();
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "PET bottle", "11010101", new BigDecimal("0.45"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "Activia 125g", "3923", "pcs",
                 ProductStatus.ACTIVE, List.of(comp));
@@ -104,7 +105,8 @@ class RegistryServiceTest {
 
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", "11010101", new BigDecimal("0.50"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -139,7 +141,8 @@ class RegistryServiceTest {
                         ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 COMPONENT_ID, "PET", "11010101", new BigDecimal("0.70"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, comp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -167,7 +170,8 @@ class RegistryServiceTest {
                 new ProductUpsertCommand("ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.50"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -178,7 +182,8 @@ class RegistryServiceTest {
         // Only componentOrder changed: 0 → 2
         ComponentUpsertCommand reordered = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.50"),
-                2, 1, null, null, null, null, null, null, null, null);
+                2, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of(reordered));
 
@@ -270,7 +275,8 @@ class RegistryServiceTest {
         UUID newCompId = UUID.randomUUID();
         ComponentUpsertCommand comp = new ComponentUpsertCommand(
                 null, "Recycled PET", "11020101", new BigDecimal("0.30"),
-                0, 1, RecyclabilityGrade.A, new BigDecimal("50.00"), true, null, "DECL-001", null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                RecyclabilityGrade.A, new BigDecimal("50.00"), true, null, "DECL-001", null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 null, "Green Bottle", "3923", "pcs",
                 ProductStatus.DRAFT, List.of(comp));
@@ -306,7 +312,8 @@ class RegistryServiceTest {
                 new ProductUpsertCommand("ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of()));
         ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.70"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
 
         when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
@@ -317,7 +324,8 @@ class RegistryServiceTest {
         // 0.70 vs 0.75 — should detect change
         ComponentUpsertCommand updatedComp = new ComponentUpsertCommand(
                 COMPONENT_ID, "Box", null, new BigDecimal("0.75"),
-                0, 1, null, null, null, null, null, null, null, null);
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
         ProductUpsertCommand cmd = new ProductUpsertCommand(
                 "ART-001", "X", null, "pcs", ProductStatus.ACTIVE, List.of(updatedComp));
 
@@ -331,6 +339,56 @@ class RegistryServiceTest {
                         && "0.75".equals(ev.newValue())
                         && USER_ID.equals(ev.changedByUserId())
                         && ev.source() == AuditSource.MANUAL));
+    }
+
+    // ─── A-P1: cross-tenant materialTemplateId rejection ─────────────────────
+
+    @Test
+    void create_withCrossTenantMaterialTemplateId_throws404() {
+        UUID templateId = UUID.randomUUID();
+        ComponentUpsertCommand comp = new ComponentUpsertCommand(
+                null, "PET bottle", "11010101", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, templateId,
+                null, null, null, null, null, null, null, null);
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-X", "Cross-tenant", "3923", "pcs", ProductStatus.ACTIVE, List.of(comp));
+        UUID newProductId = UUID.randomUUID();
+
+        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.existsMaterialTemplateForTenant(templateId, TENANT_ID)).thenReturn(false);
+
+        assertThatThrownBy(() -> registryService.create(TENANT_ID, USER_ID, cmd))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("not found");
+
+        verify(registryRepository, never()).insertComponent(any(), any(), any());
+    }
+
+    @Test
+    void create_withMaterialTemplateIdOwnedByTenant_proceeds() {
+        UUID templateId = UUID.randomUUID();
+        ComponentUpsertCommand comp = new ComponentUpsertCommand(
+                null, "PET bottle", "11010101", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, templateId,
+                null, null, null, null, null, null, null, null);
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-Y", "Same-tenant template", "3923", "pcs", ProductStatus.ACTIVE, List.of(comp));
+        UUID newProductId = UUID.randomUUID();
+        UUID newCompId = UUID.randomUUID();
+
+        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.existsMaterialTemplateForTenant(templateId, TENANT_ID)).thenReturn(true);
+        when(registryRepository.insertComponent(newProductId, TENANT_ID, comp)).thenReturn(newCompId);
+        when(registryRepository.findProductByIdAndTenant(newProductId, TENANT_ID))
+                .thenReturn(Optional.of(buildProductRecord(newProductId, cmd)));
+        when(registryRepository.findComponentsByProductAndTenant(newProductId, TENANT_ID))
+                .thenReturn(List.of(buildComponentRecord(newCompId, newProductId, comp)));
+
+        Product result = registryService.create(TENANT_ID, USER_ID, cmd);
+
+        assertThat(result.id()).isEqualTo(newProductId);
+        verify(registryRepository).existsMaterialTemplateForTenant(templateId, TENANT_ID);
+        verify(registryRepository).insertComponent(newProductId, TENANT_ID, comp);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -370,7 +428,9 @@ class RegistryServiceTest {
         r.setKfCode(cmd.kfCode());
         r.setWeightPerUnitKg(cmd.weightPerUnitKg());
         r.setComponentOrder(cmd.componentOrder());
-        r.setUnitsPerProduct(cmd.unitsPerProduct());
+        r.setItemsPerParent(cmd.itemsPerParent());
+        r.setWrappingLevel(cmd.wrappingLevel());
+        r.setMaterialTemplateId(cmd.materialTemplateId());
         r.setRecyclabilityGrade(cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null);
         r.setRecycledContentPct(cmd.recycledContentPct());
         r.setReusable(cmd.reusable());

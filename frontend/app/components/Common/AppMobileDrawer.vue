@@ -120,8 +120,7 @@ const userInitials = computed(() => {
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
-  { key: 'epr', to: '/epr', icon: 'pi-file-export' }
+  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' }
 ]
 
 function isActive(path: string): boolean {

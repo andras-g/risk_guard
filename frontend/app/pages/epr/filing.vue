@@ -249,7 +249,7 @@ async function handleExport() {
           severity="secondary"
           outlined
           data-testid="back-to-library-button"
-          @click="router.push('/epr')"
+          @click="router.push('/registry')"
         />
       </div>
     </div>

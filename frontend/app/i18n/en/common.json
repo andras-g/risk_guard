@@ -1,6 +1,5 @@
 {
   "common": {
-    "back": "Back",
     "a11y": {
       "breadcrumb": "Breadcrumb navigation",
       "headerNav": "Header navigation",
@@ -27,6 +26,7 @@
       "name": "RiskGuard",
       "shortName": "RG"
     },
+    "back": "Back",
     "breadcrumb": {
       "admin": "Admin",
       "dashboard": "Dashboard",
@@ -52,7 +52,6 @@
     "nav": {
       "admin": "Admin",
       "dashboard": "Dashboard",
-      "epr": "EPR",
       "registry": "Registry",
       "screening": "Screening",
       "watchlist": "Watchlist"

@@ -111,6 +111,7 @@
         "cta": "Add at least one packaging component to save this product"
       },
       "none": "None",
+      "pickTemplate": "Pick template",
       "ppwr": "PPWR",
       "ppwrExpand": "PPWR readiness (optional)",
       "primaryUnit": "Primary unit",
@@ -125,6 +126,7 @@
       "saved": "Product saved",
       "status": "Status",
       "supplierDeclarationRef": "Supplier declaration ref.",
+      "template": "Template",
       "titleCreate": "New product",
       "titleEdit": "Edit product",
       "unitsPerProduct": "Units/pkg",
@@ -162,6 +164,19 @@
       "ACTIVE": "Active",
       "ARCHIVED": "Archived",
       "DRAFT": "Draft"
+    },
+    "templatePicker": {
+      "cancel": "Cancel",
+      "clear": "Clear",
+      "confirm": "Use template",
+      "create": "Create draft template",
+      "createError": "Failed to create template",
+      "created": "Template created",
+      "empty": "No matching templates",
+      "loadError": "Failed to load templates",
+      "search": "Search templates",
+      "searchPlaceholder": "Search by name...",
+      "title": "Pick a material template"
     },
     "title": "Product-Packaging Registry",
     "units": {

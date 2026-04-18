@@ -49,7 +49,7 @@
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
 generated: Mon Mar 23 2026
-last_updated: Fri Apr 17 2026 — Epic 9 closed for retrospective: 9.3 / 9.4 / 9.5 status → done (status flip was overdue; R2 reviews already green, code merged in commits f0698f7 / 8b20842 / 7c4fe90).
+last_updated: Sat Apr 18 2026 — Story 10.1 Round 3 code review complete; all 11 R3 patches resolved; 899 backend + 779 frontend + 5 E2E all green; status → done.
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -147,6 +147,9 @@ development_status:
   9-5-registry-ux-polish-and-bug-fixes: done  # R2 review follow-ups committed in 7c4fe90; status flip to done on 2026-04-17.
   9-6-multi-layer-packaging-ratio-and-ai-weight-suggestions: done  # Story file created 2026-04-16; covers packaging ratio field, multi-layer AI suggestions, AI weight estimation. Critical EPR compliance fix (10x overreporting of secondary/tertiary packaging). R1 review: 6 patches (P1-P6), 2 deferred. R2 review: 10 patches auto-fixed, 7 deferred; status → done 2026-04-16.
   epic-9-retrospective: done  # DONE (2026-04-17) — Retrospective completed. Saved to epic-9-retro-2026-04-17.md. 6 action items: T1 AC-to-task walkthrough mandatory (HIGH), T2 audit trail architecture review (HIGH), T3 EPR numeric precision audit (HIGH), T4 triggerBootstrap tx-pool refactor into Story 10.1 (HIGH), T5 Spring AI/GCP SDK compat matrix (MEDIUM), T6 i18n alphabetical ordering pre-commit hook (LOW). Significant discovery: Epic 10 requires formal definition — workflow paradigm shift (Anyagkönyvtár absorption into Registry, product-first filing, AI-powered Registry bootstrap). Next step: sprint planning for Epic 10.
+
+  epic-10: in-progress  # STARTED (2026-04-17) — Invoice-driven Product-Centric EPR Filing. 9 stories planned (10.1–10.9); formal scope in epics.md (commit 4fb6af6). Task 0 (retro T2 audit architecture) landed pre-10.1 in commit f13d76c: centralized AuditService facade + ArchUnit invariants + ADR-0003. Sprint-planning for remaining 10.2–10.9 entries deferred; stories are added to this file as they are created via bmad-create-story.
+  10-1-registry-schema-menu-restructure-and-tx-pool-refactor: done  # Story file 2026-04-17; dev 2026-04-17 → 2026-04-18; R1+R2 code review: 8 patches resolved; R3 independent review (Acceptance Auditor + Blind Hunter + Edge Case Hunter) 2026-04-18: 11 new patches resolved (R3-P1 real baseline tx, R3-P2 byte-level XML regression, R3-P3 i18n stillReferenced key, R3-P4 drawer spec symmetric, R3-P5 migration IF NOT EXISTS, R3-P6 template name cache, R3-P7 EprExceptionHandler log, R3-P8 ArchUnit classifier forbidden, R3-P9 breadcrumb non-clickable parent, R3-P10 items_per_parent CHECK > 0, R3-P11 onBeforeUnmount clears timer) + E2E nav-count fix. 899 backend + 779 frontend + 5 Playwright E2E all green; ArchUnit + tsc + lint + i18n clean. Status → done 2026-04-18.
 
 # CANCELLED STORIES (2026-03-12):
 # ================================

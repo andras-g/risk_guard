@@ -1,45 +1,44 @@
 {
   "admin": {
     "auditSearch": {
-      "title": "GDPR Napló Kereső",
+      "atLeastOneRequired": "Adjon meg adószámot vagy bérlői azonosítót a kereséshez",
+      "columns": {
+        "checkSource": "Forrás",
+        "searchedAt": "Keresés ideje",
+        "sha256Hash": "SHA-256 hash",
+        "sourceUrls": "Forrás URL-ek",
+        "taxNumber": "Adószám",
+        "tenantId": "Bérlői ID",
+        "userId": "Felhasználó ID",
+        "verdictStatus": "Verdict"
+      },
+      "errors": {
+        "loadFailed": "Keresés sikertelen"
+      },
+      "noRecords": "Nincs találat a megadott keresési feltételekre",
+      "searchButton": "Keresés",
       "subtitle": "Keressen az audit naplóban jogi vagy felhasználói megkeresésekhez szükséges kockázat-ellenőrzési bizonyítékért.",
       "taxNumberLabel": "Adószám",
       "taxNumberPlaceholder": "12345678-9-01",
       "tenantIdLabel": "Bérlői azonosító (UUID)",
       "tenantIdPlaceholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
-      "searchButton": "Keresés",
-      "noRecords": "Nincs találat a megadott keresési feltételekre",
-      "atLeastOneRequired": "Adjon meg adószámot vagy bérlői azonosítót a kereséshez",
-      "columns": {
-        "searchedAt": "Keresés ideje",
-        "taxNumber": "Adószám",
-        "sha256Hash": "SHA-256 hash",
-        "sourceUrls": "Forrás URL-ek",
-        "userId": "Felhasználó ID",
-        "tenantId": "Bérlői ID",
-        "checkSource": "Forrás",
-        "verdictStatus": "Verdict"
-      },
-      "errors": {
-        "loadFailed": "Keresés sikertelen"
-      }
+      "title": "GDPR Napló Kereső"
     },
-    "eprConfig": {
-      "title": "EPR Konfig kezelő",
-      "subtitle": "Szerkessze az EPR díjtáblákat és KF-kód struktúrát. Közzététel előtt validálja.",
-      "currentVersion": "Aktív verzió: v{version}",
-      "activatedAt": "Aktiválva: {date}",
-      "validate": "Validálás",
-      "publish": "Közzététel",
-      "validationPassed": "A konfiguráció érvényes — készen áll a közzétételre",
-      "validationFailed": "Validáció sikertelen: {count} hiba",
-      "publishSuccess": "EPR Konfig v{version} sikeresen közzétéve",
-      "publishConfirm": "Közzéteszi ezt a konfigurációt új aktív verzióként?",
+    "classifier": {
+      "columns": {
+        "callCount": "Hívások",
+        "inputTokens": "Bemeneti tokenek",
+        "outputTokens": "Kimeneti tokenek",
+        "tenantName": "Bérlő"
+      },
+      "empty": "Nincs rögzített használat ebben az időszakban.",
       "errors": {
-        "loadFailed": "Az aktív EPR konfig betöltése sikertelen",
-        "validateFailed": "A validációs kérés sikertelen",
-        "publishFailed": "Közzététel sikertelen"
-      }
+        "loadFailed": "Az osztályozó használati adatok betöltése sikertelen."
+      },
+      "period": "Aktuális időszak: {period}",
+      "refresh": "Frissítés",
+      "subtitle": "Havi AI KF-kód osztályozási hívások és becsült költségek bérlőnként.",
+      "title": "AI Osztályozó Használat"
     },
     "datasources": {
       "a11y": {
@@ -53,9 +52,18 @@
         "mtbf": "MTBF (óra)",
         "successRate": "Sikerességi arány"
       },
+      "banner": {
+        "title": "Adatforrás karbantartás",
+        "underMaintenance": "A '{name}' adatforrás karbantartás alatt áll"
+      },
       "lastUpdated": "Utolsó frissítés",
       "pollInterval": "30 másodpercenként automatikusan frissül",
+      "quarantine": "Karantén",
+      "quarantineConfirm": "Karanténba helyezi ezt az adaptert?",
+      "quarantineLabel": "Karantén kényszerítése",
+      "quarantine_release": "Karantén feloldása",
       "refresh": "Frissítés",
+      "releaseConfirm": "Karantén feloldása?",
       "states": {
         "circuitOpen": "Megszakító nyitva",
         "degraded": "Leromlott",
@@ -65,56 +73,48 @@
         "notConfigured": "Nincs beállítva",
         "quarantined": "Karanténban"
       },
-      "quarantine": "Karantén",
-      "quarantine_release": "Karantén feloldása",
-      "quarantineLabel": "Karantén kényszerítése",
-      "quarantineConfirm": "Karanténba helyezi ezt az adaptert?",
-      "releaseConfirm": "Karantén feloldása?",
-      "banner": {
-        "title": "Adatforrás karbantartás",
-        "underMaintenance": "A '{name}' adatforrás karbantartás alatt áll"
-      },
       "subtitle": "Minden regisztrált adatforrás-adapter élő állapota",
       "subtitleCustomer": "A NAV Online Számla hozzáférés beállítása és kezelése.",
       "title": "Adatforrások"
     },
-    "classifier": {
-      "title": "AI Osztályozó Használat",
-      "subtitle": "Havi AI KF-kód osztályozási hívások és becsült költségek bérlőnként.",
-      "period": "Aktuális időszak: {period}",
-      "refresh": "Frissítés",
-      "empty": "Nincs rögzített használat ebben az időszakban.",
-      "columns": {
-        "tenantName": "Bérlő",
-        "callCount": "Hívások",
-        "inputTokens": "Bemeneti tokenek",
-        "outputTokens": "Kimeneti tokenek"
-      },
+    "eprConfig": {
+      "activatedAt": "Aktiválva: {date}",
+      "currentVersion": "Aktív verzió: v{version}",
       "errors": {
-        "loadFailed": "Az osztályozó használati adatok betöltése sikertelen."
-      }
+        "loadFailed": "Az aktív EPR konfig betöltése sikertelen",
+        "publishFailed": "Közzététel sikertelen",
+        "validateFailed": "A validációs kérés sikertelen"
+      },
+      "publish": "Közzététel",
+      "publishConfirm": "Közzéteszi ezt a konfigurációt új aktív verzióként?",
+      "publishSuccess": "EPR Konfig v{version} sikeresen közzétéve",
+      "subtitle": "Szerkessze az EPR díjtáblákat és KF-kód struktúrát. Közzététel előtt validálja.",
+      "title": "EPR Konfig kezelő",
+      "validate": "Validálás",
+      "validationFailed": "Validáció sikertelen: {count} hiba",
+      "validationPassed": "A konfiguráció érvényes — készen áll a közzétételre"
     },
     "navCredentials": {
-      "title": "NAV Online Számla hitelesítő adatok",
+      "deleteButton": "Hitelesítő adatok törlése",
+      "deleteError": "NAV hitelesítő adatok törlése sikertelen",
+      "deleteSuccess": "NAV hitelesítő adatok törölve",
+      "demoModeInfo": "Demo mód: a hitelesítő adatok helyi tárolása NAV ellenőrzés nélkül történik. Váltson teszt/éles módra a valós érvényesítéshez.",
       "description": "Adja meg a NAV technikai felhasználó adatait. Mentés előtt ellenőrizzük és titkosítva tároljuk.",
+      "exchangeKey": "Cserekulcs",
       "login": "Bejelentkezési név",
       "password": "Jelszó",
-      "signingKey": "Aláírási kulcs",
-      "exchangeKey": "Cserekulcs",
-      "taxNumber": "Adószám (8 számjegy)",
       "saveButton": "Mentés & Ellenőrzés",
-      "deleteButton": "Hitelesítő adatok törlése",
-      "saveSuccess": "NAV hitelesítő adatok mentve és ellenőrizve",
       "saveError": "NAV hitelesítő adatok mentése sikertelen",
-      "deleteSuccess": "NAV hitelesítő adatok törölve",
-      "deleteError": "NAV hitelesítő adatok törlése sikertelen",
-      "demoModeInfo": "Demo mód: a hitelesítő adatok helyi tárolása NAV ellenőrzés nélkül történik. Váltson teszt/éles módra a valós érvényesítéshez.",
+      "saveSuccess": "NAV hitelesítő adatok mentve és ellenőrizve",
+      "signingKey": "Aláírási kulcs",
       "status": {
-        "not_configured": "Nincs konfigurálva",
-        "valid": "Érvényes",
         "expired": "Lejárt",
-        "invalid": "Érvénytelen"
-      }
+        "invalid": "Érvénytelen",
+        "not_configured": "Nincs konfigurálva",
+        "valid": "Érvényes"
+      },
+      "taxNumber": "Adószám (8 számjegy)",
+      "title": "NAV Online Számla hitelesítő adatok"
     }
   }
 }

@@ -1,6 +1,5 @@
 {
   "common": {
-    "back": "Vissza",
     "a11y": {
       "breadcrumb": "Navigációs útvonal",
       "headerNav": "Fejléc navigáció",
@@ -27,6 +26,7 @@
       "name": "RiskGuard",
       "shortName": "RG"
     },
+    "back": "Vissza",
     "breadcrumb": {
       "admin": "Admin",
       "dashboard": "Főoldal",
@@ -52,7 +52,6 @@
     "nav": {
       "admin": "Admin",
       "dashboard": "Főoldal",
-      "epr": "EPR",
       "registry": "Nyilvántartás",
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"

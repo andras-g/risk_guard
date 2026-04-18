@@ -9,6 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
+    "lint:i18n": "node ../scripts/lint-i18n-alphabetical.mjs",
     "check-i18n": "node scripts/i18n-check.js",
     "generate-types": "openapi-typescript ../backend/build/generated/openapi.json -o types/api.d.ts",
     "generate-zod": "openapi-zod-client ../backend/build/generated/openapi.json -o types/api.zod.ts",

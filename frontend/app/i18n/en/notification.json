@@ -1,5 +1,10 @@
 {
   "notification": {
+    "email": {
+      "alertsEnabled": "Email alerts enabled",
+      "digestMode": "Digest mode active"
+    },
+    "emailNotifications": "Email Notifications",
     "flightControl": {
       "columnAtRisk": "At-Risk",
       "columnClient": "Client Name",
@@ -28,6 +33,13 @@
       "switchToClient": "Switch to Client →",
       "viewPartners": "View Partners →"
     },
+    "portfolio": {
+      "emptyBody": "All your clients' partners are stable. We'll notify you instantly when anything changes.",
+      "emptyTitle": "No recent alerts",
+      "statusChange": "{previous} → {new}",
+      "title": "Portfolio Alerts",
+      "viewDetails": "Details"
+    },
     "watchlist": {
       "addButton": "Add Partner",
       "addDialog": {
@@ -46,24 +58,24 @@
         "trend": "Trend",
         "verdictStatus": "Verdict Status"
       },
+      "confirmNo": "Cancel",
       "confirmRemove": "Remove {companyName} from Watchlist?",
       "confirmYes": "Remove",
-      "confirmNo": "Cancel",
       "drawerTitle": "Partner Details",
       "duplicateToast": "Partner already on Watchlist",
       "emptyCta": "Search a partner to get started",
+      "emptyDescription": "Add partners from search results or use the Add Partner button above.",
+      "emptyTitle": "No partners on your Watchlist yet",
       "export": {
         "all": "all",
         "downloadLabel": "Export PDF",
         "shareLabel": "Share Report"
       },
       "exportError": "Failed to generate PDF. Please try again.",
-      "emptyDescription": "Add partners from search results or use the Add Partner button above.",
-      "emptyTitle": "No partners on your Watchlist yet",
       "lastMonitored": "Last monitored",
       "lastScreened": "Last screened",
-      "neverScreened": "Never",
       "monitoringActive": "Monitoring active",
+      "neverScreened": "Never",
       "onWatchlist": "On Watchlist",
       "removeButton": "Remove",
       "removedToast": "Partner removed from Watchlist",
@@ -73,18 +85,6 @@
       "viewAuditHistory": "View Audit History",
       "viewScreening": "View Full Screening",
       "watchlistSince": "Watchlist since"
-    },
-    "email": {
-      "alertsEnabled": "Email alerts enabled",
-      "digestMode": "Digest mode active"
-    },
-    "emailNotifications": "Email Notifications",
-    "portfolio": {
-      "emptyBody": "All your clients' partners are stable. We'll notify you instantly when anything changes.",
-      "emptyTitle": "No recent alerts",
-      "statusChange": "{previous} → {new}",
-      "title": "Portfolio Alerts",
-      "viewDetails": "Details"
     }
   }
 }

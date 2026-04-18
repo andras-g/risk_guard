@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static hu.riskguard.jooq.Tables.EPR_MATERIAL_TEMPLATES;
 import static hu.riskguard.jooq.Tables.PRODUCT_PACKAGING_COMPONENTS;
 import static hu.riskguard.jooq.Tables.PRODUCTS;
 
@@ -212,7 +213,9 @@ public class RegistryRepository extends BaseRepository {
                 .set(PRODUCT_PACKAGING_COMPONENTS.KF_CODE, cmd.kfCode())
                 .set(PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG, cmd.weightPerUnitKg())
                 .set(PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER, cmd.componentOrder())
-                .set(PRODUCT_PACKAGING_COMPONENTS.UNITS_PER_PRODUCT, cmd.unitsPerProduct())
+                .set(PRODUCT_PACKAGING_COMPONENTS.ITEMS_PER_PARENT, cmd.itemsPerParent())
+                .set(PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL, cmd.wrappingLevel())
+                .set(PRODUCT_PACKAGING_COMPONENTS.MATERIAL_TEMPLATE_ID, cmd.materialTemplateId())
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLABILITY_GRADE,
                         cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null)
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLED_CONTENT_PCT, cmd.recycledContentPct())
@@ -235,7 +238,9 @@ public class RegistryRepository extends BaseRepository {
                 .set(PRODUCT_PACKAGING_COMPONENTS.KF_CODE, cmd.kfCode())
                 .set(PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG, cmd.weightPerUnitKg())
                 .set(PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER, cmd.componentOrder())
-                .set(PRODUCT_PACKAGING_COMPONENTS.UNITS_PER_PRODUCT, cmd.unitsPerProduct())
+                .set(PRODUCT_PACKAGING_COMPONENTS.ITEMS_PER_PARENT, cmd.itemsPerParent())
+                .set(PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL, cmd.wrappingLevel())
+                .set(PRODUCT_PACKAGING_COMPONENTS.MATERIAL_TEMPLATE_ID, cmd.materialTemplateId())
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLABILITY_GRADE,
                         cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null)
                 .set(PRODUCT_PACKAGING_COMPONENTS.RECYCLED_CONTENT_PCT, cmd.recycledContentPct())
@@ -307,6 +312,20 @@ public class RegistryRepository extends BaseRepository {
                 .fetchOptionalInto(ProductsRecord.class);
     }
 
+    // ─── Material template helpers ───────────────────────────────────────────
+
+    /**
+     * Returns {@code true} when the given material-template row exists AND belongs to {@code tenantId}.
+     * Used by RegistryService to reject cross-tenant {@code materialTemplateId} values before insert/update.
+     */
+    public boolean existsMaterialTemplateForTenant(UUID templateId, UUID tenantId) {
+        return dsl.fetchExists(
+                DSL.selectOne().from(EPR_MATERIAL_TEMPLATES)
+                        .where(EPR_MATERIAL_TEMPLATES.ID.eq(templateId))
+                        .and(EPR_MATERIAL_TEMPLATES.TENANT_ID.eq(tenantId))
+        );
+    }
+
     // ─── Domain mappers ──────────────────────────────────────────────────────
 
     public static Product toProduct(ProductsRecord p, List<ProductPackagingComponentsRecord> comps) {
@@ -323,7 +342,9 @@ public class RegistryRepository extends BaseRepository {
         return new ProductPackagingComponent(
                 r.getId(), r.getProductId(), r.getMaterialDescription(), r.getKfCode(),
                 r.getWeightPerUnitKg(), r.getComponentOrder(),
-                r.getUnitsPerProduct() != null ? r.getUnitsPerProduct() : 1,
+                r.getItemsPerParent() != null ? r.getItemsPerParent() : new BigDecimal("1.0000"),
+                r.getWrappingLevel() != null ? r.getWrappingLevel() : 1,
+                r.getMaterialTemplateId(),
                 r.getRecyclabilityGrade() != null ? RecyclabilityGrade.valueOf(r.getRecyclabilityGrade()) : null,
                 r.getRecycledContentPct(), r.getReusable(),
                 fromJsonb(r.getSubstancesOfConcern()),

@@ -1,13 +1,7 @@
 {
   "epr": {
-    "selectCustomer": {
-      "title": "Válasszon ügyfelet",
-      "description": "Használja a felső sávban található ügyfélváltót a kezelni kívánt ügyfél EPR adatainak kiválasztásához."
-    },
     "autofill": {
       "applyButton": "Alkalmazás a bejelentésre",
-      "scopeWarningTitle": "Ez a funkció csomagolóanyag-forgalmazóknak készült",
-      "scopeWarningBody": "Az automatikus számla-alapú kitöltés azokhoz a vállalkozásokhoz illik, akik elsődlegesen csomagolóanyagokat (zsák, palack, doboz) forgalmaznak. Ha az Ön számláin csomagolt termékek szerepelnek (pl. élelmiszer, gépalkatrész), az eredmény hiányos vagy pontatlan lehet — a pontos EPR számításhoz termék-csomagolás nyilvántartás szükséges.",
       "columns": {
         "description": "Leírás",
         "quantity": "Mennyiség",
@@ -24,6 +18,8 @@
       "noResults": "Nem található számlasor a kiválasztott időszakra.",
       "noTaxNumber": "Nincs regisztrált adószám — a számlák lekérdezéséhez adja meg az adószámot a gyártói profilban.",
       "panelTitle": "Termékek az előző negyedév számlái alapján",
+      "scopeWarningBody": "Az automatikus számla-alapú kitöltés azokhoz a vállalkozásokhoz illik, akik elsődlegesen csomagolóanyagokat (zsák, palack, doboz) forgalmaznak. Ha az Ön számláin csomagolt termékek szerepelnek (pl. élelmiszer, gépalkatrész), az eredmény hiányos vagy pontatlan lehet — a pontos EPR számításhoz termék-csomagolás nyilvántartás szükséges.",
+      "scopeWarningTitle": "Ez a funkció csomagolóanyag-forgalmazóknak készült",
       "searchPlaceholder": "Keresés leírás, VTSZ vagy KF kód alapján...",
       "taxNumberLabel": "Szállító adószáma",
       "taxNumberPlaceholder": "12345678",
@@ -36,6 +32,35 @@
     },
     "export": {
       "title": "MOHU Export"
+    },
+    "filing": {
+      "backToLibrary": "Vissza a könyvtárhoz",
+      "calculateButton": "Összesítés kiszámítása",
+      "calculateError": "Számítás sikertelen: {message}",
+      "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
+      "exportButton": "Export OKIRkapu XML",
+      "exportError": "Exportálás sikertelen: {message}",
+      "exportGenerating": "XML generálása...",
+      "exportLocaleNotice": "Az export feltölthető az OKIR portálra (kapu.okir.hu).",
+      "grandTotalFee": "Teljes díj összege",
+      "grandTotalWeight": "Teljes tömeg",
+      "newFilingButton": "Új bejelentés",
+      "summaryTitle": "Bejelentési összesítő",
+      "table": {
+        "baseWeight": "Alapsúly (g)",
+        "feeAmount": "Díj összege (HUF)",
+        "feeRate": "Díjkulcs (HUF/kg)",
+        "kfCode": "KF kód",
+        "name": "Megnevezés",
+        "quantity": "Darabszám (db)",
+        "totalWeight": "Összsúly (kg)"
+      },
+      "title": "Negyedéves EPR bejelentés",
+      "totalLines": "Anyagok száma",
+      "validation": {
+        "mustBeInteger": "A darabszámnak egész számnak kell lennie",
+        "mustBePositive": "A darabszámnak nagyobbnak kell lennie 0-nál"
+      }
     },
     "materialLibrary": {
       "addButton": "Anyag hozzáadása",
@@ -105,35 +130,6 @@
         "weightPositive": "A súlynak nagyobbnak kell lennie, mint 0"
       }
     },
-    "filing": {
-      "backToLibrary": "Vissza a könyvtárhoz",
-      "calculateButton": "Összesítés kiszámítása",
-      "calculateError": "Számítás sikertelen: {message}",
-      "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
-      "exportButton": "Export OKIRkapu XML",
-      "exportError": "Exportálás sikertelen: {message}",
-      "exportGenerating": "XML generálása...",
-      "exportLocaleNotice": "Az export feltölthető az OKIR portálra (kapu.okir.hu).",
-      "grandTotalFee": "Teljes díj összege",
-      "grandTotalWeight": "Teljes tömeg",
-      "newFilingButton": "Új bejelentés",
-      "summaryTitle": "Bejelentési összesítő",
-      "table": {
-        "baseWeight": "Alapsúly (g)",
-        "feeAmount": "Díj összege (HUF)",
-        "feeRate": "Díjkulcs (HUF/kg)",
-        "kfCode": "KF kód",
-        "name": "Megnevezés",
-        "quantity": "Darabszám (db)",
-        "totalWeight": "Összsúly (kg)"
-      },
-      "title": "Negyedéves EPR bejelentés",
-      "totalLines": "Anyagok száma",
-      "validation": {
-        "mustBeInteger": "A darabszámnak egész számnak kell lennie",
-        "mustBePositive": "A darabszámnak nagyobbnak kell lennie 0-nál"
-      }
-    },
     "okirkapu": {
       "exportButton": "Negyedéves EPR bevallás letöltése (OKIRkapu XML)",
       "exportError": "Exportálás sikertelen: {message}",
@@ -153,6 +149,15 @@
       },
       "profileIncomplete": "Töltse ki a gyártói profilt az exportálás előtt",
       "profileIncompleteDetail": "A bejelentéshez szükséges mezők (cégnév, cím, kapcsolattartó) hiányoznak."
+    },
+    "registry": {
+      "template": {
+        "stillReferenced": "Ezt a sablont egy vagy több termék használja, ezért nem törölhető. Előbb távolítsa el a hivatkozást minden érintett termékből."
+      }
+    },
+    "selectCustomer": {
+      "description": "Használja a felső sávban található ügyfélváltót a kezelni kívánt ügyfél EPR adatainak kiválasztásához.",
+      "title": "Válasszon ügyfelet"
     },
     "title": "EPR Kezelő",
     "wizard": {
@@ -181,8 +186,8 @@
       "hints": {
         "step1": "Válassza ki a termék fő kategóriáját (pl. csomagolás, elektronika, gumiabroncs).",
         "step2": "Milyen anyagból készül a bejelentendő tétel?",
+        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag „Fa”, a tartály „PET palack”.",
         "step3group": "Válassza ki a csomagolás felhasználási szintjét.",
-        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag \u201eFa\u201d, a tartály \u201ePET palack\u201d.",
         "step3subgroup": "Válassza ki a pontos altípust a besorolás véglegesítéséhez."
       },
       "kfCodeLabel": "KF Kód",

@@ -109,8 +109,38 @@ class OkirkapuXmlExporterTest {
     }
 
     /**
+     * AC #21 (Story 10.1) regression: the {@code units_per_product INT} →
+     * {@code items_per_parent NUMERIC(12,4)} rename+retype must produce byte-for-byte identical
+     * output for all pre-existing rows (default {@code items_per_parent = 1.0000}, migrated
+     * losslessly from the old {@code INT 1}).
+     *
+     * <p>The exporter's {@code processLineItem} formula is
+     * {@code weightPerUnitKg × quantity / itemsPerParent} with scale 6, HALF_UP rounding. For a
+     * canonical invoice (qty=100) and a canonical component (0.025 kg/unit, items_per_parent=1),
+     * the expected output is the exact string {@code "2.500000"}. Using
+     * {@link java.math.BigDecimal#toPlainString()} + string-equality gives byte-level identity
+     * (rather than {@code isEqualByComparingTo} which ignores scale).
+     */
+    @Test
+    void regression_legacyItemsPerParentOne_byteIdenticalFormulaOutput() {
+        ProductPackagingComponent comp = component("11010101", "0.025", 1);
+        setupSingleInvoiceLine("PET palack", "39239090", "100", comp);
+
+        EprReportArtifact result = exporter.generate(request());
+
+        EprReportProvenance hit = result.provenanceLines().stream()
+                .filter(p -> p.tag() == ProvenanceTag.REGISTRY_MATCH)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No REGISTRY_MATCH provenance emitted"));
+        // Byte-level: plain string representation must be exactly "2.500000".
+        assertThat(hit.aggregatedWeightKg().toPlainString())
+                .as("AC #21: byte-identical plain string output for legacy items_per_parent=1")
+                .isEqualTo("2.500000");
+    }
+
+    /**
      * AC#2 + AC#16: Product with multiple components (primary + secondary).
-     * Verifies each component uses its own unitsPerProduct.
+     * Verifies each component uses its own itemsPerParent.
      */
     @Test
     void multiComponent_eachUsesOwnRatio() {
@@ -170,10 +200,11 @@ class OkirkapuXmlExporterTest {
         });
     }
 
-    private ProductPackagingComponent component(String kfCode, String weight, int unitsPerProduct) {
+    private ProductPackagingComponent component(String kfCode, String weight, int itemsPerParent) {
         return new ProductPackagingComponent(
                 UUID.randomUUID(), PRODUCT_ID, "Material", kfCode,
-                new BigDecimal(weight), 0, unitsPerProduct,
+                new BigDecimal(weight), 0,
+                new BigDecimal(itemsPerParent), 1, null,
                 null, null, null, null, null,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }

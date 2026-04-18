@@ -88,6 +88,7 @@ public class RegistryService {
         // Insert components
         if (cmd.components() != null) {
             for (ComponentUpsertCommand comp : cmd.components()) {
+                verifyMaterialTemplateBelongsToTenant(comp.materialTemplateId(), tenantId);
                 UUID compId = registryRepository.insertComponent(productId, tenantId, comp);
                 emitComponentCreateAudit(productId, tenantId, actingUserId, compId, comp, source);
             }
@@ -136,6 +137,7 @@ public class RegistryService {
         Set<UUID> incomingIds = new HashSet<>();
         if (cmd.components() != null) {
             for (ComponentUpsertCommand compCmd : cmd.components()) {
+                verifyMaterialTemplateBelongsToTenant(compCmd.materialTemplateId(), tenantId);
                 if (compCmd.id() != null && existingCompMap.containsKey(compCmd.id())) {
                     // Update existing component — diff-audit
                     incomingIds.add(compCmd.id());
@@ -251,8 +253,16 @@ public class RegistryService {
         }
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "component_order",
                 Integer.toString(cmd.componentOrder()), source);
-        emitCreateAuditRaw(productId, tenantId, userId, prefix + "units_per_product",
-                Integer.toString(cmd.unitsPerProduct()), source);
+        if (cmd.itemsPerParent() != null) {
+            emitAudit(productId, tenantId, userId, prefix + "items_per_parent",
+                    null, cmd.itemsPerParent().toPlainString(), source);
+        }
+        emitCreateAuditRaw(productId, tenantId, userId, prefix + "wrapping_level",
+                Integer.toString(cmd.wrappingLevel()), source);
+        if (cmd.materialTemplateId() != null) {
+            emitCreateAuditRaw(productId, tenantId, userId, prefix + "material_template_id",
+                    cmd.materialTemplateId().toString(), source);
+        }
         emitCreateAuditRaw(productId, tenantId, userId, prefix + "recyclability_grade",
                 cmd.recyclabilityGrade() != null ? cmd.recyclabilityGrade().name() : null, source);
         if (cmd.recycledContentPct() != null) {
@@ -317,10 +327,19 @@ public class RegistryService {
                 Integer.toString(old.componentOrder()),
                 Integer.toString(cmd.componentOrder()));
 
-        // units_per_product (Story 9.6)
-        diffAndAudit(productId, tenantId, userId, prefix + "units_per_product",
-                Integer.toString(old.unitsPerProduct()),
-                Integer.toString(cmd.unitsPerProduct()));
+        // items_per_parent (Story 10.1 — renamed+retyped from Story 9.6's units_per_product)
+        diffBigDecimal(productId, tenantId, userId, prefix + "items_per_parent",
+                old.itemsPerParent(), cmd.itemsPerParent());
+
+        // wrapping_level (Story 10.1)
+        diffAndAudit(productId, tenantId, userId, prefix + "wrapping_level",
+                Integer.toString(old.wrappingLevel()),
+                Integer.toString(cmd.wrappingLevel()));
+
+        // material_template_id (Story 10.1 — nullable FK)
+        diffAndAudit(productId, tenantId, userId, prefix + "material_template_id",
+                old.materialTemplateId() != null ? old.materialTemplateId().toString() : null,
+                cmd.materialTemplateId() != null ? cmd.materialTemplateId().toString() : null);
 
         // BigDecimal comparison via compareTo (avoids 0.70 vs 0.700 false positives)
         if (cmd.weightPerUnitKg() != null && old.weightPerUnitKg() != null
@@ -365,5 +384,18 @@ public class RegistryService {
         emitAudit(productId, tenantId, userId, field,
                 oldVal != null ? oldVal.toPlainString() : null,
                 newVal != null ? newVal.toPlainString() : null);
+    }
+
+    /**
+     * Verifies that a non-null {@code materialTemplateId} belongs to {@code tenantId}.
+     * Throws 404 (not found) when the template does not exist or belongs to another tenant,
+     * preventing cross-tenant template references (A-P1, code review 2026-04-18).
+     */
+    private void verifyMaterialTemplateBelongsToTenant(UUID materialTemplateId, UUID tenantId) {
+        if (materialTemplateId == null) return;
+        if (!registryRepository.existsMaterialTemplateForTenant(materialTemplateId, tenantId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Material template not found: " + materialTemplateId);
+        }
     }
 }

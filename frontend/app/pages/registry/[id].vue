@@ -19,7 +19,11 @@ import type { ClassifyResponse, KfSuggestionDto } from '~/composables/api/useCla
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
 import { useUnits, DEFAULT_UNIT } from '~/composables/registry/useUnits'
+import Dialog from 'primevue/dialog'
+import Listbox from 'primevue/listbox'
 import KfCodeInput from '~/components/registry/KfCodeInput.vue'
+import { useMaterialTemplatePicker } from '~/composables/registry/useMaterialTemplatePicker'
+import type { MaterialTemplateResponse } from '~/types/epr'
 import type {
   ProductResponse,
   RegistryAuditEntryResponse,
@@ -147,7 +151,7 @@ function acceptSuggestion(suggestion: KfSuggestionDto) {
   comp.kfCode = suggestion.kfCode
   comp.materialDescription = suggestion.description || comp.materialDescription
   if (suggestion.weightEstimateKg != null) comp.weightPerUnitKg = suggestion.weightEstimateKg
-  comp.unitsPerProduct = suggestion.unitsPerProduct
+  comp.itemsPerParent = suggestion.unitsPerProduct
   comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
   comp.classificationStrategy = result.strategy
   comp.classificationModelVersion = result.modelVersion ?? null
@@ -178,7 +182,7 @@ function acceptAllSuggestions() {
     comp.materialDescription = s.description || ''
     comp.kfCode = s.kfCode
     if (s.weightEstimateKg != null) comp.weightPerUnitKg = s.weightEstimateKg
-    comp.unitsPerProduct = s.unitsPerProduct ?? 1
+    comp.itemsPerParent = s.unitsPerProduct ?? 1
     comp.classificationSource = result.strategy === 'VTSZ_PREFIX' ? 'VTSZ_FALLBACK' : 'AI_SUGGESTED_CONFIRMED'
     comp.classificationStrategy = result.strategy
     comp.classificationModelVersion = result.modelVersion ?? null
@@ -222,6 +226,146 @@ watch(() => route.path, () => {
   if (activeClassifyTempId.value) closeClassifyPopover()
 })
 
+// ─── Material-template picker (Story 10.1 AC #11) ──────────────────────────────
+// Registry-scoped picker over the internal material-template library. The
+// `useMaterialTemplatePicker` composable is the only frontend entry point to
+// template data outside `components/registry/*`; ESLint rules in Task 10 enforce
+// the boundary at build time.
+const templatePicker = useMaterialTemplatePicker()
+const templatePickerOpen = ref(false)
+const templatePickerTempId = ref<string | null>(null)
+const templatePickerLoading = ref(false)
+const templatePickerSearch = ref('')
+const templatePickerOptions = ref<MaterialTemplateResponse[]>([])
+const templatePickerSelected = ref<string | null>(null)
+
+// R3-P6: cache resolved template names so preloaded-product rows display the actual template
+// name instead of the generic "Template" fallback before the picker is ever opened. Populated
+// once on loadProduct for the subset of templates referenced by the product's components.
+const resolvedTemplateNames = ref<Record<string, string>>({})
+
+function openTemplatePicker(tempId: string) {
+  templatePickerTempId.value = tempId
+  const comp = components.value.find(c => c._tempId === tempId)
+  templatePickerSelected.value = comp?.materialTemplateId ?? null
+  templatePickerSearch.value = ''
+  templatePickerOpen.value = true
+  loadTemplatePickerOptions()
+}
+
+function closeTemplatePicker() {
+  templatePickerOpen.value = false
+  templatePickerTempId.value = null
+  templatePickerSelected.value = null
+  templatePickerSearch.value = ''
+  templatePickerOptions.value = []
+}
+
+async function loadTemplatePickerOptions() {
+  templatePickerLoading.value = true
+  try {
+    const term = templatePickerSearch.value.trim()
+    templatePickerOptions.value = term
+      ? await templatePicker.search(term)
+      : await templatePicker.list(0, 100)
+  }
+  catch {
+    toast.add({ severity: 'warn', summary: t('registry.templatePicker.loadError'), life: 3000 })
+  }
+  finally {
+    templatePickerLoading.value = false
+  }
+}
+
+let templatePickerSearchTimer: ReturnType<typeof setTimeout> | null = null
+watch(templatePickerSearch, () => {
+  if (!templatePickerOpen.value) return
+  if (templatePickerSearchTimer) clearTimeout(templatePickerSearchTimer)
+  templatePickerSearchTimer = setTimeout(loadTemplatePickerOptions, 200)
+})
+
+// R3-P11: clear the debounce timer on unmount so `loadTemplatePickerOptions` cannot fire
+// against an unmounted component (toast/store writes on a stale instance).
+onBeforeUnmount(() => {
+  if (templatePickerSearchTimer) {
+    clearTimeout(templatePickerSearchTimer)
+    templatePickerSearchTimer = null
+  }
+})
+
+function confirmTemplateSelection() {
+  const tempId = templatePickerTempId.value
+  if (!tempId) return closeTemplatePicker()
+  const comp = components.value.find(c => c._tempId === tempId)
+  if (comp) comp.materialTemplateId = templatePickerSelected.value
+  closeTemplatePicker()
+}
+
+function clearTemplateSelection() {
+  templatePickerSelected.value = null
+  confirmTemplateSelection()
+}
+
+async function createDraftFromSearch() {
+  const draftName = templatePickerSearch.value.trim()
+  if (!draftName) return
+  templatePickerLoading.value = true
+  try {
+    const created = await templatePicker.createDraft({ name: draftName })
+    templatePickerSelected.value = created.id
+    templatePickerOptions.value = [created, ...templatePickerOptions.value]
+    resolvedTemplateNames.value[created.id] = created.name
+    toast.add({ severity: 'success', summary: t('registry.templatePicker.created'), life: 2500 })
+  }
+  catch {
+    toast.add({ severity: 'warn', summary: t('registry.templatePicker.createError'), life: 3000 })
+  }
+  finally {
+    templatePickerLoading.value = false
+  }
+}
+
+function templatePickerLabel(comp: EditableComponent): string {
+  if (!comp.materialTemplateId) return t('registry.form.pickTemplate')
+  // R3-P6: prefer the name cached during loadProduct; fall back to picker's live options,
+  // then to the generic label only if neither has seen this templateId yet.
+  const cachedName = resolvedTemplateNames.value[comp.materialTemplateId]
+  if (cachedName) return cachedName
+  const match = templatePickerOptions.value.find(o => o.id === comp.materialTemplateId)
+  if (match?.name) {
+    resolvedTemplateNames.value[comp.materialTemplateId] = match.name
+    return match.name
+  }
+  return t('registry.form.template')
+}
+
+/**
+ * R3-P6: fetch the name of every template referenced by the loaded product so the picker
+ * button renders the actual template name without requiring the dialog to be opened first.
+ * Single `list` call is sufficient because `useMaterialTemplatePicker.list` returns the
+ * full page; tenants with > 200 templates would benefit from an id-batched lookup endpoint
+ * in a future story.
+ */
+async function resolveTemplateNamesForComponents() {
+  const referencedIds = new Set(
+    components.value
+      .map(c => c.materialTemplateId)
+      .filter((x): x is string => !!x && !resolvedTemplateNames.value[x])
+  )
+  if (referencedIds.size === 0) return
+  try {
+    const templates = await templatePicker.list(0, 200)
+    for (const t of templates) {
+      if (referencedIds.has(t.id)) {
+        resolvedTemplateNames.value[t.id] = t.name
+      }
+    }
+  }
+  catch {
+    // silent — label will fall back to the generic "Template" string; not worth a toast.
+  }
+}
+
 
 // ─── Components ────────────────────────────────────────────────────────────────
 interface EditableComponent {
@@ -230,7 +374,9 @@ interface EditableComponent {
   kfCode: string | null
   weightPerUnitKg: number | null
   componentOrder: number
-  unitsPerProduct: number
+  itemsPerParent: number
+  wrappingLevel: number
+  materialTemplateId: string | null
   recyclabilityGrade: 'A' | 'B' | 'C' | 'D' | null
   recycledContentPct: number | null
   reusable: boolean | null
@@ -252,7 +398,9 @@ function newComponent(): EditableComponent {
     kfCode: null,
     weightPerUnitKg: null,
     componentOrder: components.value.length,
-    unitsPerProduct: 1,
+    itemsPerParent: 1,
+    wrappingLevel: 1,
+    materialTemplateId: null,
     recyclabilityGrade: null,
     recycledContentPct: null,
     reusable: null,
@@ -346,7 +494,10 @@ async function loadProduct() {
       kfCode: c.kfCode,
       weightPerUnitKg: c.weightPerUnitKg,
       componentOrder: c.componentOrder,
-      unitsPerProduct: c.unitsPerProduct ?? 1,
+      itemsPerParent: (c as { itemsPerParent?: number }).itemsPerParent
+        ?? (c as { unitsPerProduct?: number }).unitsPerProduct ?? 1,
+      wrappingLevel: (c as { wrappingLevel?: number }).wrappingLevel ?? 1,
+      materialTemplateId: (c as { materialTemplateId?: string | null }).materialTemplateId ?? null,
       recyclabilityGrade: c.recyclabilityGrade,
       recycledContentPct: c.recycledContentPct,
       reusable: c.reusable,
@@ -356,6 +507,9 @@ async function loadProduct() {
       classificationModelVersion: null,
       _tempId: c.id,
     }))
+    // R3-P6: resolve template names up-front so the Sablon button label renders the
+    // template name immediately on product load (not just after the picker is opened).
+    await resolveTemplateNamesForComponents()
   }
   catch (err: unknown) {
     const e = err as { data?: { type?: string } }
@@ -394,7 +548,9 @@ async function save() {
         kfCode: c.kfCode,
         weightPerUnitKg: c.weightPerUnitKg as number,
         componentOrder: c.componentOrder,
-        unitsPerProduct: c.unitsPerProduct,
+        itemsPerParent: c.itemsPerParent,
+        wrappingLevel: c.wrappingLevel,
+        materialTemplateId: c.materialTemplateId,
         recyclabilityGrade: c.recyclabilityGrade,
         recycledContentPct: c.recycledContentPct,
         reusable: c.reusable,
@@ -693,11 +849,30 @@ onBeforeUnmount(() => {
           </template>
           <template #body="{ data }">
             <InputNumber
-              v-model="data.unitsPerProduct"
-              :min="1"
+              v-model="data.itemsPerParent"
+              :min="0.0001"
+              :min-fraction-digits="0"
+              :max-fraction-digits="4"
               :show-buttons="true"
               :aria-label="t('registry.form.unitsPerProduct')"
               class="w-full"
+            />
+          </template>
+        </Column>
+
+        <Column style="width: 150px">
+          <template #header>
+            <span>{{ t('registry.form.template') }}</span>
+          </template>
+          <template #body="{ data }">
+            <Button
+              size="small"
+              outlined
+              severity="secondary"
+              :label="templatePickerLabel(data)"
+              :aria-label="t('registry.form.pickTemplate')"
+              data-testid="registry-template-picker-btn"
+              @click="openTemplatePicker(data._tempId)"
             />
           </template>
         </Column>
@@ -881,5 +1056,77 @@ onBeforeUnmount(() => {
         />
       </div>
     </Popover>
+
+    <!-- Material-template picker dialog (Story 10.1 AC #11). appendTo=body to escape
+         DataTable stacking context; z-index above classifier popover. Draft-create
+         delegates to useMaterialTemplatePicker.createDraft — no new backend route. -->
+    <Dialog
+      v-model:visible="templatePickerOpen"
+      modal
+      append-to="body"
+      :header="t('registry.templatePicker.title')"
+      :pt="{ root: { class: 'z-[70]' } }"
+      class="w-full max-w-md"
+      data-testid="template-picker-dialog"
+      @hide="closeTemplatePicker"
+    >
+      <div class="flex flex-col gap-3">
+        <InputText
+          v-model="templatePickerSearch"
+          :placeholder="t('registry.templatePicker.searchPlaceholder')"
+          :aria-label="t('registry.templatePicker.search')"
+          data-testid="template-picker-search"
+        />
+        <Listbox
+          v-model="templatePickerSelected"
+          :options="templatePickerOptions"
+          option-label="name"
+          option-value="id"
+          :empty-message="t('registry.templatePicker.empty')"
+          :aria-label="t('registry.templatePicker.title')"
+          data-testid="template-picker-list"
+          class="max-h-60 overflow-y-auto"
+        />
+        <div class="flex justify-between items-center gap-2">
+          <Button
+            v-if="templatePickerSearch.trim().length > 0"
+            :label="t('registry.templatePicker.create')"
+            size="small"
+            icon="pi pi-plus"
+            severity="secondary"
+            outlined
+            :loading="templatePickerLoading"
+            data-testid="template-picker-create"
+            @click="createDraftFromSearch"
+          />
+          <span v-else class="flex-1"></span>
+          <div class="flex gap-2">
+            <Button
+              :label="t('registry.templatePicker.clear')"
+              size="small"
+              severity="secondary"
+              text
+              data-testid="template-picker-clear"
+              @click="clearTemplateSelection"
+            />
+            <Button
+              :label="t('registry.templatePicker.cancel')"
+              size="small"
+              severity="secondary"
+              outlined
+              data-testid="template-picker-cancel"
+              @click="closeTemplatePicker"
+            />
+            <Button
+              :label="t('registry.templatePicker.confirm')"
+              size="small"
+              :disabled="templatePickerLoading"
+              data-testid="template-picker-confirm"
+              @click="confirmTemplateSelection"
+            />
+          </div>
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>

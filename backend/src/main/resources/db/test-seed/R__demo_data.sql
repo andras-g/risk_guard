@@ -828,7 +828,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO product_packaging_components (
     id, product_id, material_description, kf_code,
-    weight_per_unit_kg, units_per_product, component_order,
+    weight_per_unit_kg, items_per_parent, component_order,
     created_at, updated_at
 ) VALUES
 -- Csavar M6x30: steel screw packaging → KF 91010101, 0.006 kg/unit (6g steel per 1 screw)
@@ -879,7 +879,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO product_packaging_components (
     id, product_id, material_description, kf_code,
-    weight_per_unit_kg, units_per_product, component_order,
+    weight_per_unit_kg, items_per_parent, component_order,
     created_at, updated_at
 ) VALUES
 -- Betonacél: steel bar → KF 91010101, 8.88 kg/unit (6m rebar ~8.88kg)
@@ -922,7 +922,7 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO product_packaging_components (
     id, product_id, material_description, kf_code,
-    weight_per_unit_kg, units_per_product, component_order,
+    weight_per_unit_kg, items_per_parent, component_order,
     created_at, updated_at
 ) VALUES
 -- Kenyér: bakery packaging (paper/plastic film) → KF 61010101, 0.008 kg/unit

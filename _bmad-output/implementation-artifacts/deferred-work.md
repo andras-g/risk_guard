@@ -286,3 +286,44 @@
 - W1: Audit row timestamp relies on DB `DEFAULT now()` rather than being stamped at write time [RegistryAuditRepository.java insertAuditRow] — pre-existing Epic 9 pattern inherited by the relocated repository; harden if future migration loses the default or deterministic Clock-backed tests are needed.
 - W2: `AuditSource.valueOf(cmd.classificationSource())` in `RegistryService` swallow/fallback path [RegistryService.java:~296] — pre-existing caller-side parsing; revisit when introducing `FieldChangeEvent`-based call sites (Story 10.3 / 10.8) so strategy/modelVersion mapping lives inside the facade.
 - W3: Perf sanity-check deferred to story-exit journal — no regression signal yet; no baseline from Epic 9 to compare against. Revisit if Story 10.4's 3000-invoice load test surfaces audit-write overhead (ADR-0003 revisit trigger §"Audit write volume outgrows the transactional path").
+
+## Deferred from: code review of 10-1-registry-schema-menu-restructure-and-tx-pool-refactor Group A (2026-04-18)
+
+- A-D1: `items_per_parent` CREATE audit null-guard in `RegistryService.emitComponentCreateAudit` is dead code on the DTO path (toCommand() substitutes DEFAULT_ITEMS_PER_PARENT before the command reaches service); guard remains relevant only for direct-construction paths (e.g., bootstrap). Revisit when Story 10.4 bootstrap path constructs ComponentUpsertCommand directly.
+- A-D2: `emitAudit(…null, value…)` called directly for `items_per_parent` CREATE vs `emitCreateAuditRaw` for all other CREATE fields. Cosmetic inconsistency; both ultimately call AuditService.recordRegistryFieldChange. Standardize in a future cleanup pass.
+- A-D3: `RegistryRepository.toComponent()` null-guards `getItemsPerParent()` despite DB NOT NULL constraint. Consistent with pre-existing jOOQ codegen behavior (codegen types NOT NULL columns as nullable). Revisit with a jOOQ codegen non-null config if adopted.
+- A-D4: No zero-divisor guard in `OkirkapuXmlExporter.processLineItem()` on `itemsPerParent`. Only reachable via direct-SQL legacy rows; DTO @DecimalMin("0.0001") and migration DEFAULT 1 prevent zero from API path. Add guard before Epic 10.5 aggregation lands.
+- A-D5: No packaging-hierarchy constraint on `wrappingLevel`: level-3 component accepted without a level-1/2 parent in the same product. Story 10.5 aggregation must handle degenerate hierarchies or add a domain-level validation in RegistryService.
+
+## Deferred from: code review of 10-1-registry-schema-menu-restructure-and-tx-pool-refactor Group B (2026-04-18)
+
+- B-D1: `BootstrapResult.skipped()` conflates two distinct scenarios: "row existed at pre-check time" and "lost concurrent-insert race after spending AI classifier tokens on the candidate". Add a richer return type (e.g., `BootstrapResult(created, skippedKnown, skippedRace)`) before Story 10.4 scales to 3000 invoices where the distinction matters for diagnostics.
+- B-D2: `BootstrapServiceTest` uses a no-op `PlatformTransactionManager` with `SimpleTransactionStatus(isNewTransaction=false)`, so `TransactionTemplate` never calls `commit()` on the manager. Rollback semantics (e.g., DataAccessException inside the batch tx) are untested at unit level. Add a dedicated test with a mock manager that verifies rollback is called on exception.
+- B-D3: `NavHttpOutsideTransactionTest.invokeForbiddenHttpClient()` inspects only one-level-deep call sites. A `@Transactional` method that delegates to a private helper calling `DataSourceService` would evade the rule. Upgrade to recursive call analysis or add a documentation note about the limitation. Revisit before Story 10.4 adds new `@Transactional` methods in scope.
+- B-D4: `RegistryBootstrapServiceLoadTest` runs a single bootstrap invocation. The original bug manifested under concurrent load (two tenants, both holding a connection). Add a concurrent variant (two parallel `CompletableFuture.supplyAsync(bootstrap)` calls against `spring.datasource.hikari.maximum-pool-size=2`) to directly prove the fix.
+- B-D5: `poller.awaitTermination(1, TimeUnit.SECONDS)` in load test is not asserted for `true`. A stuck poller thread leaks into the shared Spring test context. Add `assertThat(poller.awaitTermination(...)).isTrue()`.
+- B-D6: `RegistryBootstrapService.triggerBootstrap` passes raw `g.vtsz()` to `existsByTenantAndDedupeKey` while the insert path normalizes separately. The double-normalize is idempotent today but fragile. Extract a `normalizeVtsz(String)` method and apply it consistently at both call sites.
+
+## Deferred from: code review of 10-1-registry-schema-menu-restructure-and-tx-pool-refactor Group C (2026-04-18)
+
+- C-D1: `EprExceptionHandler` is scoped to `EprController`. `RegistryController` INSERT/UPDATE with an invalid `materialTemplateId` reaches Spring's global 500 handler instead of returning a clean 409. Widen the scope or add a `RegistryExceptionHandler` when Story 10.2+ adds picker-driven writes that may produce this FK violation. Partially mitigated by A-P1 tenant-isolation fix (invalid cross-tenant UUIDs caught before DB).
+- C-D2: `EprExceptionHandler.handleDataIntegrity()` uses `contains("product_packaging_components") && contains("material_template_id")` to route. This cannot distinguish a parent-side DELETE RESTRICT from a child-side INSERT FK violation — both message strings contain those tokens. If the handler scope widens, it will emit `type = template-still-referenced` for the wrong case. Fix: also check for `"update or delete"` vs `"insert or update"` in the message, or match the full constraint name.
+- C-D3: `getMostSpecificCause().getMessage()` can return null (e.g., a JDBC driver bug or an NPE-wrapped exception). Current code assigns `rootMessage = null`, the template branch is skipped, and `problem.setDetail(null)` produces `"detail": null` in the JSON body. Add `rootMessage != null ? rootMessage : "Data integrity violation"` in the fallback.
+- C-D4: `OkirkapuXmlExporterTest.component()` helper parameter is still named `unitsPerProduct` after the field rename. Rename to `itemsPerParent` for clarity.
+- C-D5: `EprExceptionHandlerTest` has no test for the null-message path (both `getMostSpecificCause()` and `getMessage()` return null). Add a `@Test` that passes a bare `new DataIntegrityViolationException(null)` and asserts a non-null safe 409 body.
+
+## Deferred from: code review of 10-1-registry-schema-menu-restructure-and-tx-pool-refactor Group E (2026-04-18)
+
+- E-D1: `no-restricted-imports` with `~/composables/...` path relies on literal string matching; Nuxt auto-imports (no `import` statement) bypass the rule entirely. Documented ESLint limitation for Nuxt apps; grep-based CI check is the alternative per Dev Notes.
+- E-D2: `no-restricted-syntax: 'off'` in the ESLint override for `components/registry/**` and `composables/registry/**` silences all current and future `no-restricted-syntax` rules in those files. Narrow the override to specific rule IDs when new syntax rules are added.
+- E-D3: `app/composables/api/**` allow-list exempts all API composables from the URL-literal guardrail; a future composable there referencing `/api/v1/epr/materials` would pass lint silently.
+- E-D4: `useMaterialTemplatePicker.list()` returns an empty slice for out-of-range pages with no error or sentinel. Consistent with pagination convention.
+- E-D5: `[id].spec.ts` picker tests are stub/state-machine only; picker Dialog + Listbox + search UI untested at component level. Pre-existing `[id].spec.ts` pattern; manual verification or Playwright e2e covers picker UX.
+- E-D6: `createDraft` hardcodes `recurring: true` in POST body with no override path. Intentional draft-flow design; revisit if non-recurring draft templates are ever needed.
+
+## Deferred from: code review of 10-1-registry-schema-menu-restructure-and-tx-pool-refactor Group D (2026-04-18)
+
+- D-D1: `AppSidebar.spec.ts` `hasProEpr` test helper uses `TIER_ORDER['PRO_EPR'] ?? 0` as the right operand. If `PRO_EPR` is removed from `TIER_ORDER`, the comparison becomes `>= 0` (grants access to every tier). Change the fallback to `?? Infinity` to deny access on key-not-found, matching the real component's behavior.
+- D-D2: `filing.vue` back-button route change (`/epr` → `/registry`) lacks a spec assertion. Add `expect(wrapper.find('[data-testid="back-to-library-button"]').trigger('click'))` → `expect(mockRouter.push).toHaveBeenCalledWith('/registry')` in `filing.spec.ts` when Stories 10.6/10.7 rebuild the filing page.
+- D-D3: Pre-commit i18n hook requires manual install (`ln -s ../../scripts/pre-commit.sh .git/hooks/pre-commit`). Add a `postinstall` or `prepare` script in the root `package.json` to auto-install the hook, or adopt Husky in a future tooling story.
+- D-D4: `AppBreadcrumb.spec.ts` has a live test case for the `/epr` breadcrumb path which no longer has a UI entry point. Remove or update in a future cleanup pass; replace with a test for `/epr/filing` breadcrumb rendering.

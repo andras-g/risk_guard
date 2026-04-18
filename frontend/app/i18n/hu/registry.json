@@ -111,6 +111,7 @@
         "cta": "Adjon hozzá legalább egy csomagolási elemet a termék mentéséhez"
       },
       "none": "Nincs",
+      "pickTemplate": "Sablon választása",
       "ppwr": "PPWR",
       "ppwrExpand": "PPWR-megfelelőség (opcionális)",
       "primaryUnit": "Alapegység",
@@ -125,6 +126,7 @@
       "saved": "Termék mentve",
       "status": "Státusz",
       "supplierDeclarationRef": "Szállítói nyilatkozat hivatkozása",
+      "template": "Sablon",
       "titleCreate": "Új termék",
       "titleEdit": "Termék szerkesztése",
       "unitsPerProduct": "Db/csomag",
@@ -162,6 +164,19 @@
       "ACTIVE": "Aktív",
       "ARCHIVED": "Archivált",
       "DRAFT": "Vázlat"
+    },
+    "templatePicker": {
+      "cancel": "Mégse",
+      "clear": "Törlés",
+      "confirm": "Sablon kiválasztása",
+      "create": "Új sablon létrehozása",
+      "createError": "A sablon létrehozása sikertelen",
+      "created": "A sablon létrejött",
+      "empty": "Nincs találat",
+      "loadError": "A sablonok betöltése sikertelen",
+      "search": "Sablonok keresése",
+      "searchPlaceholder": "Keresés név alapján...",
+      "title": "Anyagsablon kiválasztása"
     },
     "title": "Termék–Csomagolás Nyilvántartás",
     "units": {

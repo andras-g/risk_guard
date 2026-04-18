@@ -1,5 +1,15 @@
 {
   "screening": {
+    "actions": {
+      "addToWatchlist": "Figyelőlistára",
+      "addToWatchlistTooltip": "Partner hozzáadása a Figyelőlistához felügyelethez",
+      "backToDashboard": "Vissza az Átvilágításhoz",
+      "copyHash": "Audit hash másolása vágólapra",
+      "exportPdf": "PDF exportálás",
+      "exportPdfError": "PDF generálása sikertelen: {message}",
+      "exportPdfTooltip": "Verdikt exportálása PDF-be audit dokumentációhoz",
+      "searchNow": "Keresés most"
+    },
     "audit": {
       "columns": {
         "companyName": "Cégnév",
@@ -45,16 +55,6 @@
         "unavailable": "A hash nem ellenőrizhető — az adatok frissítve lesznek"
       }
     },
-    "actions": {
-      "addToWatchlist": "Figyelőlistára",
-      "addToWatchlistTooltip": "Partner hozzáadása a Figyelőlistához felügyelethez",
-      "backToDashboard": "Vissza az Átvilágításhoz",
-      "copyHash": "Audit hash másolása vágólapra",
-      "exportPdf": "PDF exportálás",
-      "exportPdfError": "PDF generálása sikertelen: {message}",
-      "exportPdfTooltip": "Verdikt exportálása PDF-be audit dokumentációhoz",
-      "searchNow": "Keresés most"
-    },
     "company": {
       "address": "Székhely",
       "cta": "Ellenőrizze a cég élő kockázati állapotát",
@@ -69,18 +69,18 @@
     "disclaimer": {
       "text": "Ez a keresési eredmény kizárólag tájékoztató jellegű. Az adatok magyar kormányzati nyilvántartásokból származnak, és nem biztos, hogy valós idejű állapotot tükröznek."
     },
+    "freshness": {
+      "fresh": "Friss",
+      "label": "Adatfrissesség:",
+      "stale": "Elavult",
+      "unavailable": "Nem elérhető"
+    },
     "guest": {
       "companyLimitReached": "Demo limit elérve — regisztráljon a korlátlan partnerfelügyelethez",
       "dailyLimitReached": "Napi limit elérve — regisztráljon a korlátlan átvilágításhoz",
       "progressIndicator": "{used}/{limit} cég ellenőrizve",
       "signUpCta": "Regisztráció",
       "signUpForUnlimited": "Regisztráljon a korlátlan hozzáféréshez"
-    },
-    "freshness": {
-      "fresh": "Friss",
-      "label": "Adatfrissesség:",
-      "stale": "Elavult",
-      "unavailable": "Nem elérhető"
     },
     "pdf": {
       "generated": "Generálva",
@@ -106,11 +106,11 @@
     "riskSignals": {
       "DATA_EXPIRED": "Az adatok lejártak",
       "INSOLVENCY_PROCEEDINGS_ACTIVE": "Fizetésképtelenségi eljárás folyamatban",
-      "noSignals": "Nem észlelhetők kockázati jelek",
-      "noSignalsForCached": "Kockázati jelek nem elérhetők gyorsítótárazott eredményeknél",
       "PUBLIC_DEBT_DETECTED": "Aktív köztartozás észlelve",
       "SOURCE_UNAVAILABLE": "Forrás nem elérhető: {name}",
       "TAX_NUMBER_SUSPENDED": "Adószám felfüggesztve",
+      "noSignals": "Nem észlelhetők kockázati jelek",
+      "noSignalsForCached": "Kockázati jelek nem elérhetők gyorsítótárazott eredményeknél",
       "title": "Kockázati jelek"
     },
     "search": {
@@ -140,11 +140,11 @@
       "manualReviewRequired": "Manuális ellenőrzés szükséges",
       "reliable": "Megbízható",
       "reliableEn": "Reliable",
+      "searchFailed": "A keresés sikertelen. Kérjük, próbálja újra.",
       "stale": "Elavult",
       "staleWarning": "Az adatok elavultak (>48 óra)",
       "status": "Állapot",
       "taxNumber": "Adószám",
-      "searchFailed": "A keresés sikertelen. Kérjük, próbálja újra.",
       "taxSuspended": "Adószám felfüggesztve",
       "taxSuspendedEn": "Tax Suspended",
       "unavailable": "Nem elérhető",
