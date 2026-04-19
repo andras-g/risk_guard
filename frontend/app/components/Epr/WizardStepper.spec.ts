@@ -47,6 +47,7 @@ const mockGoBack = vi.fn()
 
 const mockRetryLink = vi.fn()
 const mockCloseWithoutLinking = vi.fn()
+const mockResolveAndClose = vi.fn()
 
 const createMockStore = (overrides = {}) => ({
   activeStep: '1',
@@ -68,7 +69,10 @@ const createMockStore = (overrides = {}) => ({
   overrideKfCode: null,
   overrideFeeRate: null,
   overrideClassification: null,
+  isResolveOnlyMode: false,
+  lastResolvedKfCode: null,
   startWizard: vi.fn(),
+  startResolveOnly: vi.fn(),
   selectOption: mockSelectOption,
   resolveResult: vi.fn(),
   confirmAndLink: mockConfirmAndLink,
@@ -77,6 +81,7 @@ const createMockStore = (overrides = {}) => ({
   refreshOptions: vi.fn(),
   retryLink: mockRetryLink,
   closeWithoutLinking: mockCloseWithoutLinking,
+  resolveAndClose: mockResolveAndClose,
   $reset: vi.fn(),
   ...overrides,
 })
@@ -331,6 +336,52 @@ describe('WizardStepper', () => {
       })
       await wrapper.find('[data-testid="wizard-close-without-linking-button"]').trigger('click')
       expect(mockCloseWithoutLinking).toHaveBeenCalled()
+    })
+  })
+
+  // ─── Story 10.2 — resolve-only mode footer ─────────────────────────────────
+  describe('resolve-only mode (Story 10.2 Registry Browse)', () => {
+    const resolvedResult = {
+      kfCode: '11010101',
+      feeCode: '1101',
+      feeRate: 20.44,
+      currency: 'HUF',
+      materialClassification: 'Paper and cardboard',
+      traversalPath: [],
+      legislationRef: 'test',
+      confidenceScore: 'HIGH',
+      confidenceReason: 'full_traversal',
+    }
+
+    it('shows "Use this code" button (not Confirm-and-Link) in resolve-only mode', async () => {
+      mockStore = createMockStore({
+        activeStep: '4',
+        isResolveOnlyMode: true,
+        resolvedResult,
+      })
+      const wrapper = mount(WizardStepper, {
+        global: {
+          stubs: { EprMaterialSelector: true, EprConfidenceBadge: true },
+        },
+      })
+      expect(wrapper.find('[data-testid="wizard-confirm-button"]').exists()).toBe(false)
+      expect(wrapper.find('[data-testid="wizard-use-this-code-button"]').exists()).toBe(true)
+      await wrapper.find('[data-testid="wizard-use-this-code-button"]').trigger('click')
+      expect(mockResolveAndClose).toHaveBeenCalled()
+    })
+
+    it('hides override button in resolve-only mode', () => {
+      mockStore = createMockStore({
+        activeStep: '4',
+        isResolveOnlyMode: true,
+        resolvedResult,
+      })
+      const wrapper = mount(WizardStepper, {
+        global: {
+          stubs: { EprMaterialSelector: true, EprConfidenceBadge: true },
+        },
+      })
+      expect(wrapper.find('[data-testid="wizard-override-button"]').exists()).toBe(false)
     })
   })
 })

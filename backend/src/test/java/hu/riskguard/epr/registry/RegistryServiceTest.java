@@ -341,6 +341,155 @@ class RegistryServiceTest {
                         && ev.source() == AuditSource.MANUAL));
     }
 
+    // ─── Story 10.2: MANUAL_WIZARD audit source round-trip ───────────────────
+
+    @Test
+    void update_withManualWizardClassificationSource_emitsAuditWithManualWizardSource() {
+        // Existing component: kf_code = 11010101
+        ProductsRecord existingRecord = buildProductRecord(PRODUCT_ID,
+                new ProductUpsertCommand("ART-001", "Activia", "3923", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+        ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
+                COMPONENT_ID, "PET bottle", "11010101", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
+        ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
+
+        when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(Optional.of(existingRecord));
+        when(registryRepository.findComponentsByProductAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(List.of(existingCompRecord));
+
+        // Browse-flow upsert: kfCode changed, classificationSource = "MANUAL_WIZARD".
+        // Only the component's kfCode changes — product-level updateProduct is NOT called,
+        // only registryRepository.updateComponent(). Hence no updateProduct stubbing here.
+        ComponentUpsertCommand browseResolved = new ComponentUpsertCommand(
+                COMPONENT_ID, "PET bottle", "12020202", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null,
+                "MANUAL_WIZARD", null, null);
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-001", "Activia", "3923", "pcs",
+                ProductStatus.ACTIVE, List.of(browseResolved));
+
+        registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
+
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.productId().equals(PRODUCT_ID)
+                        && ev.tenantId().equals(TENANT_ID)
+                        && ev.fieldChanged().contains("kf_code")
+                        && "11010101".equals(ev.oldValue())
+                        && "12020202".equals(ev.newValue())
+                        && USER_ID.equals(ev.changedByUserId())
+                        && ev.source() == AuditSource.MANUAL_WIZARD
+                        // classification_strategy / model_version stay null for MANUAL_WIZARD
+                        // (only AI_SUGGESTED_* sources carry those fields — per RegistryService:314-317)
+                        && ev.classificationStrategy() == null
+                        && ev.modelVersion() == null));
+    }
+
+    @Test
+    void update_addNewComponentWithManualWizardSource_emitsCreateAuditsWithManualWizardSource() {
+        // Reviewer finding (EC #5): when a NEW component row is added through update()
+        // with classificationSource="MANUAL_WIZARD" (common flow: user adds a row and
+        // uses Browse before saving), the CREATE audit rows must carry MANUAL_WIZARD,
+        // not MANUAL — otherwise the story's compliance contract silently breaks.
+        ProductsRecord existingRecord = buildProductRecord(PRODUCT_ID,
+                new ProductUpsertCommand("ART-001", "Activia", "3923", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+        when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(Optional.of(existingRecord));
+        when(registryRepository.findComponentsByProductAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(List.of()); // no existing components
+
+        UUID newCompId = UUID.randomUUID();
+        ComponentUpsertCommand newComp = new ComponentUpsertCommand(
+                null, "PET bottle", "12020202", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null,
+                "MANUAL_WIZARD", null, null);
+        when(registryRepository.insertComponent(PRODUCT_ID, TENANT_ID, newComp))
+                .thenReturn(newCompId);
+
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-001", "Activia", "3923", "pcs",
+                ProductStatus.ACTIVE, List.of(newComp));
+
+        registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
+
+        // The kf_code CREATE audit row must carry MANUAL_WIZARD source.
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.fieldChanged().equals("CREATE.components[" + newCompId + "].kf_code")
+                        && "12020202".equals(ev.newValue())
+                        && ev.source() == AuditSource.MANUAL_WIZARD));
+    }
+
+    @Test
+    void update_addNewComponentWithoutClassificationSource_emitsCreateAuditsWithManualSource() {
+        // Regression guard: when a new component is added without classificationSource,
+        // the CREATE audits still default to MANUAL (unchanged legacy behaviour).
+        ProductsRecord existingRecord = buildProductRecord(PRODUCT_ID,
+                new ProductUpsertCommand("ART-001", "Activia", "3923", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+        when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(Optional.of(existingRecord));
+        when(registryRepository.findComponentsByProductAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(List.of());
+
+        UUID newCompId = UUID.randomUUID();
+        ComponentUpsertCommand newComp = new ComponentUpsertCommand(
+                null, "Glass", "33030303", new BigDecimal("0.25"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null,
+                null, null, null);
+        when(registryRepository.insertComponent(PRODUCT_ID, TENANT_ID, newComp))
+                .thenReturn(newCompId);
+
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-001", "Activia", "3923", "pcs",
+                ProductStatus.ACTIVE, List.of(newComp));
+
+        registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
+
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.fieldChanged().equals("CREATE.components[" + newCompId + "].kf_code")
+                        && ev.source() == AuditSource.MANUAL));
+    }
+
+    @Test
+    void update_withUnknownClassificationSource_fallsBackToManual() {
+        // Defensive test: unknown enum name must silently fall back to MANUAL
+        // (covers RegistryService.java:308-313 IllegalArgumentException swallow).
+        ProductsRecord existingRecord = buildProductRecord(PRODUCT_ID,
+                new ProductUpsertCommand("ART-001", "Activia", "3923", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+        ComponentUpsertCommand existingComp = new ComponentUpsertCommand(
+                COMPONENT_ID, "PET", "11010101", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null, null, null, null);
+        ProductPackagingComponentsRecord existingCompRecord = buildComponentRecord(COMPONENT_ID, PRODUCT_ID, existingComp);
+
+        when(registryRepository.findProductByIdAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(Optional.of(existingRecord));
+        when(registryRepository.findComponentsByProductAndTenant(PRODUCT_ID, TENANT_ID))
+                .thenReturn(List.of(existingCompRecord));
+
+        ComponentUpsertCommand garbage = new ComponentUpsertCommand(
+                COMPONENT_ID, "PET", "22020202", new BigDecimal("0.45"),
+                0, new BigDecimal("1"), 1, null,
+                null, null, null, null, null,
+                "GARBAGE_VALUE", null, null);
+        ProductUpsertCommand cmd = new ProductUpsertCommand(
+                "ART-001", "Activia", "3923", "pcs",
+                ProductStatus.ACTIVE, List.of(garbage));
+
+        registryService.update(TENANT_ID, PRODUCT_ID, USER_ID, cmd);
+
+        verify(auditService).recordRegistryFieldChange(argThat(ev ->
+                ev.fieldChanged().contains("kf_code")
+                        && ev.source() == AuditSource.MANUAL));
+    }
+
     // ─── A-P1: cross-tenant materialTemplateId rejection ─────────────────────
 
     @Test

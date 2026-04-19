@@ -327,3 +327,13 @@
 - D-D2: `filing.vue` back-button route change (`/epr` → `/registry`) lacks a spec assertion. Add `expect(wrapper.find('[data-testid="back-to-library-button"]').trigger('click'))` → `expect(mockRouter.push).toHaveBeenCalledWith('/registry')` in `filing.spec.ts` when Stories 10.6/10.7 rebuild the filing page.
 - D-D3: Pre-commit i18n hook requires manual install (`ln -s ../../scripts/pre-commit.sh .git/hooks/pre-commit`). Add a `postinstall` or `prepare` script in the root `package.json` to auto-install the hook, or adopt Husky in a future tooling story.
 - D-D4: `AppBreadcrumb.spec.ts` has a live test case for the `/epr` breadcrumb path which no longer has a UI entry point. Remove or update in a future cleanup pass; replace with a test for `/epr/filing` breadcrumb rendering.
+
+## Deferred from: code review of 10-2-kf-wizard-browse-button-on-registry (2026-04-19)
+
+- D1: Double `close()` on PrimeVue Dialog dismiss (`@hide` + `@update:visible` both fire) — spec-prescribed; `cancelWizard()`/`$reset()` are idempotent. [KfCodeWizardDialog.vue:73-74]
+- D2: `startResolveOnly()` in-flight race: rapid open→close→re-open could leave `isResolveOnlyMode=false` after stale fetch resolves — pre-existing pattern from `startWizard()` (no `isLoading` guard either); low probability. [stores/eprWizard.ts]
+- D3: `startResolveOnly()` does not defensively reset `lastResolvedKfCode` — watcher fires on value change only; pre-existing session cleanup via `cancelWizard()` is reliable. [stores/eprWizard.ts]
+- D4: Stale override state (`isOverrideActive`) if `cancelWizard()` is skipped between sessions — pre-existing pattern; `cancelWizard()`→`$reset()` cleans state on every normal close. [stores/eprWizard.ts]
+- D5: Override falsy check for `overrideKfCode`/`overrideClassification` (empty string falls back to resolved value) — pre-existing pattern from `confirmAndLink()`. [stores/eprWizard.ts:505-513]
+- D6: `startResolveOnly()` error path leaves blank stepper — no error banner in `KfCodeWizardDialog.vue`; pre-existing behavior matching `startWizard()` failure. [KfCodeWizardDialog.vue]
+- D7: Duplicate `data-testid="wizard-cancel-button"` across both Step 4 footer branches — non-colliding; no test exercises cancel at Step 4. [WizardStepper.vue:275 and 301]

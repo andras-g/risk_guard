@@ -22,6 +22,7 @@ import { useUnits, DEFAULT_UNIT } from '~/composables/registry/useUnits'
 import Dialog from 'primevue/dialog'
 import Listbox from 'primevue/listbox'
 import KfCodeInput from '~/components/registry/KfCodeInput.vue'
+import KfCodeWizardDialog from '~/components/Epr/KfCodeWizardDialog.vue'
 import { useMaterialTemplatePicker } from '~/composables/registry/useMaterialTemplatePicker'
 import type { MaterialTemplateResponse } from '~/types/epr'
 import type {
@@ -243,6 +244,40 @@ const templatePickerSelected = ref<string | null>(null)
 // name instead of the generic "Template" fallback before the picker is ever opened. Populated
 // once on loadProduct for the subset of templates referenced by the product's components.
 const resolvedTemplateNames = ref<Record<string, string>>({})
+
+// ─── KF-code wizard "Browse" (Story 10.2) ──────────────────────────────────
+// Resolve-only wizard dialog over `EprWizardStepper`. Opens per-row; writes the
+// resolved KF-code back onto the row's `kfCode` + `classificationSource=MANUAL_WIZARD`.
+// Does NOT link to a material template — that's the template-picker above.
+const kfWizardOpen = ref(false)
+const kfWizardTargetTempId = ref<string | null>(null)
+
+function openKfWizard(comp: EditableComponent) {
+  kfWizardTargetTempId.value = comp._tempId
+  kfWizardOpen.value = true
+  // The dialog itself calls wizardStore.startResolveOnly() on visible:true.
+}
+
+function onKfWizardResolved(payload: { kfCode: string, materialClassification: string, feeRate: number }) {
+  const tempId = kfWizardTargetTempId.value
+  if (!tempId) return
+  const comp = components.value.find(c => c._tempId === tempId)
+  if (!comp) return // row was deleted mid-wizard — drop the payload (AC #17)
+  comp.kfCode = payload.kfCode
+  comp.classificationSource = 'MANUAL_WIZARD'
+  // Browse returns only kfCode + classification + feeRate. materialDescription,
+  // weightPerUnitKg and itemsPerParent stay as the user entered them — the wizard
+  // is a KF-code resolver, not a component generator.
+  comp.classificationStrategy = null
+  comp.classificationModelVersion = null
+  kfWizardOpen.value = false
+  kfWizardTargetTempId.value = null
+}
+
+function onKfWizardVisibleUpdate(v: boolean) {
+  kfWizardOpen.value = v
+  if (!v) kfWizardTargetTempId.value = null
+}
 
 function openTemplatePicker(tempId: string) {
   templatePickerTempId.value = tempId
@@ -791,7 +826,7 @@ onBeforeUnmount(() => {
           </template>
         </Column>
 
-        <Column :header="t('registry.form.kfCode')" style="width: 220px">
+        <Column :header="t('registry.form.kfCode')" style="min-width: 280px">
           <template #body="{ data, index }">
             <div class="flex items-center gap-1">
               <KfCodeInput
@@ -821,6 +856,16 @@ onBeforeUnmount(() => {
                   @click="suggestKfCode($event, data)"
                 />
               </span>
+              <!-- Story 10.2: Browse button — opens resolve-only wizard dialog.
+                   Never disabled (wizard drill-down works without a product name). -->
+              <Button
+                icon="pi pi-sitemap"
+                :label="t('registry.browse.button')"
+                size="small"
+                :aria-label="t('registry.browse.tooltip')"
+                :data-testid="`browse-kf-${index}`"
+                @click="openKfWizard(data)"
+              />
             </div>
           </template>
         </Column>
@@ -1128,5 +1173,14 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </Dialog>
+
+    <!-- Story 10.2: KF-code wizard "Browse" dialog. Hosts EprWizardStepper in
+         resolve-only mode (no template link, no override). Writes the resolved
+         KF-code onto the row via `onKfWizardResolved`. -->
+    <KfCodeWizardDialog
+      :visible="kfWizardOpen"
+      @update:visible="onKfWizardVisibleUpdate"
+      @resolved="onKfWizardResolved"
+    />
   </div>
 </template>

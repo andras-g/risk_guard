@@ -16,6 +16,7 @@
         "AI_SUGGESTED_CONFIRMED": "AI javaslat elfogadva",
         "AI_SUGGESTED_EDITED": "AI javaslat szerkesztve",
         "MANUAL": "Manuális",
+        "MANUAL_WIZARD": "Varázsló (katalógus)",
         "NAV_BOOTSTRAP": "NAV importálás",
         "VTSZ_FALLBACK": "VTSZ alapú egyezés"
       },
@@ -69,6 +70,12 @@
       "tableAriaLabel": "Bootstrap jelöltek feldolgozási táblázata",
       "title": "Feltöltés NAV-számlákból",
       "triggerSuccess": "Import kész: {created} új jelölt, {skipped} kihagyva."
+    },
+    "browse": {
+      "button": "Keresés",
+      "title": "KF-kód keresése a katalógusban",
+      "tooltip": "KF-kód keresése a katalógusból",
+      "useThisCode": "Kód használata"
     },
     "classify": {
       "accept": "Elfogadás",

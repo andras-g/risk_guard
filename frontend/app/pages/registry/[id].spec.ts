@@ -402,3 +402,103 @@ describe('registry/[id].vue — material-template picker state', () => {
     expect(p.components[0]!.materialTemplateId).toBeNull()
   })
 })
+
+// ─── Story 10.2 AC #19 — Browse-flow state ─────────────────────────────────
+// Unit-level coverage of the page's Browse state machine (openKfWizard,
+// onKfWizardResolved, onKfWizardVisibleUpdate) extracted from [id].vue.
+describe('registry/[id].vue — KF wizard Browse flow (Story 10.2)', () => {
+  type Comp = {
+    _tempId: string
+    kfCode: string | null
+    classificationSource: string | null
+    classificationStrategy: string | null
+    classificationModelVersion: string | null
+  }
+
+  function makeBrowseStub() {
+    const components: Comp[] = [
+      { _tempId: 'row-A', kfCode: null, classificationSource: null, classificationStrategy: null, classificationModelVersion: null },
+      { _tempId: 'row-B', kfCode: '22020202', classificationSource: 'MANUAL', classificationStrategy: null, classificationModelVersion: null },
+    ]
+    const state = {
+      kfWizardOpen: false,
+      kfWizardTargetTempId: null as string | null,
+    }
+
+    function openKfWizard(comp: Comp) {
+      state.kfWizardTargetTempId = comp._tempId
+      state.kfWizardOpen = true
+    }
+
+    function onKfWizardResolved(payload: { kfCode: string, materialClassification: string, feeRate: number }) {
+      const tempId = state.kfWizardTargetTempId
+      if (!tempId) return
+      const comp = components.find(c => c._tempId === tempId)
+      if (!comp) return
+      comp.kfCode = payload.kfCode
+      comp.classificationSource = 'MANUAL_WIZARD'
+      comp.classificationStrategy = null
+      comp.classificationModelVersion = null
+      state.kfWizardOpen = false
+      state.kfWizardTargetTempId = null
+    }
+
+    function onKfWizardVisibleUpdate(v: boolean) {
+      state.kfWizardOpen = v
+      if (!v) state.kfWizardTargetTempId = null
+    }
+
+    return { state, components, openKfWizard, onKfWizardResolved, onKfWizardVisibleUpdate }
+  }
+
+  // ─── Test A: opening seeds target tempId ─────────────────────────────────
+  it('openKfWizard seeds kfWizardTargetTempId and opens the dialog', () => {
+    const b = makeBrowseStub()
+    b.openKfWizard(b.components[0]!)
+    expect(b.state.kfWizardOpen).toBe(true)
+    expect(b.state.kfWizardTargetTempId).toBe('row-A')
+  })
+
+  // ─── Test B: successful resolve writes to targeted row only ──────────────
+  it('resolved payload writes kfCode + MANUAL_WIZARD onto targeted row only', () => {
+    const b = makeBrowseStub()
+    b.openKfWizard(b.components[0]!) // target row-A
+    b.onKfWizardResolved({ kfCode: '11010101', materialClassification: 'Paper', feeRate: 20 })
+
+    expect(b.components[0]!.kfCode).toBe('11010101')
+    expect(b.components[0]!.classificationSource).toBe('MANUAL_WIZARD')
+    expect(b.components[0]!.classificationStrategy).toBeNull()
+    expect(b.components[0]!.classificationModelVersion).toBeNull()
+    // row-B untouched
+    expect(b.components[1]!.kfCode).toBe('22020202')
+    expect(b.components[1]!.classificationSource).toBe('MANUAL')
+    // state clean
+    expect(b.state.kfWizardOpen).toBe(false)
+    expect(b.state.kfWizardTargetTempId).toBeNull()
+  })
+
+  // ─── Test C: row deletion during open drops the payload ──────────────────
+  it('row deletion while wizard is open: onKfWizardResolved silently drops payload', () => {
+    const b = makeBrowseStub()
+    b.openKfWizard(b.components[0]!) // target row-A
+    // User deletes row A while dialog is open
+    b.components.splice(0, 1)
+    // Wizard finishes — payload arrives, target gone
+    expect(() => b.onKfWizardResolved({ kfCode: '11010101', materialClassification: 'Paper', feeRate: 20 })).not.toThrow()
+    // The surviving row is untouched
+    expect(b.components[0]!.kfCode).toBe('22020202')
+    expect(b.components[0]!.classificationSource).toBe('MANUAL')
+  })
+
+  // ─── Bonus: multiple opens each target correct row ───────────────────────
+  it('opening Browse on row A then row B writes the second resolve to row B only', () => {
+    const b = makeBrowseStub()
+    b.openKfWizard(b.components[0]!)
+    b.onKfWizardVisibleUpdate(false)
+    b.openKfWizard(b.components[1]!)
+    b.onKfWizardResolved({ kfCode: '33030303', materialClassification: 'Plastic', feeRate: 50 })
+    expect(b.components[0]!.kfCode).toBeNull()
+    expect(b.components[1]!.kfCode).toBe('33030303')
+    expect(b.components[1]!.classificationSource).toBe('MANUAL_WIZARD')
+  })
+})

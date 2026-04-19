@@ -49,7 +49,7 @@
 # See: _bmad-output/planning-artifacts/sprint-change-proposal-2026-03-12.md
 
 generated: Mon Mar 23 2026
-last_updated: Sat Apr 18 2026 — Story 10.1 Round 3 code review complete; all 11 R3 patches resolved; 899 backend + 779 frontend + 5 E2E all green; status → done.
+last_updated: Sun Apr 19 2026 — Story 10.2 R1 patch resolved: added MANUAL_WIZARD i18n audit source label (en+hu); status → review.
 project: risk_guard
 project_key: RG
 tracking_system: file-system
@@ -150,6 +150,7 @@ development_status:
 
   epic-10: in-progress  # STARTED (2026-04-17) — Invoice-driven Product-Centric EPR Filing. 9 stories planned (10.1–10.9); formal scope in epics.md (commit 4fb6af6). Task 0 (retro T2 audit architecture) landed pre-10.1 in commit f13d76c: centralized AuditService facade + ArchUnit invariants + ADR-0003. Sprint-planning for remaining 10.2–10.9 entries deferred; stories are added to this file as they are created via bmad-create-story.
   10-1-registry-schema-menu-restructure-and-tx-pool-refactor: done  # Story file 2026-04-17; dev 2026-04-17 → 2026-04-18; R1+R2 code review: 8 patches resolved; R3 independent review (Acceptance Auditor + Blind Hunter + Edge Case Hunter) 2026-04-18: 11 new patches resolved (R3-P1 real baseline tx, R3-P2 byte-level XML regression, R3-P3 i18n stillReferenced key, R3-P4 drawer spec symmetric, R3-P5 migration IF NOT EXISTS, R3-P6 template name cache, R3-P7 EprExceptionHandler log, R3-P8 ArchUnit classifier forbidden, R3-P9 breadcrumb non-clickable parent, R3-P10 items_per_parent CHECK > 0, R3-P11 onBeforeUnmount clears timer) + E2E nav-count fix. 899 backend + 779 frontend + 5 Playwright E2E all green; ArchUnit + tsc + lint + i18n clean. Status → done 2026-04-18.
+  10-2-kf-wizard-browse-button-on-registry: review  # Story file 2026-04-19; dev 2026-04-19 — all 8 tasks done, all 27 ACs satisfied. Backend: AuditSource.MANUAL_WIZARD + V20260419_001 migration + undo + 2 RegistryServiceTest unit tests + Testcontainers CHECK-constraint test. Frontend: store resolve-only extensions, WizardStepper Step 4 branching, new KfCodeWizardDialog + spec, Registry Browse button wire-up, 4 new i18n keys. 903 backend + 796 frontend all green; tsc + lint + lint:i18n clean. adds Browse button to Registry KF column opening EprWizardStepper in a resolve-only dialog; new AuditSource.MANUAL_WIZARD + migration V20260419_001; store extensions (startResolveOnly, resolveAndClose, isResolveOnlyMode, lastResolvedKfCode); new KfCodeWizardDialog + spec; WizardStepper Step 4 branches on isResolveOnlyMode (no /wizard/confirm call); 27 ACs, 8 tasks; retro T1 AC-to-task walkthrough as Task 1 gate.
 
 # CANCELLED STORIES (2026-03-12):
 # ================================

@@ -268,27 +268,47 @@ function formatKfCode(code: string): string {
 
               <!-- Action buttons (hidden when link failed — retry/close buttons replace them) -->
               <div v-if="!wizardStore.linkFailed" class="flex flex-col sm:flex-row justify-center gap-3">
-                <Button
-                  :label="t('epr.wizard.cancel')"
-                  severity="secondary"
-                  outlined
-                  data-testid="wizard-cancel-button"
-                  @click="wizardStore.cancelWizard()"
-                />
-                <Button
-                  :label="t('epr.wizard.override.button')"
-                  severity="secondary"
-                  outlined
-                  data-testid="wizard-override-button"
-                  @click="$emit('openOverride')"
-                />
-                <Button
-                  :label="t('epr.wizard.confirmAndLink')"
-                  :loading="wizardStore.isLoading"
-                  class="!bg-[#1e3a5f] !border-[#1e3a5f]"
-                  data-testid="wizard-confirm-button"
-                  @click="wizardStore.confirmAndLink()"
-                />
+                <!-- Template-linking mode (default) — Story 4.x flow -->
+                <template v-if="!wizardStore.isResolveOnlyMode">
+                  <Button
+                    :label="t('epr.wizard.cancel')"
+                    severity="secondary"
+                    outlined
+                    data-testid="wizard-cancel-button"
+                    @click="wizardStore.cancelWizard()"
+                  />
+                  <Button
+                    :label="t('epr.wizard.override.button')"
+                    severity="secondary"
+                    outlined
+                    data-testid="wizard-override-button"
+                    @click="$emit('openOverride')"
+                  />
+                  <Button
+                    :label="t('epr.wizard.confirmAndLink')"
+                    :loading="wizardStore.isLoading"
+                    class="!bg-[#1e3a5f] !border-[#1e3a5f]"
+                    data-testid="wizard-confirm-button"
+                    @click="wizardStore.confirmAndLink()"
+                  />
+                </template>
+                <!-- Resolve-only mode (Story 10.2 Registry Browse) — no template link, no override -->
+                <template v-else>
+                  <Button
+                    :label="t('epr.wizard.cancel')"
+                    severity="secondary"
+                    outlined
+                    data-testid="wizard-cancel-button"
+                    @click="wizardStore.cancelWizard()"
+                  />
+                  <Button
+                    :label="t('registry.browse.useThisCode')"
+                    :loading="wizardStore.isLoading"
+                    class="!bg-[#1e3a5f] !border-[#1e3a5f]"
+                    data-testid="wizard-use-this-code-button"
+                    @click="wizardStore.resolveAndClose()"
+                  />
+                </template>
               </div>
             </div>
           </div>

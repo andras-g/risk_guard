@@ -145,9 +145,12 @@ public class RegistryService {
                     diffComponentAndAudit(productId, tenantId, actingUserId, compCmd.id(), oldComp, compCmd);
                     registryRepository.updateComponent(compCmd.id(), tenantId, compCmd);
                 } else {
-                    // New component
+                    // New component — honour classificationSource on the KF-code field so
+                    // MANUAL_WIZARD / AI_SUGGESTED_* flows don't flatten to MANUAL on first
+                    // insert (matches the update-path behaviour in diffComponentAndAudit).
                     UUID compId = registryRepository.insertComponent(productId, tenantId, compCmd);
-                    emitComponentCreateAudit(productId, tenantId, actingUserId, compId, compCmd);
+                    AuditSource createSource = resolveClassificationSource(compCmd.classificationSource());
+                    emitComponentCreateAudit(productId, tenantId, actingUserId, compId, compCmd, createSource);
                 }
             }
         }
@@ -237,6 +240,22 @@ public class RegistryService {
     private void emitComponentCreateAudit(UUID productId, UUID tenantId, UUID userId,
                                            UUID compId, ComponentUpsertCommand cmd) {
         emitComponentCreateAudit(productId, tenantId, userId, compId, cmd, AuditSource.MANUAL);
+    }
+
+    /**
+     * Parses {@code ComponentUpsertCommand.classificationSource()} to an {@link AuditSource},
+     * silently falling back to {@code MANUAL} on null or unknown values — mirrors the
+     * pattern in {@link #diffComponentAndAudit(UUID, UUID, UUID, UUID, ProductPackagingComponent, ComponentUpsertCommand)}.
+     * Used by both the update-with-new-component path and (transitively) anywhere else that
+     * needs to turn a String transit value into an enum.
+     */
+    private AuditSource resolveClassificationSource(String raw) {
+        if (raw == null) return AuditSource.MANUAL;
+        try {
+            return AuditSource.valueOf(raw);
+        } catch (IllegalArgumentException ignored) {
+            return AuditSource.MANUAL;
+        }
     }
 
     private void emitComponentCreateAudit(UUID productId, UUID tenantId, UUID userId,

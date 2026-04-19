@@ -49,6 +49,26 @@ interface EprWizardState {
   overrideClassification: string | null
   allKfCodes: KfCodeEntry[] | null
   isOverrideActive: boolean
+  // ─── Story 10.2: resolve-only mode (Registry "Browse") ────────────────
+  /**
+   * Story 10.2: when true, the wizard runs in resolve-only mode — Step 4's
+   * footer shows [Cancel][Use this code] instead of [Cancel][Override][Confirm and Link],
+   * and `resolveAndClose()` writes the result to `lastResolvedKfCode` WITHOUT
+   * POSTing to `/wizard/confirm`. The caller (Registry "Browse" dialog) consumes
+   * `lastResolvedKfCode` and then calls `cancelWizard()`.
+   */
+  isResolveOnlyMode: boolean
+  /**
+   * Story 10.2: set by `resolveAndClose()` immediately before `_resetWizardState()`
+   * clears the working state. The dialog's watcher reads this synchronously on the
+   * same tick — exactly mirroring the `lastConfirmSuccess` tick-ordering contract
+   * documented above. Cleared by `$reset()` after the caller has consumed the payload.
+   */
+  lastResolvedKfCode: {
+    kfCode: string
+    materialClassification: string
+    feeRate: number
+  } | null
 }
 
 /**
@@ -77,6 +97,8 @@ export const useEprWizardStore = defineStore('eprWizard', {
     overrideClassification: null,
     allKfCodes: null,
     isOverrideActive: false,
+    isResolveOnlyMode: false,
+    lastResolvedKfCode: null,
   }),
 
   getters: {
@@ -229,6 +251,37 @@ export const useEprWizardStore = defineStore('eprWizard', {
       this.isLoading = true
       this.error = null
       this.targetTemplateId = templateId ?? null
+      try {
+        const config = useRuntimeConfig()
+        const data = await $fetch<WizardStartResponse>('/api/v1/epr/wizard/start', {
+          baseURL: config.public.apiBase as string,
+          credentials: 'include',
+        })
+        this.configVersion = data.configVersion
+        this.availableOptions = data.options
+        this.activeStep = '1'
+        this.traversalPath = []
+        this.resolvedResult = null
+      }
+      catch (error: unknown) {
+        this.error = error instanceof Error ? error.message : String(error)
+        throw error
+      }
+      finally {
+        this.isLoading = false
+      }
+    },
+
+    /**
+     * Story 10.2: begin a wizard in resolve-only mode. Skips template linking —
+     * caller consumes `lastResolvedKfCode` + calls `cancelWizard()` when done.
+     * The wizard will NOT call `/confirm` when finished; see `resolveAndClose()`.
+     */
+    async startResolveOnly() {
+      this.isLoading = true
+      this.error = null
+      this.targetTemplateId = null
+      this.isResolveOnlyMode = true
       try {
         const config = useRuntimeConfig()
         const data = await $fetch<WizardStartResponse>('/api/v1/epr/wizard/start', {
@@ -441,8 +494,31 @@ export const useEprWizardStore = defineStore('eprWizard', {
     },
 
     /**
-     * Resets wizard state fields without clearing lastConfirmSuccess or lastCloseReason,
-     * which are read by the page's isActive watcher before being cleared.
+     * Story 10.2: write the resolved KF-code trio to `lastResolvedKfCode` and reset
+     * the wizard working state. Does NOT POST to `/api/v1/epr/wizard/confirm` and
+     * does NOT refresh material lists — this is a resolve-only path. The dialog's
+     * watcher reads `lastResolvedKfCode` on the next tick (same contract as
+     * `lastConfirmSuccess`).
+     */
+    resolveAndClose() {
+      if (!this.isResolveOnlyMode || !this.resolvedResult) return
+      const kfCode = this.isOverrideActive && this.overrideKfCode
+        ? this.overrideKfCode
+        : this.resolvedResult.kfCode
+      const classification = this.isOverrideActive && this.overrideClassification
+        ? this.overrideClassification
+        : this.resolvedResult.materialClassification
+      const feeRate = this.isOverrideActive && this.overrideFeeRate != null
+        ? this.overrideFeeRate
+        : this.resolvedResult.feeRate
+      this.lastResolvedKfCode = { kfCode, materialClassification: classification, feeRate }
+      this._resetWizardState()
+    },
+
+    /**
+     * Resets wizard state fields without clearing lastConfirmSuccess, lastCloseReason, or
+     * lastResolvedKfCode, which are read by the page's / dialog's isActive watcher before
+     * being cleared by $reset() (triggered via cancelWizard()).
      */
     _resetWizardState() {
       this.activeStep = null
@@ -460,6 +536,7 @@ export const useEprWizardStore = defineStore('eprWizard', {
       this.isOverrideActive = false
       this.linkFailed = false
       this.lastCalculationId = null
+      this.isResolveOnlyMode = false
     },
 
     async fetchAllKfCodes() {

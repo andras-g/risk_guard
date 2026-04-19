@@ -16,6 +16,7 @@
         "AI_SUGGESTED_CONFIRMED": "AI Confirmed",
         "AI_SUGGESTED_EDITED": "AI Edited",
         "MANUAL": "Manual",
+        "MANUAL_WIZARD": "Wizard Browse",
         "NAV_BOOTSTRAP": "NAV Bootstrap",
         "VTSZ_FALLBACK": "VTSZ Fallback"
       },
@@ -69,6 +70,12 @@
       "tableAriaLabel": "Bootstrap candidates triage table",
       "title": "Bootstrap from NAV invoices",
       "triggerSuccess": "Import complete: {created} new candidates, {skipped} skipped."
+    },
+    "browse": {
+      "button": "Browse",
+      "title": "Browse KF code catalog",
+      "tooltip": "Browse KF code from catalog",
+      "useThisCode": "Use this code"
     },
     "classify": {
       "accept": "Accept",
