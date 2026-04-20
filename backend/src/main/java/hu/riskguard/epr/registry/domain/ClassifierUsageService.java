@@ -42,6 +42,21 @@ public class ClassifierUsageService {
     }
 
     /**
+     * Returns the tenant's classifier call count for the current Europe/Budapest calendar month
+     * (0 when no row has been written yet). Story 10.3 batch endpoint reads this for the cap pre-check
+     * and for the post-batch {@code ClassifierUsageInfo} response.
+     */
+    @Transactional(readOnly = true)
+    public int getCurrentMonthCallCount(UUID tenantId) {
+        return repository.getCallCountForMonth(tenantId, currentYearMonth());
+    }
+
+    /** Configured monthly cap (calls/tenant/month). Used by the batch controller for pre-checks. */
+    public int getMonthlyCap() {
+        return monthlyCap;
+    }
+
+    /**
      * Atomically increments the call count and accumulates token counts for the current month.
      */
     @Transactional

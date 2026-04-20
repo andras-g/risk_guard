@@ -328,6 +328,25 @@
 - D-D3: Pre-commit i18n hook requires manual install (`ln -s ../../scripts/pre-commit.sh .git/hooks/pre-commit`). Add a `postinstall` or `prepare` script in the root `package.json` to auto-install the hook, or adopt Husky in a future tooling story.
 - D-D4: `AppBreadcrumb.spec.ts` has a live test case for the `/epr` breadcrumb path which no longer has a UI entry point. Remove or update in a future cleanup pass; replace with a test for `/epr/filing` breadcrumb rendering.
 
+## Deferred from: code review of 10-3-ai-batch-classifier-full-packaging-stack-endpoint (2026-04-20)
+
+- D1: TOCTOU cap race — two concurrent batches can both pass the pre-check when remaining ≥ max(N1, N2) but N1+N2 > remaining. AC #9 explicitly accepts best-effort; bounded by per-tenant concurrency gate (max 3) + circuit breaker.
+- D2: `BatchPackagingConcurrencyGate` Semaphore map grows indefinitely (one entry per tenant UUID, never evicted). Documented in Javadoc. Acceptable for bounded tenant count.
+- D3: `TenantContext.setCurrentTenant/clear` in virtual threads relies on ThreadLocal compatibility wrapper — correct for current implementation, follows `CompanyDataAggregator` pattern.
+- D4: `scope.join()` InterruptedException + `StructuredTaskScope.close()` interaction — with interrupt status set, close() cancels tasks and re-throws; low probability in practice; Java 25 STS contract handles cleanup.
+- D5: Double DB roundtrip `usedBefore` + `usedAfter` in controller — post-batch snapshot is best-effort; concurrent batches from same tenant may cause slight inaccuracy. By design.
+- D6: DST edge case in `secondsUntilNextBudapestMonth()` — Budapest CET/CEST never has midnight DST gap; `toLocalDate().atStartOfDay(BUDAPEST)` would be strictly more correct.
+- D7: `isCapExceeded` refactored to `getCallCountForMonth() >= cap` changes `cap=0` semantics (old: false when row absent; new: `0 >= 0 = true`). Only affects unrealistic `monthly-cap: 0` config.
+- D8: AC #16 taxonomy excerpt not appended to `packaging-stack-v1.txt` — prompt is a scaffold; taxonomy append deferred to Story 10.5+ when prompt is routed through VertexAiGeminiClassifier.
+- D9: AC #13 load-test timing assertion — concurrency test verifies in-flight count ≤ limit (correct) but does not assert wall-clock duration between serial and unbounded. Timing assertions are flaky in CI.
+- D10: Post-batch `usedAfter` may reflect other concurrent tenants' increments — informational only; best-effort.
+- D11: `BatchPackagingResult.from()` all-layers-dropped counter shows UNRESOLVED even when Gemini returned content (vs "Gemini returned nothing"). Log gap addressed by R1-P7; counter attribution improvement deferred.
+- D12: `BatchPackagingConcurrencyGate.release()` has no upper-bound guard on Semaphore permits — R2-P5 closed the auto-create-on-release gap; the remaining `Semaphore.release()`-above-max-permits concern survives as a structural follow-up for future callers.
+- D13 (R2): No overall deadline on `scope.join()` in `BatchPackagingClassifierService.classify(...)` — a batch of 100 pairs can block a Tomcat worker indefinitely if Vertex degrades past circuit-breaker timeouts. Requires an architectural decision (adopt `scope.joinUntil(...)` or rely on upstream request timeout); not in 10.3 scope.
+- D14 (R2): Golden fixture `batch-packaging-v1.json` has 10 pairs covering the required packaging families, but only 3 descriptions verbatim match `DemoInvoiceFixtures.java` line items; the other 7 are synthesised. Categories covered; text fidelity deferred.
+- D15 (R2): `request_cappedExceeded_retrySeconds_present_and_bounded` asserts `retrySeconds > 0 && retrySeconds <= 32*24*3600` but does not compute the exact delta to the next Europe/Budapest month boundary. Exact match is brittle across boundary days.
+- D16 (R2): Counter increment in `BatchPackagingClassifierService.classify` can be missed if a forked task is interrupted between `results.set(idx, outcome)` and `incrementStrategyCounter(...)` — observability drift only; at most one tick per interrupted pair. Attribution improvement lives alongside D11 follow-up.
+
 ## Deferred from: code review of 10-2-kf-wizard-browse-button-on-registry (2026-04-19)
 
 - D1: Double `close()` on PrimeVue Dialog dismiss (`@hide` + `@update:visible` both fire) — spec-prescribed; `cancelWizard()`/`$reset()` are idempotent. [KfCodeWizardDialog.vue:73-74]

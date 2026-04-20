@@ -161,6 +161,9 @@ risk-guard:
    classifier:
       confidence-threshold: MEDIUM
       monthly-cap: 1000
+      batch:
+         concurrency: 10          # Story 10.3: max concurrent Gemini calls per batch request
+         per-tenant-concurrent: 3 # Story 10.3: max simultaneous batch requests per tenant (BatchPackagingConcurrencyGate)
    epr:
       # ADR-0002 pluggable EprReportTarget strategy. Default: okirkapu-xml. Future: eu-registry
       report:

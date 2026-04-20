@@ -25,15 +25,23 @@ public class ClassifierUsageRepository extends BaseRepository {
     }
 
     /**
-     * Returns true when the tenant has reached or exceeded the monthly cap.
+     * Returns the current call count for the tenant + year-month, or {@code 0}
+     * if no row exists for that month yet (Story 10.3).
      */
-    public boolean isCapExceeded(UUID tenantId, String yearMonth, int cap) {
+    public int getCallCountForMonth(UUID tenantId, String yearMonth) {
         Integer count = dsl.select(AI_CLASSIFIER_USAGE.CALL_COUNT)
                 .from(AI_CLASSIFIER_USAGE)
                 .where(AI_CLASSIFIER_USAGE.TENANT_ID.eq(tenantId))
                 .and(AI_CLASSIFIER_USAGE.YEAR_MONTH.eq(yearMonth))
                 .fetchOne(AI_CLASSIFIER_USAGE.CALL_COUNT);
-        return count != null && count >= cap;
+        return count == null ? 0 : count;
+    }
+
+    /**
+     * Returns true when the tenant has reached or exceeded the monthly cap.
+     */
+    public boolean isCapExceeded(UUID tenantId, String yearMonth, int cap) {
+        return getCallCountForMonth(tenantId, yearMonth) >= cap;
     }
 
     /**

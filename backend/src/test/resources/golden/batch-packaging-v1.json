@@ -1,0 +1,65 @@
+[
+  {
+    "input": { "vtsz": "39233000", "description": "PET palack 0,5L" },
+    "mockLayers": [
+      { "layer": "primary",   "kfCode": "11010101", "weightEstimateKg": 0.025, "unitsPerProduct": 1, "score": 0.92, "description": "PET (palack)" },
+      { "layer": "secondary", "kfCode": "31010102", "weightEstimateKg": 0.050, "unitsPerProduct": 6, "score": 0.65, "description": "Hullámkarton tálca" }
+    ]
+  },
+  {
+    "input": { "vtsz": "48191000", "description": "Kartondoboz 40x30x20" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "31010101", "weightEstimateKg": 0.150, "unitsPerProduct": 1, "score": 0.90, "description": "Hullámkarton doboz" }
+    ]
+  },
+  {
+    "input": { "vtsz": "76129020", "description": "Alumínium üdítős doboz 330ml" },
+    "mockLayers": [
+      { "layer": "primary",   "kfCode": "11060101", "weightEstimateKg": 0.015, "unitsPerProduct": 1,  "score": 0.91, "description": "Alumínium ital doboz" },
+      { "layer": "secondary", "kfCode": "31010102", "weightEstimateKg": 0.040, "unitsPerProduct": 6,  "score": 0.70, "description": "Hullámkarton tálca" },
+      { "layer": "tertiary",  "kfCode": "11020101", "weightEstimateKg": 0.300, "unitsPerProduct": 480,"score": 0.55, "description": "PE sztreccsfólia" }
+    ]
+  },
+  {
+    "input": { "vtsz": "70109000", "description": "Üvegpalack borhoz 750ml" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "11050101", "weightEstimateKg": 0.450, "unitsPerProduct": 1, "score": 0.93, "description": "Üvegpalack" }
+    ]
+  },
+  {
+    "input": { "vtsz": "39239090", "description": "EPS hablap tálca élelmiszerhez" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "11010301", "weightEstimateKg": 0.020, "unitsPerProduct": 1, "score": 0.78, "description": "Habosított PS (EPS)" }
+    ]
+  },
+  {
+    "input": { "vtsz": "73101000", "description": "Acél konzerv doboz 425g paradicsom" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "11060201", "weightEstimateKg": 0.080, "unitsPerProduct": 1, "score": 0.90, "description": "Acél konzervdoboz" }
+    ]
+  },
+  {
+    "input": { "vtsz": "48194000", "description": "Papírzacskó 1kg liszt" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "31020101", "weightEstimateKg": 0.012, "unitsPerProduct": 1, "score": 0.85, "description": "Papírzacskó" }
+    ]
+  },
+  {
+    "input": { "vtsz": "39201000", "description": "PE fólia tekercs élelmiszerhez" },
+    "mockLayers": [
+      { "layer": "primary", "kfCode": "11020201", "weightEstimateKg": 0.005, "unitsPerProduct": 1, "score": 0.80, "description": "PE fólia (vékony)" }
+    ]
+  },
+  {
+    "input": { "vtsz": "44152000", "description": "Fa raklap EUR 1200x800" },
+    "mockLayers": [
+      { "layer": "tertiary", "kfCode": "31030101", "weightEstimateKg": 25.000, "unitsPerProduct": 1, "score": 0.95, "description": "Fa raklap" }
+    ]
+  },
+  {
+    "input": { "vtsz": "39232100", "description": "Zsugorfólia raklaprögzítéshez" },
+    "mockLayers": [
+      { "layer": "tertiary", "kfCode": "11020101", "weightEstimateKg": 0.300, "unitsPerProduct": 1, "score": 0.88, "description": "PE sztreccsfólia (raklap)" }
+    ]
+  }
+]
