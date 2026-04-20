@@ -70,7 +70,7 @@ export default [
       'app/pages/registry/**',
       // Generated API types / central useApi layer are infrastructure, not direct callers.
       'app/composables/api/**',
-      'app/types/**',
+      'types/**',
       // Story 10.1 transitional exception: the legacy Anyagkönyvtár-backed filing flow
       // (stores/epr.ts + the surviving pages/epr/filing.vue) still consumes template data
       // directly. Stories 10.6/10.7 rebuild this path on the product-first aggregator; the
