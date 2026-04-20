@@ -24,52 +24,35 @@
       "title": "Audit Log"
     },
     "bootstrap": {
-      "actions": {
-        "approve": "Approve",
-        "markManual": "Mark for manual entry",
-        "reject": "Reject (not own packaging)"
+      "cancelButton": "Cancel import",
+      "completion": {
+        "cancelled": "Import cancelled.",
+        "close": "Close",
+        "failed": "Error: {message}",
+        "noInvoicesFound": "No NAV invoices found in the selected period — nothing to import.",
+        "openRegistry": "Open Registry",
+        "partial": "Done (partial). {created} products created, {uncertain} uncertain, {incomplete} incomplete.",
+        "success": "Done. {created} products created, {uncertain} uncertain, {incomplete} incomplete."
       },
-      "approveDialog": {
-        "title": "Approve candidate"
-      },
-      "approveError": "Failed to approve candidate. Please try again.",
-      "approveSuccess": "Candidate approved and product created.",
-      "columns": {
-        "actions": "Actions",
-        "frequency": "Frequency",
-        "productName": "Product name",
-        "quantity": "Quantity",
-        "status": "Status",
-        "suggestedKfCode": "Suggested KF code",
-        "vtsz": "VTSZ"
-      },
-      "dateFrom": "From",
-      "dateTo": "To",
-      "empty": "No candidates yet. Click \"Fetch invoices\" to import from NAV.",
+      "confirmOverwriteButton": "Confirm overwrite",
+      "dialogTitle": "Bootstrap from invoices",
       "emptyCta": "Bootstrap from NAV invoices",
       "errors": {
-        "fetchFailed": "Failed to load candidates.",
-        "triggerFailed": "Failed to fetch invoices from NAV."
+        "alreadyRunning": "An import job is already running.",
+        "capExceeded": "Classifier capacity exceeded. Please try again later.",
+        "navCredentialsMissing": "NAV credentials are missing.",
+        "producerProfileIncomplete": "Producer profile is incomplete.",
+        "taxNumberMismatch": "Tax number does not match the tenant's registered tax number."
       },
-      "fetchInvoices": "Fetch invoices",
-      "filter": {
-        "all": "All",
-        "rejected": "Rejected"
+      "overwriteWarning": "{count} existing products may be overwritten by invoice matches. Are you sure?",
+      "periodFromLabel": "From",
+      "periodToLabel": "To",
+      "progress": {
+        "counterLabel": "{created} created · {uncertain} uncertain · {incomplete} incomplete",
+        "pending": "Job queued...",
+        "running": "Importing..."
       },
-      "keyboardHint": "Keyboard shortcuts when a row is selected: A = Approve, R = Reject, M = Mark manual",
-      "markManualSuccess": "Candidate marked for manual entry.",
-      "noSuggestion": "No suggestion",
-      "reFetch": "Re-fetch invoices",
-      "rejectSuccess": "Candidate rejected.",
-      "status": {
-        "APPROVED": "Approved",
-        "NEEDS_MANUAL_ENTRY": "Needs manual entry",
-        "PENDING": "Pending",
-        "REJECTED_NOT_OWN_PACKAGING": "Rejected"
-      },
-      "tableAriaLabel": "Bootstrap candidates triage table",
-      "title": "Bootstrap from NAV invoices",
-      "triggerSuccess": "Import complete: {created} new candidates, {skipped} skipped."
+      "startButton": "Start"
     },
     "browse": {
       "button": "Browse",
@@ -101,6 +84,10 @@
       "cta": "Create your first product",
       "description": "Add products to track packaging components and KF codes for EPR filing.",
       "title": "No products yet"
+    },
+    "filter": {
+      "onlyIncomplete": "Only incomplete",
+      "onlyUncertain": "Only uncertain"
     },
     "form": {
       "addComponent": "Add component",
@@ -166,6 +153,10 @@
       "searchPlaceholder": "Search products...",
       "statusAll": "All statuses",
       "statusFilter": "Status"
+    },
+    "rowBadge": {
+      "missingPackaging": "Incomplete",
+      "vtszFallback": "Uncertain"
     },
     "status": {
       "ACTIVE": "Active",

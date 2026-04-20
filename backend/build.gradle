@@ -221,6 +221,11 @@ tasks.named('test') {
 		if (System.getProperty('excludedGroups')) {
 			excludeTags System.getProperty('excludedGroups')
 		}
+		if (project.hasProperty('includeLoadTests')) {
+			includeTags 'load'
+		} else {
+			excludeTags 'load'
+		}
 	}
 }
 

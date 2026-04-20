@@ -15,6 +15,7 @@ import type { ProductSummaryResponse, RegistryPageResponse } from '~/composables
 const { t } = useI18n()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const router = useRouter()
+const route = useRoute()
 const registryStore = useRegistryStore()
 const { listProducts, archiveProduct } = useRegistry()
 const { mapErrorType } = useApiError()
@@ -22,9 +23,14 @@ const toast = useToast()
 const healthStore = useHealthStore()
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
+// Hydrate from query params so InvoiceBootstrapDialog's onOpenRegistry navigation
+// (`/registry?reviewState=MISSING_PACKAGING` or `?classifierSource=VTSZ_FALLBACK`)
+// actually applies the filter on landing.
 const searchQ = ref<string>('')
 const statusFilter = ref<'ACTIVE' | 'ARCHIVED' | 'DRAFT' | null>(null)
 const kfCodeFilter = ref<string>('')
+const onlyIncomplete = ref(route.query.reviewState === 'MISSING_PACKAGING')
+const onlyUncertain = ref(route.query.classifierSource === 'VTSZ_FALLBACK')
 
 const statusOptions = computed(() => [
   { label: t('registry.list.statusAll'), value: null },
@@ -43,6 +49,9 @@ const products = ref<ProductSummaryResponse[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
+// ─── Bootstrap dialog ─────────────────────────────────────────────────────────
+const showBootstrapDialog = ref(false)
+
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 async function fetchProducts() {
   isLoading.value = true
@@ -52,6 +61,8 @@ async function fetchProducts() {
       q: searchQ.value || undefined,
       status: statusFilter.value || undefined,
       kfCode: kfCodeFilter.value || undefined,
+      reviewState: onlyIncomplete.value ? 'MISSING_PACKAGING' : undefined,
+      classifierSource: onlyUncertain.value ? 'VTSZ_FALLBACK' : undefined,
       page: currentPage.value,
       size: pageSize.value,
     })
@@ -80,6 +91,8 @@ function onFilterChange() {
 watch(searchQ, onFilterChange)
 watch(statusFilter, onFilterChange)
 watch(kfCodeFilter, onFilterChange)
+watch(onlyIncomplete, onFilterChange)
+watch(onlyUncertain, onFilterChange)
 
 function onPage(event: { page: number; rows: number }) {
   currentPage.value = event.page
@@ -110,7 +123,7 @@ async function onArchive(product: ProductSummaryResponse) {
 
 onMounted(() => fetchProducts())
 
-const isEmpty = computed(() => !isLoading.value && !error.value && products.value.length === 0 && !searchQ.value && !kfCodeFilter.value && !statusFilter.value)
+const isEmpty = computed(() => !isLoading.value && !error.value && products.value.length === 0 && !searchQ.value && !kfCodeFilter.value && !statusFilter.value && !onlyIncomplete.value && !onlyUncertain.value)
 
 const showBootstrapCta = computed(() => {
   if (!isEmpty.value) return false
@@ -149,7 +162,7 @@ const showBootstrapCta = computed(() => {
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-wrap gap-3">
+    <div class="flex flex-wrap gap-3 items-end">
       <div class="flex flex-col gap-1 flex-1 min-w-48">
         <label for="registry-search" class="text-sm font-medium">{{ t('registry.list.search') }}</label>
         <InputText
@@ -176,6 +189,26 @@ const showBootstrapCta = computed(() => {
           :placeholder="t('registry.list.kfCodePlaceholder')"
         />
       </div>
+
+      <!-- Filter chips (AC #24) -->
+      <div class="flex gap-2 items-center self-end pb-0.5">
+        <Button
+          :label="t('registry.filter.onlyIncomplete')"
+          :severity="onlyIncomplete ? 'warn' : 'secondary'"
+          :outlined="!onlyIncomplete"
+          size="small"
+          data-testid="filter-chip-incomplete"
+          @click="onlyIncomplete = !onlyIncomplete"
+        />
+        <Button
+          :label="t('registry.filter.onlyUncertain')"
+          :severity="onlyUncertain ? 'warn' : 'secondary'"
+          :outlined="!onlyUncertain"
+          size="small"
+          data-testid="filter-chip-uncertain"
+          @click="onlyUncertain = !onlyUncertain"
+        />
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -199,7 +232,7 @@ const showBootstrapCta = computed(() => {
           icon="pi pi-cloud-download"
           severity="secondary"
           data-testid="bootstrap-cta"
-          @click="router.push('/registry/bootstrap')"
+          @click="showBootstrapDialog = true"
         />
       </div>
     </div>
@@ -218,7 +251,28 @@ const showBootstrapCta = computed(() => {
       @page="onPage"
     >
       <Column field="articleNumber" :header="t('registry.list.columns.articleNumber')" />
-      <Column field="name" :header="t('registry.list.columns.name')" />
+      <Column field="name" :header="t('registry.list.columns.name')">
+        <template #body="{ data }">
+          <div class="flex items-center gap-2">
+            {{ data.name }}
+            <Tag
+              v-if="data.reviewState === 'MISSING_PACKAGING'"
+              :value="t('registry.rowBadge.missingPackaging')"
+              severity="warn"
+              class="text-xs"
+              data-testid="badge-missing-packaging"
+            />
+            <Tag
+              v-else-if="data.classifierSource === 'VTSZ_FALLBACK'"
+              severity="secondary"
+              class="text-xs"
+              data-testid="badge-vtsz-fallback"
+            >
+              {{ t('registry.rowBadge.vtszFallback') }}
+            </Tag>
+          </div>
+        </template>
+      </Column>
       <Column field="vtsz" :header="t('registry.list.columns.vtsz')" />
       <Column :header="t('registry.list.columns.componentCount')">
         <template #body="{ data }">
@@ -258,5 +312,11 @@ const showBootstrapCta = computed(() => {
         </template>
       </Column>
     </DataTable>
+
+    <!-- Invoice Bootstrap Dialog (AC #23, #26) -->
+    <RegistryInvoiceBootstrapDialog
+      v-model:visible="showBootstrapDialog"
+      @completed="fetchProducts"
+    />
   </div>
 </template>

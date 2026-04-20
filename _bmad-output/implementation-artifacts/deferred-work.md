@@ -8,6 +8,19 @@
 - D4: weightPerUnitKg nullable in OkirkapuXmlExporter — pre-existing NPE risk for components with null weight.
 - D5: useClassifier.spec.ts never existed — pre-existing test coverage gap for classifier composable.
 - D6: No component-level tests for multi-layer popover UX — popover logic tested via function-level tests only.
+
+## Deferred from: code review of 10-4-tenant-onboarding-feltoltes-szamlak-alapjan (2026-04-20)
+
+- D1: No max period window validation for bootstrap trigger — spec doesn't require; potential future enhancement to cap NAV fetch range and classifier cost.
+- D2: `taskExecutor` rejection policy (CallerRunsPolicy) not verified — pre-existing AsyncConfig concern; if queue is full, HTTP thread could block.
+- D3: `writeCounters` NPE if a new `AuditSource` enum value is added without wiring it in AuditService — pre-existing EnumMap initialization gap.
+- D4: `@Lazy @Autowired self` self-proxy anti-pattern — works reliably in production but fragile in test setup; consider `ObjectProvider<>` refactor in a future Epic 10 cleanup.
+- D5: AC#23 overwrite check calls `listProducts({size:1})` not `GET /api/v1/registry/summary` — Story 10.7 doesn't exist yet; update the dialog when 10.7 lands.
+- D6: NBSP and Unicode whitespace not stripped by Java `.trim()` in dedup key — NAV invoice descriptions could differ by U+00A0 and produce duplicates; fix with `replaceAll("\\p{Z}", "")` if reports surface.
+- D7: AC#6 `BootstrapJobWorker` named as a separate class in spec but merged into `@Async processJob()` — functionally equivalent; ArchUnit `allowEmptyShould(true)` permits this.
+- D8: `findInflightByTenant` uses `fetchOptional` — silent masking if partial-unique-index is ever dropped and two in-flight rows exist; add log.error if count > 1.
+- D9: Progress bar shows indeterminate spinner when `totalPairs === 0` — minor UX confusion for tenants with no invoices; acceptable for now.
+- D10: Per-pair crash loses in-memory `totalFailed` counter — outer catch-all calls `failJob()`, so job doesn't stay RUNNING; exact partial-failure count is lost on JVM crash only.
 - D7: classify() with empty productName produces false-positive VTSZ_FALLBACK matches — pre-existing.
 
 ## Deferred from: code review of 9-5-registry-ux-polish-and-bug-fixes (2026-04-15)

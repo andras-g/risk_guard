@@ -45,6 +45,8 @@ function buildSummary(overrides: Partial<ProductSummaryResponse> = {}): ProductS
     vtsz: '3923',
     primaryUnit: 'pcs',
     status: 'ACTIVE',
+    reviewState: null,
+    classifierSource: null,
     componentCount: 2,
     updatedAt: '2026-04-14T10:00:00Z',
     ...overrides,
@@ -134,6 +136,28 @@ describe('registry/index.vue — composable and filter logic', () => {
 
     await mockArchiveProduct('prod-001')
     expect(mockArchiveProduct).toHaveBeenCalledWith('prod-001')
+  })
+
+  // ─── Test 7a: onlyIncomplete filter sends reviewState param ─────────────────
+
+  it('listProducts called with reviewState=MISSING_PACKAGING when onlyIncomplete chip active', async () => {
+    mockListProducts.mockResolvedValue(buildPageResponse([], 0))
+
+    await mockListProducts({ reviewState: 'MISSING_PACKAGING', page: 0, size: 50 })
+    expect(mockListProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ reviewState: 'MISSING_PACKAGING' }),
+    )
+  })
+
+  // ─── Test 7b: onlyUncertain filter sends classifierSource param ────────────
+
+  it('listProducts called with classifierSource=VTSZ_FALLBACK when onlyUncertain chip active', async () => {
+    mockListProducts.mockResolvedValue(buildPageResponse([], 0))
+
+    await mockListProducts({ classifierSource: 'VTSZ_FALLBACK', page: 0, size: 50 })
+    expect(mockListProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ classifierSource: 'VTSZ_FALLBACK' }),
+    )
   })
 
   // ─── Test 7: second CTA present when hasNavCredentials and total===0 ─────

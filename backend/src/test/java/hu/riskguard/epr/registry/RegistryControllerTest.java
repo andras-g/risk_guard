@@ -51,7 +51,7 @@ class RegistryControllerTest {
         when(registryService.list(eq(TENANT_ID), any(), eq(0), eq(50))).thenReturn(List.of(summary));
         when(registryService.count(eq(TENANT_ID), any())).thenReturn(1L);
 
-        RegistryPageResponse result = controller.list(null, null, null, null, 0, 50, buildJwt());
+        RegistryPageResponse result = controller.list(null, null, null, null, null, null, 0, 50, buildJwt());
 
         assertThat(result.total()).isEqualTo(1L);
         assertThat(result.items()).hasSize(1);
@@ -65,7 +65,7 @@ class RegistryControllerTest {
         when(registryService.list(eq(TENANT_ID), any(), eq(0), eq(200))).thenReturn(List.of());
         when(registryService.count(eq(TENANT_ID), any())).thenReturn(0L);
 
-        RegistryPageResponse result = controller.list(null, null, null, null, 0, 9999, buildJwt());
+        RegistryPageResponse result = controller.list(null, null, null, null, null, null, 0, 9999, buildJwt());
 
         assertThat(result.size()).isEqualTo(200);
         verify(registryService).list(eq(TENANT_ID), any(), eq(0), eq(200));
@@ -124,7 +124,7 @@ class RegistryControllerTest {
         when(registryService.list(eq(TENANT_ID), any(), eq(0), eq(50))).thenReturn(List.of());
         when(registryService.count(eq(TENANT_ID), any())).thenReturn(0L);
 
-        RegistryPageResponse result = controller.list(null, null, null, null, -5, 50, buildJwt());
+        RegistryPageResponse result = controller.list(null, null, null, null, null, null, -5, 50, buildJwt());
 
         assertThat(result.page()).isEqualTo(0);
         verify(registryService).list(eq(TENANT_ID), any(), eq(0), eq(50));
@@ -137,7 +137,7 @@ class RegistryControllerTest {
         when(registryService.list(eq(TENANT_ID), any(), eq(0), eq(1))).thenReturn(List.of());
         when(registryService.count(eq(TENANT_ID), any())).thenReturn(0L);
 
-        RegistryPageResponse result = controller.list(null, null, null, null, 0, 0, buildJwt());
+        RegistryPageResponse result = controller.list(null, null, null, null, null, null, 0, 0, buildJwt());
 
         assertThat(result.size()).isEqualTo(1);
         verify(registryService).list(eq(TENANT_ID), any(), eq(0), eq(1));
@@ -179,7 +179,7 @@ class RegistryControllerTest {
     }
 
     private ProductSummary buildSummary(UUID id, String name, ProductStatus status) {
-        return new ProductSummary(id, TENANT_ID, null, name, null, "pcs", status, 0,
+        return new ProductSummary(id, TENANT_ID, null, name, null, "pcs", status, null, null, 0,
                 OffsetDateTime.now(), OffsetDateTime.now());
     }
 

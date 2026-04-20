@@ -193,8 +193,8 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.Products",
                                 "hu.riskguard.jooq.tables.ProductPackagingComponents",
                                 "hu.riskguard.jooq.tables.RegistryEntryAuditLog",
-                                // Story 9.2 — bootstrap candidates table
-                                "hu.riskguard.jooq.tables.RegistryBootstrapCandidates",
+                                // Story 10.4 — invoice-driven bootstrap jobs table
+                                "hu.riskguard.jooq.tables.EprBootstrapJobs",
                                 // Story 9.3 — AI classifier usage table + KF codes reference
                                 "hu.riskguard.jooq.tables.AiClassifierUsage",
                                 "hu.riskguard.jooq.tables.KfCodes",

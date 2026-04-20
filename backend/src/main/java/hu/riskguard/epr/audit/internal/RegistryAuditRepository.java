@@ -3,11 +3,14 @@ package hu.riskguard.epr.audit.internal;
 import hu.riskguard.core.repository.BaseRepository;
 import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.audit.RegistryAuditEntry;
+import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import org.jooq.DSLContext;
+import org.jooq.Query;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,6 +60,30 @@ public class RegistryAuditRepository extends BaseRepository {
                 .set(REGISTRY_ENTRY_AUDIT_LOG.STRATEGY, strategy)
                 .set(REGISTRY_ENTRY_AUDIT_LOG.MODEL_VERSION, modelVersion)
                 .execute();
+    }
+
+    /**
+     * Batch-insert audit rows using jOOQ's batch execution (one JDBC round-trip for the
+     * supplied sub-batch). Callers must partition into sub-batches of ≤ 500 events before
+     * calling this method (see {@code AuditService.recordRegistryBootstrapBatch}).
+     */
+    public void insertAuditRowBatch(List<FieldChangeEvent> events) {
+        List<Query> queries = new ArrayList<>(events.size());
+        for (FieldChangeEvent e : events) {
+            queries.add(
+                    dsl.insertInto(REGISTRY_ENTRY_AUDIT_LOG)
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.PRODUCT_ID, e.productId())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.TENANT_ID, e.tenantId())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.FIELD_CHANGED, e.fieldChanged())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.OLD_VALUE, e.oldValue())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.NEW_VALUE, e.newValue())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.CHANGED_BY_USER_ID, e.changedByUserId())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.SOURCE, e.source().name())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.STRATEGY, e.classificationStrategy())
+                            .set(REGISTRY_ENTRY_AUDIT_LOG.MODEL_VERSION, e.modelVersion())
+            );
+        }
+        dsl.batch(queries).execute();
     }
 
     public List<RegistryAuditEntry> listAuditByProduct(UUID productId, UUID tenantId,

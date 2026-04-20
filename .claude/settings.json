@@ -2,5 +2,14 @@
   "enabledPlugins": {
     "jdtls-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew compileTestJava *)",
+      "Bash(./gradlew generateJooq *)",
+      "Bash(./gradlew test *)",
+      "Bash(./gradlew :backend:test *)",
+      "Bash(./gradlew integrationTest *)"
+    ]
   }
 }

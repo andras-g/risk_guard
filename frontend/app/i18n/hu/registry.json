@@ -24,52 +24,35 @@
       "title": "Változásnapló"
     },
     "bootstrap": {
-      "actions": {
-        "approve": "Jóváhagyás",
-        "markManual": "Manuális feltöltés jelölése",
-        "reject": "Elutasítás (nem saját csomagolás)"
+      "cancelButton": "Megszakítás",
+      "completion": {
+        "cancelled": "Megszakítva.",
+        "close": "Bezárás",
+        "failed": "Hiba: {message}",
+        "noInvoicesFound": "Nem található NAV-számla a megadott időszakban — nincs mit importálni.",
+        "openRegistry": "Megnyitás",
+        "partial": "Kész (részleges). {created} termék létrehozva, {uncertain} bizonytalan, {incomplete} hiányos.",
+        "success": "Kész. {created} termék létrehozva, {uncertain} bizonytalan, {incomplete} hiányos."
       },
-      "approveDialog": {
-        "title": "Jelölt jóváhagyása"
-      },
-      "approveError": "A jóváhagyás sikertelen. Kérem, próbálja újra.",
-      "approveSuccess": "A jelölt jóváhagyva, termék létrehozva.",
-      "columns": {
-        "actions": "Műveletek",
-        "frequency": "Gyakoriság",
-        "productName": "Termék neve",
-        "quantity": "Mennyiség",
-        "status": "Státusz",
-        "suggestedKfCode": "Javasolt KF-kód",
-        "vtsz": "VTSZ"
-      },
-      "dateFrom": "Tól",
-      "dateTo": "Ig",
-      "empty": "Még nincsenek jelöltek. Kattintson a 'Számlák lekérdezése' gombra a NAV-ból való importáláshoz.",
+      "confirmOverwriteButton": "Felülírás megerősítése",
+      "dialogTitle": "Feltöltés számlák alapján",
       "emptyCta": "Feltöltés NAV-számlákból",
       "errors": {
-        "fetchFailed": "Nem sikerült betölteni a jelölteket.",
-        "triggerFailed": "Nem sikerült a számlákat lekérdezni a NAV-tól."
+        "alreadyRunning": "Már fut egy import feladat.",
+        "capExceeded": "Osztályozó kapacitás kimerült. Próbálja újra később.",
+        "navCredentialsMissing": "NAV hitelesítő adatok hiányoznak.",
+        "producerProfileIncomplete": "A gyártói profil nem teljes.",
+        "taxNumberMismatch": "Az adószám nem egyezik a bérlőhöz regisztrált adószámmal."
       },
-      "fetchInvoices": "Számlák lekérdezése",
-      "filter": {
-        "all": "Összes",
-        "rejected": "Elutasított"
+      "overwriteWarning": "A {count} meglévő termékből az invoice-találatok felülíródnak. Biztosan folytatod?",
+      "periodFromLabel": "Tól",
+      "periodToLabel": "Ig",
+      "progress": {
+        "counterLabel": "{created} létrehozva · {uncertain} bizonytalan · {incomplete} hiányos",
+        "pending": "Feladat várólistán...",
+        "running": "Import folyamatban..."
       },
-      "keyboardHint": "Billentyűparancsok kijelölt sor esetén: A = Jóváhagyás, R = Elutasítás, M = Manuális",
-      "markManualSuccess": "A jelölt manuális feltöltésre jelölve.",
-      "noSuggestion": "Nincs javaslat",
-      "reFetch": "Újra lekérdezés",
-      "rejectSuccess": "A jelölt elutasítva.",
-      "status": {
-        "APPROVED": "Jóváhagyott",
-        "NEEDS_MANUAL_ENTRY": "Manuális feltöltés szükséges",
-        "PENDING": "Függőben",
-        "REJECTED_NOT_OWN_PACKAGING": "Elutasított"
-      },
-      "tableAriaLabel": "Bootstrap jelöltek feldolgozási táblázata",
-      "title": "Feltöltés NAV-számlákból",
-      "triggerSuccess": "Import kész: {created} új jelölt, {skipped} kihagyva."
+      "startButton": "Indítás"
     },
     "browse": {
       "button": "Keresés",
@@ -101,6 +84,10 @@
       "cta": "Első termék létrehozása",
       "description": "Adja hozzá a termékeket a csomagolási elemek és KF-kódok nyomon követéséhez.",
       "title": "Még nincs termék"
+    },
+    "filter": {
+      "onlyIncomplete": "Csak hiányos",
+      "onlyUncertain": "Csak bizonytalan"
     },
     "form": {
       "addComponent": "Elem hozzáadása",
@@ -166,6 +153,10 @@
       "searchPlaceholder": "Termékek keresése...",
       "statusAll": "Minden státusz",
       "statusFilter": "Státusz"
+    },
+    "rowBadge": {
+      "missingPackaging": "Hiányos",
+      "vtszFallback": "Bizonytalan"
     },
     "status": {
       "ACTIVE": "Aktív",

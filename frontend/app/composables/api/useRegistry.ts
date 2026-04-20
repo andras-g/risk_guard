@@ -37,6 +37,8 @@ export interface ProductSummaryResponse {
   vtsz: string | null
   primaryUnit: string
   status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
+  reviewState: 'MISSING_PACKAGING' | null
+  classifierSource: 'MANUAL' | 'MANUAL_WIZARD' | 'AI_SUGGESTED_CONFIRMED' | 'AI_SUGGESTED_EDITED' | 'VTSZ_FALLBACK' | 'NAV_BOOTSTRAP' | null
   componentCount: number
   updatedAt: string
 }
@@ -94,6 +96,8 @@ export interface RegistryListFilter {
   vtsz?: string | null
   kfCode?: string | null
   status?: 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | null
+  reviewState?: 'MISSING_PACKAGING' | null
+  classifierSource?: 'VTSZ_FALLBACK' | null
   page?: number
   size?: number
 }
@@ -110,6 +114,8 @@ export function useRegistry() {
     if (filter.vtsz) params.vtsz = filter.vtsz
     if (filter.kfCode) params.kfCode = filter.kfCode
     if (filter.status) params.status = filter.status
+    if (filter.reviewState) params.reviewState = filter.reviewState
+    if (filter.classifierSource) params.classifierSource = filter.classifierSource
 
     return apiFetch<RegistryPageResponse>('/api/v1/registry', { params })
   }

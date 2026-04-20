@@ -40,7 +40,8 @@ public class NavHttpOutsideTransactionTest {
 
     private static final String[] SCOPED_PACKAGES = {
             "..epr.registry..",
-            "..epr.domain.."
+            "..epr.domain..",
+            "..epr.registry.bootstrap.."  // Story 10.4 AC #15
     };
 
     private static final String[] FORBIDDEN_HTTP_CLIENT_SIMPLE_NAMES = {
@@ -49,7 +50,10 @@ public class NavHttpOutsideTransactionTest {
             // R3-P8: classifier invokes Vertex AI Gemini over HTTPS (seconds of latency, token
             // cost) and must also stay outside any @Transactional scope per
             // RegistryBootstrapService class-level Javadoc.
-            "KfCodeClassifierService"
+            "KfCodeClassifierService",
+            // Story 10.4 AC #15: BatchPackagingClassifierService also holds VertexAI HTTP
+            // calls and must stay outside any @Transactional scope.
+            "BatchPackagingClassifierService"
     };
 
     @ArchTest

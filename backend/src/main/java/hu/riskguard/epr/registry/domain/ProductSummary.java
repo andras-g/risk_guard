@@ -15,6 +15,8 @@ public record ProductSummary(
         String vtsz,
         String primaryUnit,
         ProductStatus status,
+        ReviewState reviewState,
+        String classifierSourceBadge,
         int componentCount,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

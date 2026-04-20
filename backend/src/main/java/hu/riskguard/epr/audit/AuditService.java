@@ -4,13 +4,15 @@ import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.audit.internal.RegistryAuditRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.List;
 
 /**
  * Single entry point for every audit-row read and write inside the EPR module.
@@ -36,7 +38,9 @@ import java.util.List;
 @Service
 public class AuditService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuditService.class);
     private static final int MAX_PAGE_SIZE = 500;
+    private static final int BATCH_FLUSH_SIZE = 500;
 
     private final RegistryAuditRepository registryAuditRepository;
     private final Map<AuditSource, Counter> writeCounters;
@@ -75,6 +79,32 @@ public class AuditService {
                 event.modelVersion()
         );
         writeCounters.get(event.source()).increment();
+    }
+
+    /**
+     * Bulk-write path for Story 10.4 NAV bootstrap (ADR-0003 §"Batch-write path for Story 10.4").
+     *
+     * <p>Uses jOOQ's batched-connection pattern: events are flushed in sub-batches of
+     * {@value #BATCH_FLUSH_SIZE} rows, producing one JDBC round-trip per sub-batch (NOT one
+     * round-trip per row). Do NOT use {@code DSLContext.batchInsert()} — it holds a
+     * {@code PreparedStatement} open for the entire collection and is significantly slower
+     * at 500+ rows (ADR-0003 §"Batch-write path" note).
+     *
+     * <p><b>Transactional contract:</b> inherits the caller's transaction, same as
+     * {@link #recordRegistryFieldChange}. Each per-pair REQUIRES_NEW transaction calls this
+     * method inside the tx boundary so audit rows commit atomically with the registry write.
+     *
+     * @param events list of events; null or empty → no-op
+     */
+    public void recordRegistryBootstrapBatch(List<FieldChangeEvent> events) {
+        if (events == null || events.isEmpty()) return;
+
+        for (int i = 0; i < events.size(); i += BATCH_FLUSH_SIZE) {
+            List<FieldChangeEvent> subBatch = events.subList(i, Math.min(i + BATCH_FLUSH_SIZE, events.size()));
+            registryAuditRepository.insertAuditRowBatch(subBatch);
+            subBatch.forEach(e -> writeCounters.get(e.source()).increment());
+            log.debug("audit-batch flush: {} rows (offset {})", subBatch.size(), i);
+        }
     }
 
     // ─── Registry-entry audit — reads ────────────────────────────────────────

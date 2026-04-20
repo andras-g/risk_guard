@@ -3,6 +3,7 @@ package hu.riskguard.epr.registry.api;
 import hu.riskguard.core.security.Tier;
 import hu.riskguard.core.security.TierRequired;
 import hu.riskguard.core.util.JwtUtil;
+import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.registry.api.dto.*;
 import hu.riskguard.epr.registry.domain.*;
 import jakarta.validation.Valid;
@@ -38,6 +39,8 @@ public class RegistryController {
             @RequestParam(required = false) String vtsz,
             @RequestParam(required = false) String kfCode,
             @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) ReviewState reviewState,
+            @RequestParam(required = false) AuditSource classifierSource,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal Jwt jwt) {
@@ -45,7 +48,7 @@ public class RegistryController {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         int clampedPage = Math.max(0, page);
         int clampedSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        RegistryListFilter filter = new RegistryListFilter(q, vtsz, kfCode, status);
+        RegistryListFilter filter = new RegistryListFilter(q, vtsz, kfCode, status, reviewState, classifierSource);
 
         var summaries = registryService.list(tenantId, filter, clampedPage, clampedSize);
         long total = registryService.count(tenantId, filter);

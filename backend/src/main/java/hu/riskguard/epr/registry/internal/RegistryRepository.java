@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.repository.BaseRepository;
+import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.registry.domain.*;
 import hu.riskguard.jooq.tables.records.ProductPackagingComponentsRecord;
 import hu.riskguard.jooq.tables.records.ProductsRecord;
@@ -120,6 +121,16 @@ public class RegistryRepository extends BaseRepository {
                 .where(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
                 .asField("component_count");
 
+        var vtszFallbackBadge = DSL.field(
+                DSL.when(DSL.exists(
+                        DSL.selectOne()
+                                .from(PRODUCT_PACKAGING_COMPONENTS)
+                                .where(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                                .and(PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE.eq("VTSZ_FALLBACK"))
+                ), DSL.inline("VTSZ_FALLBACK"))
+                .otherwise(DSL.inline((String) null))
+        ).as("classifier_source_badge");
+
         return dsl.select(
                         PRODUCTS.ID,
                         PRODUCTS.TENANT_ID,
@@ -128,6 +139,8 @@ public class RegistryRepository extends BaseRepository {
                         PRODUCTS.VTSZ,
                         PRODUCTS.PRIMARY_UNIT,
                         PRODUCTS.STATUS,
+                        PRODUCTS.REVIEW_STATE,
+                        vtszFallbackBadge,
                         countSub,
                         PRODUCTS.CREATED_AT,
                         PRODUCTS.UPDATED_AT
@@ -145,6 +158,9 @@ public class RegistryRepository extends BaseRepository {
                         r.get(PRODUCTS.VTSZ),
                         r.get(PRODUCTS.PRIMARY_UNIT),
                         ProductStatus.valueOf(r.get(PRODUCTS.STATUS)),
+                        r.get(PRODUCTS.REVIEW_STATE) != null
+                                ? ReviewState.valueOf(r.get(PRODUCTS.REVIEW_STATE)) : null,
+                        r.get("classifier_source_badge", String.class),
                         r.get("component_count", Integer.class),
                         r.get(PRODUCTS.CREATED_AT),
                         r.get(PRODUCTS.UPDATED_AT)
@@ -189,6 +205,20 @@ public class RegistryRepository extends BaseRepository {
                             .and(PRODUCT_PACKAGING_COMPONENTS.KF_CODE.eq(filter.kfCode()))
             ));
         }
+        // Story 10.4: reviewState filter ("Csak hiányos" chip)
+        if (filter.reviewState() != null) {
+            condition = condition.and(PRODUCTS.REVIEW_STATE.eq(filter.reviewState().name()));
+        }
+        // Story 10.4: classifierSource filter ("Csak bizonytalan" chip)
+        if (filter.classifierSource() != null) {
+            AuditSource src = filter.classifierSource();
+            condition = condition.and(DSL.exists(
+                    DSL.selectOne()
+                            .from(PRODUCT_PACKAGING_COMPONENTS)
+                            .where(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                            .and(PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE.eq(src.name()))
+            ));
+        }
         return condition;
     }
 
@@ -223,6 +253,7 @@ public class RegistryRepository extends BaseRepository {
                 .set(PRODUCT_PACKAGING_COMPONENTS.SUBSTANCES_OF_CONCERN,
                         toJsonb(cmd.substancesOfConcern()))
                 .set(PRODUCT_PACKAGING_COMPONENTS.SUPPLIER_DECLARATION_REF, cmd.supplierDeclarationRef())
+                .set(PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE, cmd.classificationSource())
                 .returning(PRODUCT_PACKAGING_COMPONENTS.ID)
                 .fetchOne(PRODUCT_PACKAGING_COMPONENTS.ID);
         if (id == null) {
