@@ -1,5 +1,11 @@
 package hu.riskguard.epr.report;
 
+import hu.riskguard.epr.aggregation.api.dto.KfCodeTotal;
+import hu.riskguard.epr.producer.domain.ProducerProfile;
+
+import java.time.LocalDate;
+import java.util.List;
+
 /**
  * Strategy interface for EPR report generation (ADR-0002).
  *
@@ -15,10 +21,15 @@ package hu.riskguard.epr.report;
 public interface EprReportTarget {
 
     /**
-     * Generate a complete EPR report artifact for the given request.
+     * Generate a complete EPR report artifact from pre-computed KF-code totals.
+     * The exporter is a pure marshalling concern — it does NOT walk invoices.
      *
-     * @param request the report parameters (tenant, period, taxNumber)
+     * @param kfTotals      pre-computed aggregated totals per KF code (from InvoiceDrivenFilingAggregator)
+     * @param producerProfile fully populated producer profile
+     * @param periodStart   start of the reporting period
+     * @param periodEnd     end of the reporting period
      * @return the generated artifact including file bytes, summary, and provenance lines
      */
-    EprReportArtifact generate(EprReportRequest request);
+    EprReportArtifact generate(List<KfCodeTotal> kfTotals, ProducerProfile producerProfile,
+                                LocalDate periodStart, LocalDate periodEnd);
 }

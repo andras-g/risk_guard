@@ -3,7 +3,25 @@ package hu.riskguard.epr.api;
 import hu.riskguard.core.security.Tier;
 import hu.riskguard.core.security.TierRequired;
 import hu.riskguard.core.util.JwtUtil;
-import hu.riskguard.epr.api.dto.*;
+import hu.riskguard.epr.api.dto.CopyQuarterRequest;
+import hu.riskguard.epr.api.dto.InvoiceAutoFillRequest;
+import hu.riskguard.epr.api.dto.InvoiceAutoFillResponse;
+import hu.riskguard.epr.api.dto.KfCodeListResponse;
+import hu.riskguard.epr.api.dto.MaterialTemplateRequest;
+import hu.riskguard.epr.api.dto.MaterialTemplateResponse;
+import hu.riskguard.epr.api.dto.OkirkapuExportRequest;
+import hu.riskguard.epr.api.dto.OkirkapuPreviewResponse;
+import hu.riskguard.epr.api.dto.RecurringToggleRequest;
+import hu.riskguard.epr.api.dto.RetryLinkRequest;
+import hu.riskguard.epr.api.dto.RetryLinkResponse;
+import hu.riskguard.epr.api.dto.WizardConfirmRequest;
+import hu.riskguard.epr.api.dto.WizardConfirmResponse;
+import hu.riskguard.epr.api.dto.WizardResolveRequest;
+import hu.riskguard.epr.api.dto.WizardResolveResponse;
+import hu.riskguard.epr.api.dto.WizardStartResponse;
+import hu.riskguard.epr.api.dto.WizardStepRequest;
+import hu.riskguard.epr.api.dto.WizardStepResponse;
+import hu.riskguard.epr.aggregation.domain.InvoiceDrivenFilingAggregator;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.producer.api.dto.ProducerProfileResponse;
 import hu.riskguard.epr.producer.api.dto.ProducerProfileUpsertRequest;
@@ -41,6 +59,7 @@ public class EprController {
 
     private final EprService eprService;
     private final ProducerProfileService producerProfileService;
+    private final InvoiceDrivenFilingAggregator aggregator;
 
     /**
      * Create a new material template.
@@ -217,18 +236,6 @@ public class EprController {
     }
 
     /**
-     * Compute EPR filing liability for a set of material quantities.
-     * Validates all templates are Verified and belong to the requesting tenant.
-     */
-    @PostMapping("/filing/calculate")
-    public FilingCalculationResponse calculateFiling(
-            @Valid @RequestBody FilingCalculationRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
-        return eprService.calculateFiling(request.lines(), tenantId);
-    }
-
-    /**
      * Returns the tenant's registered tax number from NAV credentials, if any.
      * Used by the frontend to pre-populate the auto-fill tax number input.
      */
@@ -283,8 +290,10 @@ public class EprController {
             @Valid @RequestBody OkirkapuExportRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        var aggregationResult = aggregator.aggregateForPeriod(tenantId, request.from(), request.to());
         EprReportArtifact artifact = eprService.generateReport(
-                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()));
+                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()),
+                aggregationResult.kfTotals());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "application/zip")
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -301,8 +310,10 @@ public class EprController {
             @Valid @RequestBody OkirkapuExportRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        var aggregationResult = aggregator.aggregateForPeriod(tenantId, request.from(), request.to());
         EprReportArtifact artifact = eprService.previewReport(
-                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()));
+                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()),
+                aggregationResult.kfTotals());
         return ResponseEntity.ok(OkirkapuPreviewResponse.from(artifact));
     }
 

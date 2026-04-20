@@ -360,6 +360,18 @@
 - D15 (R2): `request_cappedExceeded_retrySeconds_present_and_bounded` asserts `retrySeconds > 0 && retrySeconds <= 32*24*3600` but does not compute the exact delta to the next Europe/Budapest month boundary. Exact match is brittle across boundary days.
 - D16 (R2): Counter increment in `BatchPackagingClassifierService.classify` can be missed if a forked task is interrupted between `results.set(idx, outcome)` and `incrementStrategyCounter(...)` — observability drift only; at most one tick per interrupted pair. Attribution improvement lives alongside D11 follow-up.
 
+## Deferred from: code review of 10-5-product-first-aggregation-service (2026-04-20)
+
+- W1: `orElse("")` for missing tax number — silent empty result when tenant has no NAV credentials; `InvoiceDrivenFilingAggregator.java:99`. DataSourceService behaviour; scope for a follow-up story.
+- W2: `resolvedLineCount` semantics — VTSZ_FALLBACK lines counted in both `resolvedLineCount` and `unresolved.size()`; null-VTSZ lines inflate `invoiceLineCount` without appearing in either counter. `InvoiceDrivenFilingAggregator.java:122–183`. Story 10.8 audit panel should document field semantics.
+- W3: `OffsetDateTime` in `AggregationCacheKey` — timezone-sensitive `equals()` may cause spurious cache misses if PostgreSQL returns non-UTC timestamps. Use `Instant`. `AggregationCacheKey.java:16`.
+- W4: Audit fires only on cache miss — `recordAggregationRun` not emitted for cached responses; AuditService is log-only until Story 10.8 adds DB table. `InvoiceDrivenFilingAggregator.java:90`.
+- W5: Orphaned chain unit test — to be added alongside P1 (orphaned chain formula fix). `InvoiceDrivenFilingAggregatorTest.java`.
+- W6: Integration test uses demo data, not purpose-built 10-line/4-product seed — AC #18 is partially met; specific value assertions deferred to hardening pass. `InvoiceDrivenFilingAggregatorIntegrationTest.java`.
+- W7: Load test registry mock empty — produces zero contributions, not 15,000 (AC #22). `InvoiceDrivenFilingAggregatorLoadTest.java`.
+- W8: Zero-quantity / negative-quantity credit-note lines silently dropped with no unresolved entry — reduces EPR obligation for returns without visibility; business logic gap for a future story.
+- W9: Same `wrapping_level` twice in one product — `buildCumulByLevel` HashMap.put silent overwrite (non-deterministic). Requires DB-level unique constraint on (product_id, wrapping_level). `InvoiceDrivenFilingAggregator.java:266–269`.
+
 ## Deferred from: code review of 10-2-kf-wizard-browse-button-on-registry (2026-04-19)
 
 - D1: Double `close()` on PrimeVue Dialog dismiss (`@hide` + `@update:visible` both fire) — spec-prescribed; `cancelWizard()`/`$reset()` are idempotent. [KfCodeWizardDialog.vue:73-74]

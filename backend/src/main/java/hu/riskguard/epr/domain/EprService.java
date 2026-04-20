@@ -8,9 +8,25 @@ import hu.riskguard.datasource.domain.InvoiceDirection;
 import hu.riskguard.datasource.domain.InvoiceLineItem;
 import hu.riskguard.datasource.domain.InvoiceQueryResult;
 import hu.riskguard.datasource.domain.InvoiceSummary;
-import hu.riskguard.epr.api.dto.*;
+import hu.riskguard.epr.api.dto.EprConfigPublishResponse;
+import hu.riskguard.epr.api.dto.EprConfigResponse;
+import hu.riskguard.epr.api.dto.EprConfigValidateResponse;
+import hu.riskguard.epr.api.dto.InvoiceAutoFillLineDto;
+import hu.riskguard.epr.api.dto.InvoiceAutoFillResponse;
+import hu.riskguard.epr.api.dto.KfCodeListResponse;
+import hu.riskguard.epr.api.dto.MaterialTemplateResponse;
+import hu.riskguard.epr.api.dto.RetryLinkResponse;
+import hu.riskguard.epr.api.dto.WizardConfirmRequest;
+import hu.riskguard.epr.api.dto.WizardConfirmResponse;
+import hu.riskguard.epr.api.dto.WizardResolveResponse;
+import hu.riskguard.epr.api.dto.WizardSelection;
+import hu.riskguard.epr.api.dto.WizardStartResponse;
+import hu.riskguard.epr.api.dto.WizardStepRequest;
+import hu.riskguard.epr.api.dto.WizardStepResponse;
 import hu.riskguard.epr.internal.EprRepository;
 import hu.riskguard.epr.internal.EprRepository.TemplateCopyData;
+import hu.riskguard.epr.aggregation.api.dto.KfCodeTotal;
+import hu.riskguard.epr.producer.domain.ProducerProfile;
 import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.epr.report.EprReportArtifact;
 import hu.riskguard.epr.report.EprReportRequest;
@@ -188,72 +204,6 @@ public class EprService {
     // ─── Filing methods ──────────────────────────────────────────────────────
 
     /**
-     * Compute EPR filing liability for a set of (templateId, quantityPcs) lines.
-     * Validates: templates exist, belong to tenant, are verified, have a fee_rate.
-     * Uses FeeCalculator for per-line and total computation.
-     *
-     * @throws ResponseStatusException 404 if any templateId not found or doesn't belong to tenant
-     * @throws ResponseStatusException 422 if any template is not verified or has no fee_rate
-     */
-    @Transactional(readOnly = true)
-    public FilingCalculationResponse calculateFiling(List<FilingLineRequest> lines, UUID tenantId) {
-        // Reject duplicate templateIds before any DB work
-        Set<UUID> seen = new HashSet<>();
-        for (FilingLineRequest line : lines) {
-            if (!seen.add(line.templateId())) {
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Duplicate templateId in request: " + line.templateId());
-            }
-        }
-
-        // Build a lookup: templateId → TemplateWithOverride (includes fee_rate)
-        Map<UUID, EprRepository.TemplateWithOverride> templateMap = eprRepository.findAllByTenantWithOverride(tenantId)
-                .stream()
-                .collect(Collectors.toMap(t -> t.template().getId(), t -> t));
-
-        List<FilingLineResultDto> resultLines = new ArrayList<>();
-        List<FeeCalculator.FilingLineResult> calculatedLines = new ArrayList<>();
-        for (FilingLineRequest line : lines) {
-            EprRepository.TemplateWithOverride two = templateMap.get(line.templateId());
-            if (two == null) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Template not found: " + line.templateId());
-            }
-            if (!Boolean.TRUE.equals(two.template().getVerified())) {
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Template is not verified: " + line.templateId());
-            }
-            BigDecimal feeRate = two.feeRate();
-            if (feeRate == null) {
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Template has no fee rate — run the wizard first: " + line.templateId());
-            }
-            BigDecimal baseWeightGrams = two.template().getBaseWeightGrams();
-            if (baseWeightGrams == null) {
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                        "Template has no base weight: " + line.templateId());
-            }
-            FeeCalculator.FilingLineResult result = feeCalculator.computeLine(
-                    line.quantityPcs(), baseWeightGrams, feeRate);
-            calculatedLines.add(result);
-            resultLines.add(new FilingLineResultDto(
-                    two.template().getId(),
-                    two.template().getName(),
-                    two.template().getKfCode(),
-                    line.quantityPcs(),
-                    baseWeightGrams,
-                    result.totalWeightGrams(),
-                    result.totalWeightKg(),
-                    feeRate,
-                    result.feeAmountHuf()
-            ));
-        }
-        FeeCalculator.FilingTotals totals = feeCalculator.computeTotals(calculatedLines);
-        return FilingCalculationResponse.from(resultLines, totals.totalWeightKg(), totals.totalFeeHuf(),
-                getActiveConfigVersion());
-    }
-
-    /**
      * Generate a MOHU-compliant CSV export for the given filing lines, log the export in
      * {@code epr_exports}, and return the raw CSV bytes.
      *
@@ -267,7 +217,7 @@ public class EprService {
      * @throws ResponseStatusException 422 if configVersion does not match the active config
      */
     @Transactional(readOnly = true)
-    public EprReportArtifact generateReport(EprReportRequest request) {
+    public EprReportArtifact generateReport(EprReportRequest request, List<KfCodeTotal> kfTotals) {
         UUID tenantId = request.tenantId();
         LocalDate periodStart = request.periodStart();
         LocalDate periodEnd = request.periodEnd();
@@ -303,11 +253,11 @@ public class EprService {
             }
         });
 
-        // Validate producer profile completeness early (AC 3 step 1)
-        producerProfileService.get(tenantId); // throws 412 if incomplete
+        // Load producer profile (throws 412 if incomplete)
+        ProducerProfile profile = producerProfileService.get(tenantId);
 
         // Delegate to the active EprReportTarget strategy (OkirkapuXmlExporter by default)
-        EprReportArtifact artifact = reportTarget.generate(request);
+        EprReportArtifact artifact = reportTarget.generate(kfTotals, profile, periodStart, periodEnd);
 
         // Log the export in a separate REQUIRES_NEW transaction so the write commits
         // independently of the outer read-only transaction (per AC 3 + ADR-0002).
@@ -334,7 +284,7 @@ public class EprService {
      * Preview EPR report: same validation as generateReport but does NOT write an audit log.
      */
     @Transactional(readOnly = true)
-    public EprReportArtifact previewReport(EprReportRequest request) {
+    public EprReportArtifact previewReport(EprReportRequest request, List<KfCodeTotal> kfTotals) {
         UUID tenantId = request.tenantId();
         LocalDate periodStart = request.periodStart();
         LocalDate periodEnd = request.periodEnd();
@@ -362,8 +312,8 @@ public class EprService {
                         "Tax number does not match tenant's registered tax number");
             }
         });
-        producerProfileService.get(tenantId);
-        return reportTarget.generate(request);
+        ProducerProfile profile = producerProfileService.get(tenantId);
+        return reportTarget.generate(kfTotals, profile, periodStart, periodEnd);
     }
 
     // ─── Wizard methods ──────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.exception.TierGateExceptionHandler;
 import hu.riskguard.core.security.TenantContext;
 import hu.riskguard.core.security.TierGateInterceptor;
+import hu.riskguard.epr.aggregation.domain.InvoiceDrivenFilingAggregator;
 import hu.riskguard.epr.api.EprController;
 import hu.riskguard.epr.api.dto.*;
 import hu.riskguard.epr.domain.EprService;
@@ -67,6 +68,9 @@ class EprControllerWizardTest {
     @Mock
     private ProducerProfileService producerProfileService;
 
+    @Mock
+    private InvoiceDrivenFilingAggregator aggregator;
+
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -121,7 +125,7 @@ class EprControllerWizardTest {
     void setUp() {
         TierGateInterceptor interceptor = new TierGateInterceptor(identityService);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new EprController(eprService, producerProfileService))
+                .standaloneSetup(new EprController(eprService, producerProfileService, aggregator))
                 .addFilters(new SecurityContextFilter())
                 .addInterceptors(interceptor)
                 .setControllerAdvice(new TierGateExceptionHandler())

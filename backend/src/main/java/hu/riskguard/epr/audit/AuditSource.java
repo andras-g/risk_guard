@@ -19,5 +19,6 @@ public enum AuditSource {
     VTSZ_FALLBACK,
     NAV_BOOTSTRAP,
     MANUAL_WIZARD,
+    EPR_AGGREGATION,
     UNKNOWN
 }

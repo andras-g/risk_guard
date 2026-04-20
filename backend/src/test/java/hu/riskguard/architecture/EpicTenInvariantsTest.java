@@ -1,15 +1,25 @@
 package hu.riskguard.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaCodeUnit;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.Set;
+
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noCodeUnits;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noFields;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 
 /**
  * ArchUnit rules enforcing the architectural invariants introduced by Epic 10
@@ -110,6 +120,86 @@ public class EpicTenInvariantsTest {
                     .should().dependOnClassesThat().haveSimpleName("EprBootstrapJobs")
                     .allowEmptyShould(true);
 
+    /**
+     * Story 10.5 T3 invariant 5 — no double/float fields in the aggregation package.
+     *
+     * <p>IEEE-754 double/float arithmetic causes rounding drift in EPR weight totals.
+     * All aggregation arithmetic must use {@link BigDecimal} with {@code MathContext.DECIMAL64}.
+     */
+    @ArchTest
+    static final ArchRule no_double_or_float_fields_in_aggregation_package =
+            noFields()
+                    .that().areDeclaredInClassesThat().resideInAPackage("..epr.aggregation..")
+                    .should().haveRawType(double.class)
+                    .orShould().haveRawType(float.class)
+                    .orShould().haveRawType(Double.class)
+                    .orShould().haveRawType(Float.class)
+                    .allowEmptyShould(true);
+
+    /**
+     * Story 10.5 T3 invariant 5b — no double/float method return types in the aggregation package.
+     */
+    @ArchTest
+    static final ArchRule no_double_or_float_return_types_in_aggregation_package =
+            noMethods()
+                    .that().areDeclaredInClassesThat().resideInAPackage("..epr.aggregation..")
+                    .should().haveRawReturnType(double.class)
+                    .orShould().haveRawReturnType(float.class)
+                    .orShould().haveRawReturnType(Double.class)
+                    .orShould().haveRawReturnType(Float.class)
+                    .allowEmptyShould(true);
+
+    /**
+     * Story 10.5 T3 invariant 5c — no double/float parameter types in the aggregation package.
+     *
+     * <p>Covers method and constructor parameters (local variables are erased at bytecode level —
+     * catching those via ArchUnit would require source parsing, not supported by ArchUnit).
+     */
+    @ArchTest
+    static final ArchRule no_double_or_float_parameters_in_aggregation_package =
+            noCodeUnits()
+                    .that().areDeclaredInClassesThat().resideInAPackage("..epr.aggregation..")
+                    .should(haveDoubleOrFloatParameter())
+                    .allowEmptyShould(true);
+
+    /**
+     * Story 10.5 T3 invariant 6 — no double-backed {@link BigDecimal} construction in the
+     * aggregation package.
+     *
+     * <p>Both {@code new BigDecimal(double)} AND {@code BigDecimal.valueOf(double)} are banned:
+     * both widen an IEEE-754 double to a BigDecimal, which defeats the decimal-literal contract
+     * (e.g. {@code BigDecimal.valueOf(0.1).toPlainString() == "0.1"} today but relies on
+     * {@link Double#toString(double)} — round-trip stability is not guaranteed for all decimals).
+     * Construct BigDecimals from {@code String} or integer literals only.
+     */
+    @ArchTest
+    static final ArchRule no_bigdecimal_from_double_in_aggregation_package =
+            noClasses()
+                    .that().resideInAPackage("..epr.aggregation..")
+                    .should().callConstructor(BigDecimal.class, double.class)
+                    .orShould().callMethod(BigDecimal.class, "valueOf", double.class)
+                    .allowEmptyShould(true);
+
+    // ── Helper: custom condition for parameter-type checks ──────────────────────
+
+    private static final Set<String> DOUBLE_FLOAT_TYPES = Set.of(
+            "double", "float", "java.lang.Double", "java.lang.Float");
+
+    private static ArchCondition<JavaCodeUnit> haveDoubleOrFloatParameter() {
+        return new ArchCondition<>("have a parameter of raw type double, float, Double, or Float") {
+            @Override
+            public void check(JavaCodeUnit codeUnit, ConditionEvents events) {
+                for (JavaClass param : codeUnit.getRawParameterTypes()) {
+                    if (DOUBLE_FLOAT_TYPES.contains(param.getName())) {
+                        events.add(SimpleConditionEvent.satisfied(codeUnit,
+                                codeUnit.getFullName() + " has parameter of raw type " + param.getName()));
+                        return;
+                    }
+                }
+            }
+        };
+    }
+
     // ── AC #35: witness pair for AC #31 ArchUnit rules ─────────────────────────
     //
     // The four @ArchTest rules above bind only when `allowEmptyShould(true)` permits an
@@ -142,4 +232,27 @@ public class EpicTenInvariantsTest {
     //   1. In any class outside ..epr.audit.., add a dependency on
     //      hu.riskguard.epr.audit.internal.RegistryAuditRepository. Expected failure:
     //        "Class … depends on class … RegistryAuditRepository."
+    //
+    // Witness for no_double_or_float_fields_in_aggregation_package (Story 10.5 T3):
+    //   1. Add a field `private double badField = 0.0;` to any class in
+    //      hu.riskguard.epr.aggregation.*. Expected failure message:
+    //        "Field … has raw type double."
+    //
+    // Witness for no_double_or_float_return_types_in_aggregation_package (Story 10.5 T3):
+    //   1. Add a method `double weight() { return 0.0; }` to any class in
+    //      hu.riskguard.epr.aggregation.*. Expected failure message:
+    //        "Method … has raw return type double."
+    //
+    // Witness for no_double_or_float_parameters_in_aggregation_package (Story 10.5 T3):
+    //   1. Add a method `void set(double x) {}` to any class in
+    //      hu.riskguard.epr.aggregation.*. Expected failure message:
+    //        "Method … has parameter of raw type double."
+    //
+    // Witness for no_bigdecimal_from_double_in_aggregation_package (Story 10.5 T3):
+    //   1. Add `new BigDecimal(0.1)` OR `BigDecimal.valueOf(0.1d)` anywhere in a class in
+    //      hu.riskguard.epr.aggregation.*. Expected failure message:
+    //        "Constructor <java.math.BigDecimal.<init>(double)> gets called …"  OR
+    //        "Method <java.math.BigDecimal.valueOf(double)> gets called …"
+    //      Construct BigDecimals from String or integer literals only; DO NOT substitute
+    //      BigDecimal.valueOf(double) — it is banned by the same rule.
 }

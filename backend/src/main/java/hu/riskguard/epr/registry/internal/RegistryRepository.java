@@ -23,6 +23,7 @@ import java.util.*;
 import static hu.riskguard.jooq.Tables.EPR_MATERIAL_TEMPLATES;
 import static hu.riskguard.jooq.Tables.PRODUCT_PACKAGING_COMPONENTS;
 import static hu.riskguard.jooq.Tables.PRODUCTS;
+import static org.jooq.impl.DSL.max;
 
 /**
  * jOOQ repository for the EPR registry module.
@@ -355,6 +356,74 @@ public class RegistryRepository extends BaseRepository {
                         .where(EPR_MATERIAL_TEMPLATES.ID.eq(templateId))
                         .and(EPR_MATERIAL_TEMPLATES.TENANT_ID.eq(tenantId))
         );
+    }
+
+    // ─── Aggregation reads ────────────────────────────────────────────────────
+
+    /**
+     * One row per PRODUCTS LEFT JOIN PRODUCT_PACKAGING_COMPONENTS.
+     * {@code componentId} is null when the product has zero components.
+     */
+    public record AggregationRow(
+            UUID productId, String vtsz, String name, String reviewState,
+            UUID componentId, String kfCode, Integer wrappingLevel,
+            BigDecimal itemsPerParent, BigDecimal weightPerUnitKg,
+            String classifierSource, Integer componentOrder, String materialDescription
+    ) {}
+
+    /** Bulk-load active registry for the aggregator — one LEFT JOIN query per tenant. */
+    public List<AggregationRow> loadForAggregation(UUID tenantId) {
+        var compId = PRODUCT_PACKAGING_COMPONENTS.ID.as("comp_id");
+        return dsl.select(
+                        PRODUCTS.ID, PRODUCTS.VTSZ, PRODUCTS.NAME, PRODUCTS.REVIEW_STATE,
+                        compId,
+                        PRODUCT_PACKAGING_COMPONENTS.KF_CODE,
+                        PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL,
+                        PRODUCT_PACKAGING_COMPONENTS.ITEMS_PER_PARENT,
+                        PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG,
+                        PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE,
+                        PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER,
+                        PRODUCT_PACKAGING_COMPONENTS.MATERIAL_DESCRIPTION)
+                .from(PRODUCTS)
+                .leftJoin(PRODUCT_PACKAGING_COMPONENTS)
+                .on(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.STATUS.eq("ACTIVE"))
+                .fetch(r -> new AggregationRow(
+                        r.get(PRODUCTS.ID),
+                        r.get(PRODUCTS.VTSZ),
+                        r.get(PRODUCTS.NAME),
+                        r.get(PRODUCTS.REVIEW_STATE),
+                        r.get(compId),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.KF_CODE),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.ITEMS_PER_PARENT),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.WEIGHT_PER_UNIT_KG),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.COMPONENT_ORDER),
+                        r.get(PRODUCT_PACKAGING_COMPONENTS.MATERIAL_DESCRIPTION)
+                ));
+    }
+
+    /** MAX(updated_at) across products and components for a tenant — used as the Caffeine cache key signal. */
+    public OffsetDateTime resolveMaxUpdatedAt(UUID tenantId) {
+        OffsetDateTime productsMax = dsl.select(max(PRODUCTS.UPDATED_AT))
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .fetchOne(0, OffsetDateTime.class);
+
+        OffsetDateTime componentsMax = dsl.select(max(PRODUCT_PACKAGING_COMPONENTS.UPDATED_AT))
+                .from(PRODUCT_PACKAGING_COMPONENTS)
+                .join(PRODUCTS).on(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .fetchOne(0, OffsetDateTime.class);
+
+        if (productsMax == null && componentsMax == null) {
+            return OffsetDateTime.parse("2020-01-01T00:00:00Z");
+        }
+        if (productsMax == null) return componentsMax;
+        if (componentsMax == null) return productsMax;
+        return productsMax.isAfter(componentsMax) ? productsMax : componentsMax;
     }
 
     // ─── Domain mappers ──────────────────────────────────────────────────────

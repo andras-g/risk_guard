@@ -1,5 +1,7 @@
 package hu.riskguard.epr;
 
+import hu.riskguard.epr.aggregation.api.dto.FilingAggregationResult;
+import hu.riskguard.epr.aggregation.domain.InvoiceDrivenFilingAggregator;
 import hu.riskguard.epr.api.dto.InvoiceAutoFillResponse;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.producer.domain.ProducerProfile;
@@ -55,6 +57,9 @@ class EprOkirkapuExportIntegrationTest {
     private EprService eprService;
 
     @Autowired
+    private InvoiceDrivenFilingAggregator aggregator;
+
+    @Autowired
     private ProducerProfileService producerProfileService;
 
     @Autowired
@@ -81,8 +86,9 @@ class EprOkirkapuExportIntegrationTest {
     @Test
     void previewReport_succeedsForDemoTenantInQ1_2026() {
         EprReportRequest req = new EprReportRequest(DEMO_TENANT, Q1_START, Q1_END, DEMO_TAX_NUMBER);
+        FilingAggregationResult aggResult = aggregator.aggregateForPeriod(DEMO_TENANT, Q1_START, Q1_END);
 
-        EprReportArtifact artifact = eprService.previewReport(req);
+        EprReportArtifact artifact = eprService.previewReport(req, aggResult.kfTotals());
 
         assertThat(artifact).isNotNull();
         assertThat(artifact.xmlBytes())
@@ -98,8 +104,9 @@ class EprOkirkapuExportIntegrationTest {
                 .fetchOne(0, int.class);
 
         EprReportRequest req = new EprReportRequest(DEMO_TENANT, Q1_START, Q1_END, DEMO_TAX_NUMBER);
+        FilingAggregationResult aggResult = aggregator.aggregateForPeriod(DEMO_TENANT, Q1_START, Q1_END);
 
-        EprReportArtifact artifact = eprService.generateReport(req);
+        EprReportArtifact artifact = eprService.generateReport(req, aggResult.kfTotals());
 
         assertThat(artifact.filename()).matches("okir-kg-kgyf-ne-2026-Q1\\.zip");
         assertThat(artifact.bytes()).isNotEmpty();

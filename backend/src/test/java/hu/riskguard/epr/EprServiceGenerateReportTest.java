@@ -36,9 +36,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link EprService#generateReport(EprReportRequest)} per AC 13.
+ * Unit tests for {@link EprService#generateReport(EprReportRequest, List)} per AC 13.
  * Scope: validation guards + happy-path delegation. Integration tests covering the
- * real exporter, registry lookup, and NAV fetch live in {@code EprControllerOkirkapuExportTest}.
+ * real exporter and aggregation live in {@code EprOkirkapuExportIntegrationTest}.
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -79,7 +79,7 @@ class EprServiceGenerateReportTest {
     @Test
     void throws_400_when_periodStart_after_periodEnd() {
         EprReportRequest req = new EprReportRequest(TENANT, Q1_END, Q1_START, TAX);
-        assertThatThrownBy(() -> eprService.generateReport(req))
+        assertThatThrownBy(() -> eprService.generateReport(req, List.of()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("period start must not be after end");
     }
@@ -89,7 +89,7 @@ class EprServiceGenerateReportTest {
         LocalDate future = LocalDate.now().plusDays(5);
         // Keep within a quarter that starts today-ish so only the future check fires.
         EprReportRequest req = new EprReportRequest(TENANT, LocalDate.now(), future, TAX);
-        assertThatThrownBy(() -> eprService.generateReport(req))
+        assertThatThrownBy(() -> eprService.generateReport(req, List.of()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("may not extend into the future");
     }
@@ -99,7 +99,7 @@ class EprServiceGenerateReportTest {
         // Use a past pair of quarters so the future-period check does not pre-empt the quarter check
         EprReportRequest req = new EprReportRequest(
                 TENANT, LocalDate.of(2025, 12, 15), LocalDate.of(2026, 1, 15), TAX);
-        assertThatThrownBy(() -> eprService.generateReport(req))
+        assertThatThrownBy(() -> eprService.generateReport(req, List.of()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("single calendar quarter");
     }
@@ -108,7 +108,7 @@ class EprServiceGenerateReportTest {
     void throws_403_when_tax_number_does_not_match_tenant() {
         when(dataSourceService.getTenantTaxNumber(TENANT)).thenReturn(Optional.of("87654321"));
         EprReportRequest req = new EprReportRequest(TENANT, Q1_START, Q1_END, "12345678");
-        assertThatThrownBy(() -> eprService.generateReport(req))
+        assertThatThrownBy(() -> eprService.generateReport(req, List.of()))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -120,7 +120,7 @@ class EprServiceGenerateReportTest {
         when(producerProfileService.get(TENANT)).thenThrow(
                 new ResponseStatusException(HttpStatus.PRECONDITION_FAILED, "producer.profile.incomplete"));
         EprReportRequest req = new EprReportRequest(TENANT, Q1_START, Q1_END, TAX);
-        assertThatThrownBy(() -> eprService.generateReport(req))
+        assertThatThrownBy(() -> eprService.generateReport(req, List.of()))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode())
                         .isEqualTo(HttpStatus.PRECONDITION_FAILED));
@@ -133,12 +133,12 @@ class EprServiceGenerateReportTest {
         EprReportArtifact stubArtifact = new EprReportArtifact(
                 "x.zip", "application/zip", new byte[]{1, 2, 3}, new byte[]{4, 5, 6},
                 "summary", List.of());
-        when(reportTarget.generate(any())).thenReturn(stubArtifact);
+        when(reportTarget.generate(any(), any(), any(), any())).thenReturn(stubArtifact);
         // config version lookup — allow it to fall through to the catch-block and return 0
         when(eprRepository.findActiveConfig()).thenReturn(Optional.empty());
 
         EprReportRequest req = new EprReportRequest(TENANT, Q1_START, Q1_END, TAX);
-        EprReportArtifact result = eprService.generateReport(req);
+        EprReportArtifact result = eprService.generateReport(req, List.of());
         assertThat(result).isSameAs(stubArtifact);
     }
 }

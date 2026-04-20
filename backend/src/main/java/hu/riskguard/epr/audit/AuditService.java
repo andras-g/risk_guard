@@ -3,6 +3,8 @@ package hu.riskguard.epr.audit;
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.audit.internal.RegistryAuditRepository;
 import io.micrometer.core.instrument.Counter;
+
+import java.time.LocalDate;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +107,23 @@ public class AuditService {
             subBatch.forEach(e -> writeCounters.get(e.source()).increment());
             log.debug("audit-batch flush: {} rows (offset {})", subBatch.size(), i);
         }
+    }
+
+    // ─── Aggregation audit ───────────────────────────────────────────────────
+
+    /**
+     * Record that an aggregation run completed (Story 10.5 AC #9 — metadata only, no row-by-row data).
+     *
+     * <p>Logs the aggregation metadata via structured logging with source EPR_AGGREGATION.
+     * Story 10.8 will add a dedicated aggregation_audit_log table and persist this event there;
+     * for now the audit event is emitted as an INFO log (satisfies AC #9 "via AuditService").
+     */
+    public void recordAggregationRun(UUID tenantId, LocalDate periodStart, LocalDate periodEnd,
+                                      long durationMs, int resolvedCount, int unresolvedCount) {
+        log.info("[audit source={}] aggregation_run tenant={} period={}/{} duration_ms={} resolved={} unresolved={}",
+                AuditSource.EPR_AGGREGATION, tenantId, periodStart, periodEnd,
+                durationMs, resolvedCount, unresolvedCount);
+        writeCounters.get(AuditSource.EPR_AGGREGATION).increment();
     }
 
     // ─── Registry-entry audit — reads ────────────────────────────────────────
