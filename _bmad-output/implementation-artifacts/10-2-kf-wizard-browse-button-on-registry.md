@@ -1,6 +1,6 @@
 # Story 10.2: KF Wizard "Browse" Button on Registry
 
-Status: review
+Status: done
 
 ## Story
 
