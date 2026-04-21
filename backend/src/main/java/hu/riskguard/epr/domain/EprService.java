@@ -4,15 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import hu.riskguard.core.util.HashUtil;
 import hu.riskguard.datasource.domain.DataSourceService;
-import hu.riskguard.datasource.domain.InvoiceDirection;
-import hu.riskguard.datasource.domain.InvoiceLineItem;
-import hu.riskguard.datasource.domain.InvoiceQueryResult;
-import hu.riskguard.datasource.domain.InvoiceSummary;
 import hu.riskguard.epr.api.dto.EprConfigPublishResponse;
 import hu.riskguard.epr.api.dto.EprConfigResponse;
 import hu.riskguard.epr.api.dto.EprConfigValidateResponse;
-import hu.riskguard.epr.api.dto.InvoiceAutoFillLineDto;
-import hu.riskguard.epr.api.dto.InvoiceAutoFillResponse;
 import hu.riskguard.epr.api.dto.KfCodeListResponse;
 import hu.riskguard.epr.api.dto.MaterialTemplateResponse;
 import hu.riskguard.epr.api.dto.RetryLinkResponse;
@@ -48,12 +42,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -509,11 +499,10 @@ public class EprService {
         return RetryLinkResponse.from(updated, effectiveKfCode);
     }
 
-    // ─── Invoice auto-fill ──────────────────────────────────────────────────
+    // ─── Tax number lookup (still used by /filing/registered-tax-number) ────
 
     /**
      * Returns the tax number stored in NAV credentials for the given tenant, if any.
-     * Used by the frontend to pre-populate the auto-fill tax number field.
      *
      * @param tenantId the tenant UUID from JWT
      * @return the registered 8-digit tax number, or empty if no credentials configured
@@ -521,142 +510,6 @@ public class EprService {
     public Optional<String> getRegisteredTaxNumber(UUID tenantId) {
         return dataSourceService.getTenantTaxNumber(tenantId);
     }
-
-    /**
-     * Builds a pre-filled EPR filing suggestion from outbound invoices fetched from NAV Online Számla.
-     *
-     * <p>Algorithm:
-     * <ol>
-     *   <li>Fetch invoice summaries for the given tax number, date range, and OUTBOUND direction.</li>
-     *   <li>For each summary, fetch full invoice details with line items.</li>
-     *   <li>Collect all line items where {@code vtszCode != null}.</li>
-     *   <li>Group by VTSZ code and sum quantities.</li>
-     *   <li>Load active EPR config, extract {@code vtszMappings}, match by longest prefix.</li>
-     *   <li>Load tenant templates, match by {@code materialName_hu} (case-insensitive).</li>
-     *   <li>Return result with {@code navAvailable=false} if query returned empty due to error.</li>
-     * </ol>
-     *
-     * @param taxNumber company's 8-digit tax number
-     * @param from      start of date range (inclusive)
-     * @param to        end of date range (inclusive)
-     * @param tenantId  tenant UUID from JWT
-     * @return auto-fill response with suggested lines, NAV availability flag, and mode
-     */
-    public InvoiceAutoFillResponse autoFillFromInvoices(String taxNumber, LocalDate from, LocalDate to, UUID tenantId) {
-        // D2: Validate tenant owns the requested tax number using strict 8-digit prefix equality
-        // (VAT/country suffixes stripped so "12345678-2-41" and "12345678" are considered the same tenant,
-        //  but bidirectional startsWith — the old check — let "1xxxxxxx" match any tax number starting with "1").
-        dataSourceService.getTenantTaxNumber(tenantId).ifPresent(registeredTaxNumber -> {
-            String requestedBase = taxNumber.length() >= 8 ? taxNumber.substring(0, 8) : taxNumber;
-            String registeredBase = registeredTaxNumber.length() >= 8 ? registeredTaxNumber.substring(0, 8) : registeredTaxNumber;
-            if (!requestedBase.equals(registeredBase)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                        "Tax number does not match tenant's registered tax number");
-            }
-        });
-
-        // Step 1: fetch invoice summaries with availability flag
-        InvoiceQueryResult queryResult = dataSourceService.queryInvoices(taxNumber, from, to, InvoiceDirection.OUTBOUND);
-        List<InvoiceSummary> summaries = queryResult.summaries();
-        boolean navAvailable = queryResult.serviceAvailable();
-
-        // Step 2+3: fetch details and collect VTSZ line items, grouped by vtszCode+unit (D4)
-        record VtszUnitKey(String vtszCode, String unit) {}
-        Map<VtszUnitKey, BigDecimal> vtszQuantities = new LinkedHashMap<>();
-
-        for (InvoiceSummary summary : summaries) {
-            var detail = dataSourceService.queryInvoiceDetails(summary.invoiceNumber());
-            for (InvoiceLineItem item : detail.lineItems()) {
-                if (item.vtszCode() != null && !item.vtszCode().isBlank()) {
-                    // P4: skip lines where quantity is null or ≤ 0
-                    if (item.quantity() == null || item.quantity().compareTo(BigDecimal.ZERO) <= 0) continue;
-                    String unit = item.unitOfMeasure() != null ? item.unitOfMeasure() : "DARAB";
-                    vtszQuantities.merge(new VtszUnitKey(item.vtszCode(), unit), item.quantity(), BigDecimal::add);
-                }
-            }
-        }
-
-        // Step 5: load active config, extract vtszMappings
-        List<VtszMapping> vtszMappings = loadVtszMappings();
-
-        // Step 6: load tenant templates for matching
-        List<EprMaterialTemplatesRecord> templates = eprRepository.findAllByTenant(tenantId);
-
-        // Step 4+5+6: build result lines
-        List<InvoiceAutoFillLineDto> lines = vtszQuantities.entrySet().stream()
-                .map(entry -> {
-                    String vtszCode = entry.getKey().vtszCode();
-                    String unit = entry.getKey().unit();
-                    BigDecimal quantity = entry.getValue();
-
-                    // Find best matching VTSZ mapping (longest prefix wins)
-                    VtszMapping bestMapping = vtszMappings.stream()
-                            .filter(m -> vtszCode.startsWith(m.vtszPrefix()))
-                            .max(Comparator.comparingInt(m -> m.vtszPrefix().length()))
-                            .orElse(null);
-
-                    String suggestedKfCode = bestMapping != null ? bestMapping.kfCode() : null;
-                    String description = bestMapping != null ? bestMapping.materialName_hu() : vtszCode;
-
-                    // Find matching template by materialName_hu (case-insensitive)
-                    EprMaterialTemplatesRecord matchedTemplate = null;
-                    if (bestMapping != null) {
-                        String targetName = bestMapping.materialName_hu();
-                        matchedTemplate = templates.stream()
-                                .filter(t -> targetName.equalsIgnoreCase(t.getName()))
-                                .findFirst()
-                                .orElse(null);
-                    }
-
-                    return new InvoiceAutoFillLineDto(
-                            vtszCode,
-                            description,
-                            suggestedKfCode,
-                            quantity,
-                            unit,
-                            matchedTemplate != null,
-                            matchedTemplate != null ? matchedTemplate.getId() : null
-                    );
-                })
-                .toList();
-
-        return InvoiceAutoFillResponse.from(lines, navAvailable, dataSourceService.getMode());
-    }
-
-    private List<VtszMapping> loadVtszMappings() {
-        try {
-            var activeRecord = eprRepository.findActiveConfig().orElse(null);
-            if (activeRecord == null) return List.of();
-            Object configDataObj = activeRecord.get("config_data");
-            JsonNode configNode;
-            if (configDataObj instanceof JSONB jsonb) {
-                configNode = OBJECT_MAPPER.readTree(jsonb.data());
-            } else if (configDataObj != null) {
-                configNode = OBJECT_MAPPER.readTree(configDataObj.toString());
-            } else {
-                log.warn("loadVtszMappings: config_data is null in active config record");
-                return List.of();
-            }
-            JsonNode mappingsNode = configNode.get("vtszMappings");
-            if (mappingsNode == null || !mappingsNode.isArray()) return List.of();
-
-            List<VtszMapping> result = new ArrayList<>();
-            for (JsonNode entry : mappingsNode) {
-                String prefix = entry.path("vtszPrefix").asText(null);
-                String kfCode = entry.path("kfCode").asText(null);
-                String nameHu = entry.path("materialName_hu").asText(null);
-                if (prefix != null && kfCode != null) {
-                    result.add(new VtszMapping(prefix, kfCode, nameHu != null ? nameHu : prefix));
-                }
-            }
-            return result;
-        } catch (Exception e) {
-            log.warn("Failed to load vtszMappings from active config: {}", e.getMessage());
-            return List.of();
-        }
-    }
-
-    private record VtszMapping(String vtszPrefix, String kfCode, String materialName_hu) {}
 
     // ─── Admin: EPR config management ───────────────────────────────────────
 

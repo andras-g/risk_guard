@@ -1,40 +1,12 @@
 import { defineStore } from 'pinia'
-import type { MaterialTemplateResponse } from '~/types/epr'
-
-export interface FilingLineState {
-  templateId: string
-  name: string
-  kfCode: string | null
-  baseWeightGrams: number
-  feeRateHufPerKg: number | null
-  quantityPcs: number | null
-  // backend-computed values (null until calculate() is called)
-  totalWeightGrams: number | null
-  totalWeightKg: number | null
-  feeAmountHuf: number | null
-  // frontend-only validation
-  isValid: boolean
-  validationMessage: string | null
-}
-
-export interface FilingCalculationResponse {
-  lines: {
-    templateId: string; name: string; kfCode: string | null
-    quantityPcs: number; baseWeightGrams: number
-    totalWeightGrams: number; totalWeightKg: number
-    feeRateHufPerKg: number; feeAmountHuf: number
-  }[]
-  grandTotalWeightKg: number
-  grandTotalFeeHuf: number
-  configVersion: number
-}
+import type { FilingAggregationResult, KfCodeTotal } from '~/types/epr'
 
 export type ProducerProfileIncompleteError = 'producer.profile.incomplete'
 
 interface FilingState {
-  lines: FilingLineState[]
-  serverResult: FilingCalculationResponse | null
-  isCalculating: boolean
+  period: { from: string; to: string }
+  aggregation: FilingAggregationResult | null
+  isLoading: boolean
   isExporting: boolean
   error: string | null
   exportError: ProducerProfileIncompleteError | string | null
@@ -42,129 +14,81 @@ interface FilingState {
 
 export const useEprFilingStore = defineStore('eprFiling', {
   state: (): FilingState => ({
-    lines: [],
-    serverResult: null,
-    isCalculating: false,
+    period: { from: '', to: '' },
+    aggregation: null,
+    isLoading: false,
     isExporting: false,
     error: null,
     exportError: null,
   }),
 
   getters: {
-    validLines: (state): FilingLineState[] =>
-      state.lines.filter(l => l.isValid && l.quantityPcs !== null && l.quantityPcs > 0),
-
     grandTotalWeightKg: (state): number =>
-      state.serverResult?.grandTotalWeightKg ?? 0,
+      state.aggregation?.kfTotals.reduce((sum: number, t: KfCodeTotal) => sum + (t.totalWeightKg ?? 0), 0) ?? 0,
 
     grandTotalFeeHuf: (state): number =>
-      state.serverResult?.grandTotalFeeHuf ?? 0,
+      state.aggregation?.kfTotals.reduce((sum: number, t: KfCodeTotal) => sum + (t.totalFeeHuf ?? 0), 0) ?? 0,
 
-    hasValidLines: (state): boolean =>
-      state.lines.some(l => l.isValid && l.quantityPcs !== null && l.quantityPcs > 0),
+    totalKfCodes: (state): number =>
+      state.aggregation?.kfTotals.length ?? 0,
   },
 
   actions: {
-    initFromTemplates(templates: MaterialTemplateResponse[]) {
-      // Only include templates that are verified AND have a fee rate (completed the wizard).
-      // Templates without a fee rate will cause a 422 from the backend.
-      this.lines = templates
-        .filter(t => t.verified && t.feeRate != null)
-        .map(t => ({
-          templateId: t.id,
-          name: t.name,
-          kfCode: t.kfCode,
-          baseWeightGrams: t.baseWeightGrams,
-          feeRateHufPerKg: t.feeRate,
-          quantityPcs: null,
-          totalWeightGrams: null,
-          totalWeightKg: null,
-          feeAmountHuf: null,
-          isValid: false,
-          validationMessage: null,
-        }))
-      this.serverResult = null
-    },
-
-    updateQuantity(templateId: string, rawValue: string) {
-      const line = this.lines.find(l => l.templateId === templateId)
-      if (!line) return
-      const parsed = parseInt(rawValue, 10)
-      if (rawValue === '') {
-        line.quantityPcs = null
-        line.isValid = false
-        line.validationMessage = null
-      }
-      else if (!Number.isInteger(parseFloat(rawValue)) || isNaN(parsed)) {
-        line.quantityPcs = null
-        line.isValid = false
-        line.validationMessage = 'epr.filing.validation.mustBeInteger'
-      }
-      else if (parsed <= 0) {
-        line.quantityPcs = null
-        line.isValid = false
-        line.validationMessage = 'epr.filing.validation.mustBePositive'
-      }
-      else {
-        line.quantityPcs = parsed
-        line.isValid = true
-        line.validationMessage = null
-      }
-      // Compute row values client-side for immediate real-time feedback (AC 2)
-      if (line.isValid && line.quantityPcs !== null && line.feeRateHufPerKg !== null) {
-        const totalWeightGrams = line.baseWeightGrams * line.quantityPcs
-        const totalWeightKg = totalWeightGrams / 1000
-        line.totalWeightGrams = totalWeightGrams
-        line.totalWeightKg = totalWeightKg
-        line.feeAmountHuf = Math.round(totalWeightKg * line.feeRateHufPerKg)
-      }
-      else {
-        line.totalWeightGrams = null
-        line.totalWeightKg = null
-        line.feeAmountHuf = null
-      }
-      // Clear authoritative server result whenever user modifies any quantity
-      this.serverResult = null
-    },
-
-    async calculate() {
-      const valid = this.lines.filter(l => l.isValid && l.quantityPcs !== null && l.quantityPcs > 0)
-      if (valid.length === 0) return
-      this.isCalculating = true
+    async fetchAggregation(from: string, to: string): Promise<void> {
+      this.isLoading = true
       this.error = null
+      this.exportError = null
+      this.aggregation = null
+      this.period = { from, to }
       try {
         const config = useRuntimeConfig()
-        const result = await $fetch<FilingCalculationResponse>('/api/v1/epr/filing/calculate', {
-          method: 'POST',
-          body: { lines: valid.map(l => ({ templateId: l.templateId, quantityPcs: l.quantityPcs })) },
+        const result = await $fetch<FilingAggregationResult>('/api/v1/epr/filing/aggregation', {
+          query: { from, to },
           baseURL: config.public.apiBase as string,
           credentials: 'include',
         })
-        this.serverResult = result
-        // Merge backend results into lines
-        for (const r of result.lines) {
-          const line = this.lines.find(l => l.templateId === r.templateId)
-          if (line) {
-            line.totalWeightGrams = r.totalWeightGrams
-            line.totalWeightKg = r.totalWeightKg
-            line.feeAmountHuf = r.feeAmountHuf
-          }
-        }
+        this.aggregation = result
       }
       catch (e: unknown) {
-        this.error = e instanceof Error ? e.message : String(e)
-        throw e
+        this.aggregation = null
+        const status = (e as { status?: number })?.status
+        if (status === 412) {
+          this.error = 'producer.profile.incomplete'
+        }
+        else if (status === 402) {
+          this.error = 'tier.gate'
+        }
+        else {
+          this.error = e instanceof Error ? e.message : String(e)
+        }
       }
       finally {
-        this.isCalculating = false
+        this.isLoading = false
       }
     },
 
-    async exportOkirkapu(from: string, to: string, taxNumber: string) {
+    async exportOkirkapu(from: string, to: string): Promise<void> {
       this.isExporting = true
       this.exportError = null
       try {
         const config = useRuntimeConfig()
+        // Fetch tax number from producer profile — only 404 means "not configured";
+        // transport/auth/5xx errors must surface as real errors, not silent fall-through.
+        let taxNumber = ''
+        try {
+          const profile = await $fetch<{ taxNumber?: string }>('/api/v1/epr/producer-profile', {
+            baseURL: config.public.apiBase as string,
+            credentials: 'include',
+          })
+          taxNumber = profile?.taxNumber ?? ''
+        }
+        catch (profileErr: unknown) {
+          const status = (profileErr as { status?: number })?.status
+          if (status !== 404) {
+            throw profileErr
+          }
+          // 404 → profile not configured; proceed with empty taxNumber, backend 412 will confirm
+        }
         const blob = await $fetch<Blob>('/api/v1/epr/filing/okirkapu-export', {
           method: 'POST',
           body: { from, to, taxNumber },
@@ -173,12 +97,18 @@ export const useEprFilingStore = defineStore('eprFiling', {
           credentials: 'include',
         })
         if (import.meta.client) {
-          const quarter = Math.ceil((new Date(from).getMonth() + 1) / 3)
-          const year = new Date(from).getFullYear()
+          // Parse YYYY-MM-DD manually to avoid timezone drift from `new Date(iso)`
+          const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(from)
+          const year = parts ? Number(parts[1]) : NaN
+          const month = parts ? Number(parts[2]) : NaN
+          const quarter = Number.isFinite(month) ? Math.ceil(month / 3) : NaN
+          const filename = Number.isFinite(year) && Number.isFinite(quarter)
+            ? `okir-kg-kgyf-ne-${year}-Q${quarter}.zip`
+            : `okir-kg-kgyf-ne.zip`
           const url = URL.createObjectURL(blob)
           const anchor = document.createElement('a')
           anchor.href = url
-          anchor.download = `okir-kg-kgyf-ne-${year}-Q${quarter}.zip`
+          anchor.download = filename
           document.body.appendChild(anchor)
           anchor.click()
           document.body.removeChild(anchor)
@@ -201,9 +131,9 @@ export const useEprFilingStore = defineStore('eprFiling', {
     },
 
     reset() {
-      this.lines = []
-      this.serverResult = null
-      this.isCalculating = false
+      this.period = { from: '', to: '' }
+      this.aggregation = null
+      this.isLoading = false
       this.isExporting = false
       this.error = null
       this.exportError = null

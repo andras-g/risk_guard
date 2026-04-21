@@ -4,8 +4,6 @@ import hu.riskguard.core.security.Tier;
 import hu.riskguard.core.security.TierRequired;
 import hu.riskguard.core.util.JwtUtil;
 import hu.riskguard.epr.api.dto.CopyQuarterRequest;
-import hu.riskguard.epr.api.dto.InvoiceAutoFillRequest;
-import hu.riskguard.epr.api.dto.InvoiceAutoFillResponse;
 import hu.riskguard.epr.api.dto.KfCodeListResponse;
 import hu.riskguard.epr.api.dto.MaterialTemplateRequest;
 import hu.riskguard.epr.api.dto.MaterialTemplateResponse;
@@ -245,25 +243,6 @@ public class EprController {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         String taxNumber = eprService.getRegisteredTaxNumber(tenantId).orElse("");
         return ResponseEntity.ok(Map.of("taxNumber", taxNumber));
-    }
-
-    /**
-     * Pre-populate EPR filing form from outbound invoices fetched via NAV Online Számla.
-     * In demo mode, returns data from {@code DemoInvoiceFixtures}.
-     * On NAV unavailability, returns an empty result with {@code navAvailable=false}.
-     */
-    @PostMapping("/filing/invoice-autofill")
-    public ResponseEntity<InvoiceAutoFillResponse> invoiceAutoFill(
-            @Valid @RequestBody InvoiceAutoFillRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
-        if (request.from() != null && request.to() != null && request.from().isAfter(request.to())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "'from' date must not be after 'to' date");
-        }
-        InvoiceAutoFillResponse response = eprService.autoFillFromInvoices(
-                request.taxNumber(), request.from(), request.to(), tenantId);
-        return ResponseEntity.ok(response);
     }
 
     /**

@@ -1,31 +1,5 @@
 {
   "epr": {
-    "autofill": {
-      "applyButton": "Alkalmazás a bejelentésre",
-      "columns": {
-        "description": "Leírás",
-        "quantity": "Mennyiség",
-        "suggestedKfCode": "Javasolt KF kód",
-        "template": "Sablon",
-        "unit": "Egység",
-        "vtszCode": "VTSZ kód"
-      },
-      "fetchButton": "Számlák lekérdezése",
-      "fetchError": "A számlák lekérdezése sikertelen. Kérjük, próbálja újra.",
-      "fromLabel": "-tól",
-      "navUnavailable": "A NAV Online Számla nem elérhető.",
-      "navUnavailableLink": "Adatforrás beállítása",
-      "noResults": "Nem található számlasor a kiválasztott időszakra.",
-      "noTaxNumber": "Nincs regisztrált adószám — a számlák lekérdezéséhez adja meg az adószámot a gyártói profilban.",
-      "panelTitle": "Termékek az előző negyedév számlái alapján",
-      "scopeWarningBody": "Az automatikus számla-alapú kitöltés azokhoz a vállalkozásokhoz illik, akik elsődlegesen csomagolóanyagokat (zsák, palack, doboz) forgalmaznak. Ha az Ön számláin csomagolt termékek szerepelnek (pl. élelmiszer, gépalkatrész), az eredmény hiányos vagy pontatlan lehet — a pontos EPR számításhoz termék-csomagolás nyilvántartás szükséges.",
-      "scopeWarningTitle": "Ez a funkció csomagolóanyag-forgalmazóknak készült",
-      "searchPlaceholder": "Keresés leírás, VTSZ vagy KF kód alapján...",
-      "taxNumberLabel": "Szállító adószáma",
-      "taxNumberPlaceholder": "12345678",
-      "templateMatched": "Sablon egyezik",
-      "toLabel": "-ig"
-    },
     "config": {
       "title": "EPR Konfiguráció",
       "version": "Verzió"
@@ -35,31 +9,81 @@
     },
     "filing": {
       "backToLibrary": "Vissza a könyvtárhoz",
-      "calculateButton": "Összesítés kiszámítása",
-      "calculateError": "Számítás sikertelen: {message}",
-      "emptyState": "Nincs bejelentésre kész anyag. Először osztályozza az anyagokat az EPR Könyvtárban.",
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "XML generálása...",
       "exportLocaleNotice": "Az export feltölthető az OKIR portálra (kapu.okir.hu).",
-      "grandTotalFee": "Teljes díj összege",
-      "grandTotalWeight": "Teljes tömeg",
-      "newFilingButton": "Új bejelentés",
-      "summaryTitle": "Bejelentési összesítő",
-      "table": {
-        "baseWeight": "Alapsúly (g)",
-        "feeAmount": "Díj összege (HUF)",
-        "feeRate": "Díjkulcs (HUF/kg)",
-        "kfCode": "KF kód",
-        "name": "Megnevezés",
-        "quantity": "Darabszám (db)",
-        "totalWeight": "Összsúly (kg)"
+      "kfTotals": {
+        "columns": {
+          "classification": "Besorolás",
+          "feeFt": "Díj (Ft)",
+          "feeRate": "Díjkulcs (HUF/kg)",
+          "kfCode": "KF kód",
+          "productCount": "Termékek száma",
+          "weightKg": "Tömeg (kg)"
+        },
+        "fallbackTooltip": "VTSZ visszaesési besorolás — ellenőrizze a terméket a pontosabb osztályozáshoz",
+        "overflowTooltip": "A tömeg meghaladja a küszöbértéket — ellenőrizze a csomagolás adatait",
+        "title": "KF kód összesítő"
       },
+      "loadError": "A bejelentési adatok betöltése sikertelen: {message}",
+      "loadErrorInvalidRange": "A kiválasztott időszak érvénytelen — a kezdő dátumnak meg kell előznie a végdátumot.",
+      "loadErrorTierGate": "Az előfizetési szintje nem tartalmazza a bejelentési funkció elérését.",
+      "newFilingButton": "Új bejelentés",
+      "periodSelector": {
+        "fromLabel": "-tól",
+        "title": "Bejelentési időszak",
+        "toLabel": "-ig"
+      },
+      "soldProducts": {
+        "badge": {
+          "missing": "Hiányos",
+          "ready": "Kész",
+          "uncertain": "Bizonytalan"
+        },
+        "columns": {
+          "description": "Leírás",
+          "lines": "Számlsorok",
+          "quantity": "Mennyiség",
+          "status": "Státusz",
+          "unit": "Egység",
+          "vtsz": "VTSZ"
+        },
+        "filterChips": {
+          "onlyMissing": "Csak hiányos",
+          "onlyUncertain": "Csak bizonytalan"
+        },
+        "title": "Értékesített termékek"
+      },
+      "summary": {
+        "grandTotalFee": "Teljes díj összege",
+        "grandTotalWeight": "Teljes tömeg",
+        "totalKfCodes": "KF kódok száma"
+      },
+      "summaryTitle": "Bejelentési összesítő",
       "title": "Negyedéves EPR bejelentés",
       "totalLines": "Anyagok száma",
-      "validation": {
-        "mustBeInteger": "A darabszámnak egész számnak kell lennie",
-        "mustBePositive": "A darabszámnak nagyobbnak kell lennie 0-nál"
+      "unresolved": {
+        "columns": {
+          "action": "Művelet",
+          "description": "Leírás",
+          "invoiceNumber": "Számlaszám",
+          "lineNumber": "Sor",
+          "quantity": "Mennyiség",
+          "reason": "Ok",
+          "unit": "Egység",
+          "vtsz": "VTSZ"
+        },
+        "panelTitle": "Nem azonosított sorok ({count})",
+        "reason": {
+          "NO_MATCHING_PRODUCT": "Nincs egyező termék",
+          "UNSUPPORTED_UNIT_OF_MEASURE": "Nem támogatott mértékegység",
+          "VTSZ_FALLBACK": "VTSZ visszaesési besorolás",
+          "ZERO_COMPONENTS": "Hiányzó csomagolás adatok"
+        },
+        "registerProduct": "Termék regisztrálása",
+        "unsupportedUnitTooltip": "Jelenleg csak DARAB mértékegység támogatott",
+        "vtszFallbackNote": "Ez a sor beleszámít a KF összesítőbe, de bizonytalan besorolással."
       }
     },
     "materialLibrary": {
@@ -134,19 +158,9 @@
       "exportButton": "Negyedéves EPR bevallás letöltése (OKIRkapu XML)",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "ZIP generálása...",
-      "exportTaxNumberLabel": "Saját adószám",
       "exportTitle": "Negyedéves EPR bevallás – OKIRkapu beküldéshez",
       "openSettings": "Beállítások megnyitása",
       "panelTitle": "OKIRkapu XML Export",
-      "preview": {
-        "profileIncomplete": "A gyártói profil hiányos. Kérjük, töltse ki az összes szükséges mezőt.",
-        "profileOpenSettings": "Beállítások megnyitása",
-        "registryMatch": "Azonosított tételek (bekerülnek az XML-be)",
-        "title": "Bejelentés előnézete",
-        "unmatched": "Nem illeszkedett sorok (XML-ből kizárva)",
-        "unmatchedRegisterShortcut": "Termék regisztrálása",
-        "vtszFallback": "VTSZ visszaesési sorok (csak tájékoztató jellegű, XML-ből kizárva)"
-      },
       "profileIncomplete": "Töltse ki a gyártói profilt az exportálás előtt",
       "profileIncompleteDetail": "A bejelentéshez szükséges mezők (cégnév, cím, kapcsolattartó) hiányoznak."
     },
@@ -186,7 +200,7 @@
       "hints": {
         "step1": "Válassza ki a termék fő kategóriáját (pl. csomagolás, elektronika, gumiabroncs).",
         "step2": "Milyen anyagból készül a bejelentendő tétel?",
-        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag „Fa”, a tartály „PET palack”.",
+        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag \u201eFa\u201d, a tartály \u201ePET palack\u201d.",
         "step3group": "Válassza ki a csomagolás felhasználási szintjét.",
         "step3subgroup": "Válassza ki a pontos altípust a besorolás véglegesítéséhez."
       },

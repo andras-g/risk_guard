@@ -132,27 +132,46 @@ export interface KfCodeListResponse {
   entries: KfCodeEntry[]
 }
 
-// ─── Invoice Auto-Fill types (Story 8.3) ────────────────────────────────────
-// TODO: Replace with auto-generated types after OpenAPI regen
+// ─── Filing Aggregation types (Story 10.5) ──────────────────────────────────
 
-export interface InvoiceAutoFillRequest {
-  taxNumber: string
-  from: string
-  to: string
-}
-
-export interface InvoiceAutoFillLineDto {
-  vtszCode: string
+export interface SoldProductLine {
+  productId: string | null
+  vtsz: string
   description: string
-  suggestedKfCode: string | null
-  aggregatedQuantity: number
+  totalQuantity: number
   unitOfMeasure: string
-  hasExistingTemplate: boolean
-  existingTemplateId: string | null
+  matchingInvoiceLines: number
 }
 
-export interface InvoiceAutoFillResponse {
-  lines: InvoiceAutoFillLineDto[]
-  navAvailable: boolean
-  dataSourceMode: string
+export interface KfCodeTotal {
+  kfCode: string
+  classificationLabel: string | null
+  totalWeightKg: number
+  feeRateHufPerKg: number
+  totalFeeHuf: number
+  contributingProductCount: number
+  hasFallback: boolean
+  hasOverflowWarning: boolean
+}
+
+export interface UnresolvedInvoiceLine {
+  invoiceNumber: string
+  lineNumber: number
+  vtsz: string
+  description: string
+  quantity: number
+  unitOfMeasure: string
+  reason: 'NO_MATCHING_PRODUCT' | 'UNSUPPORTED_UNIT_OF_MEASURE' | 'ZERO_COMPONENTS' | 'VTSZ_FALLBACK'
+}
+
+export interface AggregationMetadata {
+  period: { from: string; to: string }
+  generatedAt: string
+}
+
+export interface FilingAggregationResult {
+  soldProducts: SoldProductLine[]
+  kfTotals: KfCodeTotal[]
+  unresolved: UnresolvedInvoiceLine[]
+  metadata: AggregationMetadata
 }

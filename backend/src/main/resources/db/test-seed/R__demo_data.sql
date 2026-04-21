@@ -993,9 +993,8 @@ ON CONFLICT (id) DO NOTHING;
 -- SECTION 19: VTSZ-aligned EPR templates for Demo Felhasználó (Pre-fill match)
 -- =============================================================================
 -- Templates whose `name` matches the materialName_hu from V20260403_001 vtszMappings —
--- this is what EprService.autoFillFromInvoices() uses for the "template matched" badge.
--- Without these, Bemutató Kereskedelmi's invoice lines (VTSZ 39233000, 48191000, 73181500)
--- would return suggestions with `hasExistingTemplate=false` for every row.
+-- retained for legacy demo fixtures; the invoice auto-fill endpoint was removed in Story 10.6
+-- in favour of the registry-driven aggregator (Story 10.5) + filing UI (Story 10.6).
 INSERT INTO epr_material_templates (
     id, tenant_id, name, base_weight_grams, kf_code, verified, recurring, created_at, updated_at
 ) VALUES

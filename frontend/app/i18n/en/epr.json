@@ -1,31 +1,5 @@
 {
   "epr": {
-    "autofill": {
-      "applyButton": "Apply to Filing",
-      "columns": {
-        "description": "Description",
-        "quantity": "Quantity",
-        "suggestedKfCode": "Suggested KF Code",
-        "template": "Template",
-        "unit": "Unit",
-        "vtszCode": "VTSZ Code"
-      },
-      "fetchButton": "Fetch Invoices",
-      "fetchError": "Failed to fetch invoices. Please try again.",
-      "fromLabel": "From",
-      "navUnavailable": "NAV Online Számla is not available.",
-      "navUnavailableLink": "Configure data source",
-      "noResults": "No invoice lines found for the selected period.",
-      "noTaxNumber": "No registered tax number — configure your tax number in the producer profile to fetch invoices.",
-      "panelTitle": "Products from Previous Quarter's Invoices",
-      "scopeWarningBody": "Invoice-based auto-fill is best suited for businesses that primarily sell packaging materials (bags, bottles, cartons). If your invoices list packaged products (e.g. food items, machine parts), results may be incomplete or inaccurate — a product-packaging registry is required for correct EPR calculation.",
-      "scopeWarningTitle": "Designed for packaging-material distributors",
-      "searchPlaceholder": "Search by description, VTSZ or KF code...",
-      "taxNumberLabel": "Supplier Tax Number",
-      "taxNumberPlaceholder": "12345678",
-      "templateMatched": "Template matched",
-      "toLabel": "To"
-    },
     "config": {
       "title": "EPR Configuration",
       "version": "Version"
@@ -35,31 +9,81 @@
     },
     "filing": {
       "backToLibrary": "Back to Library",
-      "calculateButton": "Calculate Totals",
-      "calculateError": "Calculation failed: {message}",
-      "emptyState": "No filing-ready materials. Classify your materials in the EPR Library first.",
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating XML...",
       "exportLocaleNotice": "The export can be uploaded to the OKIR portal (kapu.okir.hu).",
-      "grandTotalFee": "Grand Total Fee",
-      "grandTotalWeight": "Grand Total Weight",
-      "newFilingButton": "New Filing",
-      "summaryTitle": "Filing Summary",
-      "table": {
-        "baseWeight": "Base Weight (g)",
-        "feeAmount": "Fee Amount (HUF)",
-        "feeRate": "Fee Rate (HUF/kg)",
-        "kfCode": "KF Code",
-        "name": "Name",
-        "quantity": "Quantity (pcs)",
-        "totalWeight": "Total Weight (kg)"
+      "kfTotals": {
+        "columns": {
+          "classification": "Classification",
+          "feeFt": "Fee (Ft)",
+          "feeRate": "Fee Rate (HUF/kg)",
+          "kfCode": "KF Code",
+          "productCount": "Products",
+          "weightKg": "Weight (kg)"
+        },
+        "fallbackTooltip": "VTSZ fallback classification — review product for more precise KF code",
+        "overflowTooltip": "Weight exceeds threshold — verify packaging data",
+        "title": "KF Code Totals"
       },
+      "loadError": "Could not load filing data: {message}",
+      "loadErrorInvalidRange": "The selected period is invalid — the start date must be before the end date.",
+      "loadErrorTierGate": "Your subscription tier does not include access to the filing feature.",
+      "newFilingButton": "New Filing",
+      "periodSelector": {
+        "fromLabel": "From",
+        "title": "Filing Period",
+        "toLabel": "To"
+      },
+      "soldProducts": {
+        "badge": {
+          "missing": "Missing",
+          "ready": "Ready",
+          "uncertain": "Uncertain"
+        },
+        "columns": {
+          "description": "Description",
+          "lines": "Invoice Lines",
+          "quantity": "Quantity",
+          "status": "Status",
+          "unit": "Unit",
+          "vtsz": "VTSZ"
+        },
+        "filterChips": {
+          "onlyMissing": "Only missing",
+          "onlyUncertain": "Only uncertain"
+        },
+        "title": "Sold Products"
+      },
+      "summary": {
+        "grandTotalFee": "Grand Total Fee",
+        "grandTotalWeight": "Grand Total Weight",
+        "totalKfCodes": "Total KF Codes"
+      },
+      "summaryTitle": "Filing Summary",
       "title": "Quarterly EPR Filing",
       "totalLines": "Materials included",
-      "validation": {
-        "mustBeInteger": "Quantity must be a whole number (pcs)",
-        "mustBePositive": "Quantity must be greater than 0"
+      "unresolved": {
+        "columns": {
+          "action": "Action",
+          "description": "Description",
+          "invoiceNumber": "Invoice Number",
+          "lineNumber": "Line",
+          "quantity": "Quantity",
+          "reason": "Reason",
+          "unit": "Unit",
+          "vtsz": "VTSZ"
+        },
+        "panelTitle": "Unidentified lines ({count})",
+        "reason": {
+          "NO_MATCHING_PRODUCT": "No matching product",
+          "UNSUPPORTED_UNIT_OF_MEASURE": "Unsupported unit of measure",
+          "VTSZ_FALLBACK": "VTSZ fallback classification",
+          "ZERO_COMPONENTS": "Missing packaging data"
+        },
+        "registerProduct": "Register product",
+        "unsupportedUnitTooltip": "Only DARAB (piece) unit of measure is currently supported",
+        "vtszFallbackNote": "This line is included in KF totals but with uncertain classification."
       }
     },
     "materialLibrary": {
@@ -134,19 +158,9 @@
       "exportButton": "Download quarterly EPR filing (OKIRkapu XML)",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating ZIP...",
-      "exportTaxNumberLabel": "Your Tax Number",
       "exportTitle": "Quarterly EPR filing — ready for OKIRkapu submission",
       "openSettings": "Open Settings",
       "panelTitle": "OKIRkapu XML Export",
-      "preview": {
-        "profileIncomplete": "Producer profile is incomplete. Please fill in all required fields.",
-        "profileOpenSettings": "Open Settings",
-        "registryMatch": "Identified Items (included in XML)",
-        "title": "Filing Preview",
-        "unmatched": "Unmatched Lines (not in XML)",
-        "unmatchedRegisterShortcut": "Register Product",
-        "vtszFallback": "VTSZ Fallback (informational only, excluded from XML)"
-      },
       "profileIncomplete": "Complete your producer profile before exporting",
       "profileIncompleteDetail": "Required fields (legal name, address, contact person) are missing."
     },

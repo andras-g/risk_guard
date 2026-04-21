@@ -1,5 +1,11 @@
 # Deferred Work
 
+## Deferred from: code review of 10-6-epr-filing-ui-rebuild-two-tier-display (2026-04-21)
+
+- R2-D1: AbortController for `fetchAggregation` races — concurrent fetches can land out of order and overwrite newer state; in-flight fetch not cancelled on unmount. Cross-cutting refactor; follow-up.
+- R2-D2: `onMounted` + period watcher both schedule a fetch on first render — low impact (same default period = same response); resolved once R2-D1 cancels the earlier request.
+- R2-D3: Description normalization (trim/case) between `soldProducts` and `unresolved` for status-badge matching — reaffirmed R1 D3, belongs server-side.
+
 ## Deferred from: code review of 9-6-multi-layer-packaging-ratio-and-ai-weight-suggestions (2026-04-16)
 
 - D1: Static ObjectMapper in BootstrapRepository — thread-safe for current usage but fragile if JavaTimeModule/Jdk8Module needed later. Pre-existing pattern.
@@ -381,3 +387,8 @@
 - D5: Override falsy check for `overrideKfCode`/`overrideClassification` (empty string falls back to resolved value) — pre-existing pattern from `confirmAndLink()`. [stores/eprWizard.ts:505-513]
 - D6: `startResolveOnly()` error path leaves blank stepper — no error banner in `KfCodeWizardDialog.vue`; pre-existing behavior matching `startWizard()` failure. [KfCodeWizardDialog.vue]
 - D7: Duplicate `data-testid="wizard-cancel-button"` across both Step 4 footer branches — non-colliding; no test exercises cancel at Step 4. [WizardStepper.vue:275 and 301]
+
+## Deferred from: code review of 10-6-epr-filing-ui-rebuild-two-tier-display (2026-04-21)
+- D1: Race condition — concurrent fetchAggregation calls not cancelled; earlier request can resolve after a later one, showing stale data for the wrong period. AbortController integration needed. [eprFiling.ts]
+- D2: AND-filter with both 'only missing' + 'only uncertain' chips active always produces an empty table silently (status is mutually exclusive). Consider empty-state message or chip exclusivity. [EprSoldProductsTable.vue]
+- D3: getRowStatus matches description by strict equality — whitespace/case divergence between soldProducts and unresolved (from backend) could produce wrong status badge. Normalise server-side. [EprSoldProductsTable.vue]
