@@ -7,6 +7,7 @@ import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.domain.FeeCalculator;
 import hu.riskguard.epr.internal.EprRepository;
 import hu.riskguard.epr.producer.domain.ProducerProfileService;
+import hu.riskguard.epr.domain.EprService.GenerateReportResult;
 import hu.riskguard.epr.report.EprReportArtifact;
 import hu.riskguard.epr.report.EprReportRequest;
 import hu.riskguard.epr.report.EprReportTarget;
@@ -136,9 +137,12 @@ class EprServiceGenerateReportTest {
         when(reportTarget.generate(any(), any(), any(), any())).thenReturn(stubArtifact);
         // config version lookup — allow it to fall through to the catch-block and return 0
         when(eprRepository.findActiveConfig()).thenReturn(Optional.empty());
+        // insertExport now returns a UUID; stub it
+        when(eprRepository.insertExport(any(), any(Integer.class), any(), any(), any(), any(),
+                any(), any(), any(), any(), any())).thenReturn(UUID.randomUUID());
 
         EprReportRequest req = new EprReportRequest(TENANT, Q1_START, Q1_END, TAX);
-        EprReportArtifact result = eprService.generateReport(req, List.of());
-        assertThat(result).isSameAs(stubArtifact);
+        GenerateReportResult result = eprService.generateReport(req, List.of());
+        assertThat(result.artifact()).isSameAs(stubArtifact);
     }
 }

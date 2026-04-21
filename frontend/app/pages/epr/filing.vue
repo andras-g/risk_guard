@@ -10,9 +10,11 @@ import { useAuthStore } from '~/stores/auth'
 import { useEprFilingStore } from '~/stores/eprFiling'
 import { useRegistryCompleteness } from '~/composables/api/useRegistryCompleteness'
 import { useEprFilingProvenance } from '~/composables/api/useEprFilingProvenance'
+import { useEprSubmissions } from '~/composables/api/useEprSubmissions'
 import EprSoldProductsTable from '~/components/Epr/EprSoldProductsTable.vue'
 import EprKfTotalsTable from '~/components/Epr/EprKfTotalsTable.vue'
 import EprProvenanceTable from '~/components/Epr/EprProvenanceTable.vue'
+import EprSubmissionsTable from '~/components/Epr/EprSubmissionsTable.vue'
 import type { UnresolvedInvoiceLine } from '~/types/epr'
 
 const { t } = useI18n()
@@ -23,6 +25,7 @@ const authStore = useAuthStore()
 const filingStore = useEprFilingStore()
 const registryCompleteness = useRegistryCompleteness()
 const provenance = useEprFilingProvenance()
+const submissions = useEprSubmissions()
 
 // Accountant with home tenant active = no client selected yet
 const needsClientSelection = computed(() =>
@@ -105,6 +108,16 @@ const grandTotalFee = computed(() => {
     filingStore.grandTotalFeeHuf,
   ) + ' Ft'
 })
+
+// Submission History panel
+const submissionsPanelCollapsed = ref(true)
+
+function onSubmissionsPanelToggle(collapsed: boolean) {
+  submissionsPanelCollapsed.value = collapsed
+  if (!collapsed && submissions.rows.value.length === 0 && !submissions.isLoading.value) {
+    submissions.fetch(0, 25)
+  }
+}
 
 // Audit panel
 const auditPanelCollapsed = ref(true)
@@ -456,6 +469,26 @@ const genericErrorMessage = computed(() => {
           :period="{ from: periodFrom, to: periodTo }"
           data-testid="provenance-table-section"
           @page="onProvenancePage"
+        />
+      </Panel>
+    </div>
+
+    <!-- Submission History Panel -->
+    <div class="mb-6" data-testid="submissions-panel-wrapper">
+      <Panel
+        v-if="!registryCompleteness.isEmpty.value"
+        :header="t('epr.submissions.panelTitle')"
+        :collapsed="submissionsPanelCollapsed"
+        toggleable
+        data-testid="submissions-panel"
+        @update:collapsed="onSubmissionsPanelToggle"
+      >
+        <EprSubmissionsTable
+          :rows="submissions.rows.value"
+          :total-elements="submissions.totalElements.value"
+          :is-loading="submissions.isLoading.value"
+          @page="({ page, rows }) => submissions.fetch(page, rows)"
+          @download="({ id, fileName }) => submissions.downloadXml(id, fileName)"
         />
       </Panel>
     </div>

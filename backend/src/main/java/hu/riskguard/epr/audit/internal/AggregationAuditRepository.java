@@ -2,6 +2,8 @@ package hu.riskguard.epr.audit.internal;
 
 import hu.riskguard.core.repository.BaseRepository;
 import org.jooq.DSLContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -19,6 +21,8 @@ import static hu.riskguard.jooq.Tables.AGGREGATION_AUDIT_LOG;
  */
 @Repository
 public class AggregationAuditRepository extends BaseRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(AggregationAuditRepository.class);
 
     public AggregationAuditRepository(DSLContext dsl) {
         super(dsl);
@@ -60,6 +64,17 @@ public class AggregationAuditRepository extends BaseRepository {
                 .set(AGGREGATION_AUDIT_LOG.PERIOD_END, periodEnd)
                 .set(AGGREGATION_AUDIT_LOG.PERFORMED_BY_USER_ID, userId)
                 .execute();
+    }
+
+    public void insertSubmissionDownload(UUID tenantId, UUID userId, UUID submissionId) {
+        // Persist first, then log — on INSERT failure the log line must not claim success.
+        dsl.insertInto(AGGREGATION_AUDIT_LOG)
+                .set(AGGREGATION_AUDIT_LOG.TENANT_ID, tenantId)
+                .set(AGGREGATION_AUDIT_LOG.EVENT_TYPE, "SUBMISSION_DOWNLOAD")
+                .set(AGGREGATION_AUDIT_LOG.PERFORMED_BY_USER_ID, userId)
+                .execute();
+        log.info("[audit] submission_download tenantId={} userId={} submissionId={}",
+                tenantId, userId, submissionId);
     }
 
     /** Count rows for a tenant and event type — used in round-trip tests. */

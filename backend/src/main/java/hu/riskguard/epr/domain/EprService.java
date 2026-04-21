@@ -90,6 +90,9 @@ public class EprService {
      */
     private final ConcurrentHashMap<String, java.util.List<DagEngine.KfCodeEntry>> kfCodeCache = new ConcurrentHashMap<>();
 
+    /** Wraps both the generated artifact and the persisted submission UUID. */
+    public record GenerateReportResult(EprReportArtifact artifact, UUID submissionId) {}
+
     /**
      * Health-check method to verify the module is wired correctly.
      */
@@ -207,7 +210,7 @@ public class EprService {
      * @throws ResponseStatusException 422 if configVersion does not match the active config
      */
     @Transactional(readOnly = true)
-    public EprReportArtifact generateReport(EprReportRequest request, List<KfCodeTotal> kfTotals) {
+    public GenerateReportResult generateReport(EprReportRequest request, List<KfCodeTotal> kfTotals) {
         UUID tenantId = request.tenantId();
         LocalDate periodStart = request.periodStart();
         LocalDate periodEnd = request.periodEnd();
@@ -249,6 +252,19 @@ public class EprService {
         // Delegate to the active EprReportTarget strategy (OkirkapuXmlExporter by default)
         EprReportArtifact artifact = reportTarget.generate(kfTotals, profile, periodStart, periodEnd);
 
+        // Compute totals for submission history columns.
+        BigDecimal totalWeightKg = kfTotals.stream()
+                .map(hu.riskguard.epr.aggregation.api.dto.KfCodeTotal::totalWeightKg)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(3, java.math.RoundingMode.HALF_UP);
+        BigDecimal totalFeeHuf = kfTotals.stream()
+                .map(hu.riskguard.epr.aggregation.api.dto.KfCodeTotal::totalFeeHuf)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        String tenantShortId = tenantId.toString().substring(0, 8);
+        String fileName = "okirkapu-" + tenantShortId + "-" + periodStart + "-" + periodEnd + ".xml";
+
         // Log the export in a separate REQUIRES_NEW transaction so the write commits
         // independently of the outer read-only transaction (per AC 3 + ADR-0002).
         String fileHash = artifact.xmlBytes() != null
@@ -261,13 +277,19 @@ public class EprService {
             configVersion = 0;
         }
         final int finalConfigVersion = configVersion;
+        final BigDecimal finalTotalWeightKg = totalWeightKg;
+        final BigDecimal finalTotalFeeHuf = totalFeeHuf;
+        final byte[] xmlContent = artifact.xmlBytes();
+        final UUID submittedByUserId = request.submittedByUserId();
+        final String finalFileName = fileName;
         TransactionTemplate writeTx = new TransactionTemplate(transactionManager);
         writeTx.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        writeTx.executeWithoutResult(status ->
+        UUID submissionId = writeTx.execute(status ->
                 eprRepository.insertExport(tenantId, finalConfigVersion, fileHash,
-                        "OKIRKAPU_XML", periodStart, periodEnd));
+                        "OKIRKAPU_XML", periodStart, periodEnd,
+                        finalTotalWeightKg, finalTotalFeeHuf, xmlContent, submittedByUserId, finalFileName));
 
-        return artifact;
+        return new GenerateReportResult(artifact, submissionId);
     }
 
     /**
@@ -304,6 +326,24 @@ public class EprService {
         });
         ProducerProfile profile = producerProfileService.get(tenantId);
         return reportTarget.generate(kfTotals, profile, periodStart, periodEnd);
+    }
+
+    // ─── Submission History methods (Story 10.9) ─────────────────────────────
+
+    public List<hu.riskguard.epr.api.dto.EprSubmissionSummary> listSubmissions(UUID tenantId, int page, int size) {
+        return eprRepository.listSubmissions(tenantId, page, size);
+    }
+
+    public long countSubmissions(UUID tenantId) {
+        return eprRepository.countSubmissions(tenantId);
+    }
+
+    public Optional<hu.riskguard.epr.api.dto.EprSubmissionSummary> findSubmission(UUID id, UUID tenantId) {
+        return eprRepository.findSubmission(id, tenantId);
+    }
+
+    public Optional<byte[]> getSubmissionXmlContent(UUID id, UUID tenantId) {
+        return eprRepository.getSubmissionXmlContent(id, tenantId);
     }
 
     // ─── Wizard methods ──────────────────────────────────────────────────────

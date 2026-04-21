@@ -39,6 +39,26 @@ vi.mock('~/stores/auth', () => ({
   }),
 }))
 
+// ─── Submissions mock ─────────────────────────────────────────────────────────
+const mockSubmissionsFetch = vi.fn().mockResolvedValue(undefined)
+const mockSubmissionsDownloadXml = vi.fn().mockResolvedValue(undefined)
+const mockSubmissionsInvalidate = vi.fn()
+let mockSubmissionsRows: unknown[] = []
+let mockSubmissionsTotalElements = 0
+let mockSubmissionsIsLoading = false
+
+vi.mock('~/composables/api/useEprSubmissions', () => ({
+  useEprSubmissions: () => ({
+    get rows() { return { value: mockSubmissionsRows } },
+    get totalElements() { return { value: mockSubmissionsTotalElements } },
+    get isLoading() { return { value: mockSubmissionsIsLoading } },
+    get isDownloading() { return { value: false } },
+    fetch: mockSubmissionsFetch,
+    downloadXml: mockSubmissionsDownloadXml,
+    invalidate: mockSubmissionsInvalidate,
+  }),
+}))
+
 // ─── Provenance mock ──────────────────────────────────────────────────────────
 const mockProvenanceFetch = vi.fn().mockResolvedValue(undefined)
 const mockProvenanceExportCsv = vi.fn().mockResolvedValue(undefined)
@@ -173,6 +193,7 @@ function mountPage() {
         EprSoldProductsTable: EprSoldProductsTableStub,
         EprKfTotalsTable: EprKfTotalsTableStub,
         EprProvenanceTable: EprProvenanceTableStub,
+        EprSubmissionsTable: { template: '<div data-testid="submissions-table-stub" />', props: ['rows', 'totalElements', 'isLoading'] },
         RegistryOnboardingBlock: RegistryOnboardingBlockStub,
       },
     },
@@ -199,6 +220,9 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     mockProvenanceTotalElements = 0
     mockProvenanceIsLoading = false
     mockProvenanceIsCsvExporting = false
+    mockSubmissionsRows = []
+    mockSubmissionsTotalElements = 0
+    mockSubmissionsIsLoading = false
   })
 
   it('renders period selector on mount', () => {
@@ -423,5 +447,35 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     await onboardingBlock.vm.$emit('bootstrap-completed')
     await flushPromises()
     expect(mockRefresh).toHaveBeenCalled()
+  })
+
+  // ─── Submission History Panel tests (AC #27) ─────────────────────────────────
+
+  it('submissions panel is collapsed by default when registry is not empty', () => {
+    mockIsEmpty = false
+    const wrapper = mountPage()
+    const allPanels = wrapper.findAllComponents(PanelStub)
+    const submissionsPanel = allPanels.find(p => (p.element as HTMLElement).getAttribute('data-testid') === 'submissions-panel')
+    expect(submissionsPanel).toBeDefined()
+    expect(submissionsPanel!.props('collapsed')).toBe(true)
+  })
+
+  it('expanding submissions panel triggers submissions.fetch(0, 25)', async () => {
+    mockIsEmpty = false
+    const wrapper = mountPage()
+    const allPanels = wrapper.findAllComponents(PanelStub)
+    const submissionsPanel = allPanels.find(p => (p.element as HTMLElement).getAttribute('data-testid') === 'submissions-panel')
+    expect(submissionsPanel).toBeDefined()
+    await submissionsPanel!.vm.$emit('update:collapsed', false)
+    expect(mockSubmissionsFetch).toHaveBeenCalledWith(0, 25)
+  })
+
+  it('submissions panel is absent when registry is empty (isEmpty=true)', () => {
+    mockIsEmpty = true
+    mockTotalProducts = 0
+    const wrapper = mountPage()
+    const allPanels = wrapper.findAllComponents(PanelStub)
+    const submissionsPanel = allPanels.find(p => (p.element as HTMLElement).getAttribute('data-testid') === 'submissions-panel')
+    expect(submissionsPanel).toBeUndefined()
   })
 })

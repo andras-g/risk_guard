@@ -157,4 +157,26 @@ class AuditServiceTest {
 
         assertThat(result).isEqualTo(42L);
     }
+
+    @Test
+    void recordSubmissionDownload_delegatesToRepository() {
+        UUID submissionId = UUID.randomUUID();
+
+        auditService.recordSubmissionDownload(TENANT_ID, USER_ID, submissionId);
+
+        verify(aggregationAuditRepository).insertSubmissionDownload(TENANT_ID, USER_ID, submissionId);
+    }
+
+    @Test
+    void recordSubmissionDownload_incrementsEprAggregationCounter() {
+        UUID submissionId = UUID.randomUUID();
+        double before = meterRegistry.get("audit.writes")
+                .tag("source", AuditSource.EPR_AGGREGATION.name()).counter().count();
+
+        auditService.recordSubmissionDownload(TENANT_ID, USER_ID, submissionId);
+
+        double after = meterRegistry.get("audit.writes")
+                .tag("source", AuditSource.EPR_AGGREGATION.name()).counter().count();
+        assertThat(after).isEqualTo(before + 1.0);
+    }
 }

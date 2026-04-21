@@ -202,3 +202,24 @@ export interface ProvenancePage {
   page: number
   size: number
 }
+
+// ─── Submission History types (Story 10.9) ──────────────────────────────────
+
+export interface EprSubmissionSummary {
+  id: string
+  periodStart: string
+  periodEnd: string
+  totalWeightKg: number | null
+  totalFeeHuf: number | null
+  exportedAt: string
+  fileName: string | null
+  submittedByUserEmail: string | null
+  hasXmlContent: boolean
+}
+
+export interface EprSubmissionPage {
+  content: EprSubmissionSummary[]
+  totalElements: number
+  page: number
+  size: number
+}

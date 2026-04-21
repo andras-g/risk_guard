@@ -424,3 +424,10 @@
 - D1: Race condition — concurrent fetchAggregation calls not cancelled; earlier request can resolve after a later one, showing stale data for the wrong period. AbortController integration needed. [eprFiling.ts]
 - D2: AND-filter with both 'only missing' + 'only uncertain' chips active always produces an empty table silently (status is mutually exclusive). Consider empty-state message or chip exclusivity. [EprSoldProductsTable.vue]
 - D3: getRowStatus matches description by strict equality — whitespace/case divergence between soldProducts and unresolved (from backend) could produce wrong status badge. Normalise server-side. [EprSoldProductsTable.vue]
+
+## Deferred from: code review of 10-9-submission-history (2026-04-21)
+- W1: Controller test (EprSubmissionHistoryControllerTest) uses plain Mockito — tier/role guards and HTTP header serialisation untested; upgrade to MockMvc+Testcontainers to match project standard.
+- W2: downloadSubmission makes two separate DB round-trips for the same row (findSubmission + getSubmissionXmlContent); consolidate into one SELECT to eliminate TOCTOU window. Table is append-only so race is unlikely today.
+- W3: generateReport @Transactional(readOnly=true) spawns a REQUIRES_NEW write transaction inside — safe today but fragile under read-replica DataSource routing; extract write path to a non-readOnly service method.
+- W4: E2E submission-history.e2e.ts skips both scenarios when no live seeded data — make assertions conditional or supply fixture data in CI seed.
+- W5: GET /submissions list endpoint records no audit event — bulk enumeration of submission metadata is not audited; consider SUBMISSION_LIST event type for compliance completeness.

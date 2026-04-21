@@ -349,25 +349,89 @@ public class EprRepository extends BaseRepository {
 
     /**
      * Insert a row into {@code epr_exports} recording a completed OKIRkapu XML export.
-     * {@code calculation_id} is null for period-based exports.
+     * Accepts Story 10.9 columns (total_weight_kg, total_fee_huf, xml_content, submitted_by_user_id, file_name).
+     * Returns the generated row UUID for audit cross-reference.
      *
-     * <p>The {@code export_format} column is the {@code export_format_type} PostgreSQL ENUM
-     * (V20260323_004), extended with {@code 'OKIRKAPU_XML'} in V20260416_001. PostgreSQL will
-     * not implicitly coerce {@code varchar} to the enum, so the placeholder is cast explicitly.
-     * Raw SQL is used because the jOOQ-generated {@code ExportFormatType} has not been
-     * regenerated to include the new value yet.
+     * <p>Raw SQL used to avoid jOOQ codegen lag on new nullable BYTEA column and ENUM value.
      *
-     * @param format      export format string (e.g. "OKIRKAPU_XML")
-     * @param periodStart start of the reporting period
-     * @param periodEnd   end of the reporting period
+     * @return the UUID of the inserted epr_exports row
      */
-    public void insertExport(UUID tenantId, int configVersion, String fileHash,
-                              String format, LocalDate periodStart, LocalDate periodEnd) {
-        dsl.execute(
-                "INSERT INTO epr_exports (id, tenant_id, config_version, export_format, file_hash, period_start, period_end) " +
-                "VALUES (gen_random_uuid(), ?, ?, ?::export_format_type, ?, ?, ?)",
-                tenantId, configVersion, format, fileHash, periodStart, periodEnd
-        );
+    public UUID insertExport(UUID tenantId, int configVersion, String fileHash,
+                              String format, LocalDate periodStart, LocalDate periodEnd,
+                              java.math.BigDecimal totalWeightKg, java.math.BigDecimal totalFeeHuf,
+                              byte[] xmlContent, UUID submittedByUserId, String fileName) {
+        return (UUID) dsl.fetchOne(
+                "INSERT INTO epr_exports " +
+                "(id, tenant_id, config_version, export_format, file_hash, period_start, period_end, " +
+                "total_weight_kg, total_fee_huf, xml_content, submitted_by_user_id, file_name) " +
+                "VALUES (gen_random_uuid(), ?, ?, ?::export_format_type, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                "RETURNING id",
+                tenantId, configVersion, format, fileHash, periodStart, periodEnd,
+                totalWeightKg, totalFeeHuf, xmlContent, submittedByUserId, fileName
+        ).getValue(0);
+    }
+
+    // ─── Submission History query methods (Story 10.9) ────────────────────────
+
+    public List<hu.riskguard.epr.api.dto.EprSubmissionSummary> listSubmissions(UUID tenantId, int page, int safeSize) {
+        return dsl.fetch(
+                "SELECT e.id, e.period_start, e.period_end, e.total_weight_kg, e.total_fee_huf, " +
+                "       e.exported_at, e.file_name, u.email AS submitted_by_user_email, " +
+                "       (e.xml_content IS NOT NULL) AS has_xml_content " +
+                "FROM epr_exports e " +
+                "LEFT JOIN users u ON u.id = e.submitted_by_user_id " +
+                "WHERE e.tenant_id = ? AND e.export_format = 'OKIRKAPU_XML'::export_format_type " +
+                "ORDER BY e.period_end DESC NULLS LAST, e.exported_at DESC NULLS LAST, e.id ASC " +
+                "LIMIT ? OFFSET ?",
+                tenantId, safeSize, (long) page * safeSize
+        ).map(r -> new hu.riskguard.epr.api.dto.EprSubmissionSummary(
+                r.get("id", UUID.class),
+                r.get("period_start", java.time.LocalDate.class),
+                r.get("period_end", java.time.LocalDate.class),
+                r.get("total_weight_kg", java.math.BigDecimal.class),
+                r.get("total_fee_huf", java.math.BigDecimal.class),
+                r.get("exported_at", java.time.OffsetDateTime.class),
+                r.get("file_name", String.class),
+                r.get("submitted_by_user_email", String.class),
+                r.get("has_xml_content", Boolean.class)
+        ));
+    }
+
+    public long countSubmissions(UUID tenantId) {
+        return dsl.fetchOne(
+                "SELECT COUNT(*) FROM epr_exports " +
+                "WHERE tenant_id = ? AND export_format = 'OKIRKAPU_XML'::export_format_type",
+                tenantId
+        ).getValue(0, Long.class);
+    }
+
+    public Optional<hu.riskguard.epr.api.dto.EprSubmissionSummary> findSubmission(UUID id, UUID tenantId) {
+        return dsl.fetch(
+                "SELECT e.id, e.period_start, e.period_end, e.total_weight_kg, e.total_fee_huf, " +
+                "       e.exported_at, e.file_name, u.email AS submitted_by_user_email, " +
+                "       (e.xml_content IS NOT NULL) AS has_xml_content " +
+                "FROM epr_exports e " +
+                "LEFT JOIN users u ON u.id = e.submitted_by_user_id " +
+                "WHERE e.id = ? AND e.tenant_id = ?",
+                id, tenantId
+        ).map(r -> new hu.riskguard.epr.api.dto.EprSubmissionSummary(
+                r.get("id", UUID.class),
+                r.get("period_start", java.time.LocalDate.class),
+                r.get("period_end", java.time.LocalDate.class),
+                r.get("total_weight_kg", java.math.BigDecimal.class),
+                r.get("total_fee_huf", java.math.BigDecimal.class),
+                r.get("exported_at", java.time.OffsetDateTime.class),
+                r.get("file_name", String.class),
+                r.get("submitted_by_user_email", String.class),
+                r.get("has_xml_content", Boolean.class)
+        )).stream().findFirst();
+    }
+
+    public Optional<byte[]> getSubmissionXmlContent(UUID id, UUID tenantId) {
+        return dsl.fetch(
+                "SELECT xml_content FROM epr_exports WHERE id = ? AND tenant_id = ?",
+                id, tenantId
+        ).stream().findFirst().map(r -> r.get("xml_content", byte[].class));
     }
 
     /**

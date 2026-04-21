@@ -27,7 +27,8 @@ import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.producer.api.dto.ProducerProfileResponse;
 import hu.riskguard.epr.producer.api.dto.ProducerProfileUpsertRequest;
 import hu.riskguard.epr.producer.domain.ProducerProfileService;
-import hu.riskguard.epr.report.EprReportArtifact;
+import hu.riskguard.epr.api.dto.EprSubmissionPage;
+import hu.riskguard.epr.api.dto.EprSubmissionSummary;
 import hu.riskguard.epr.report.EprReportRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -282,15 +283,84 @@ public class EprController {
             @Valid @RequestBody OkirkapuExportRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
         var aggregationResult = aggregator.aggregateForPeriod(tenantId, request.from(), request.to());
-        EprReportArtifact artifact = eprService.generateReport(
-                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()),
+        var result = eprService.generateReport(
+                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber(), userId),
                 aggregationResult.kfTotals());
+        // Defensive: skip the audit event if the persisted submission row is unknown so we
+        // do not write a traceability-free SUBMISSION_DOWNLOAD row with a NULL submissionId
+        // into the structured log.
+        if (result.submissionId() != null) {
+            auditService.recordSubmissionDownload(tenantId, userId, result.submissionId());
+        }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "application/zip")
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + artifact.filename() + "\"")
-                .body(artifact.bytes());
+                        "attachment; filename=\"" + result.artifact().filename() + "\"")
+                .body(result.artifact().bytes());
+    }
+
+    // ─── Submission History endpoints (Story 10.9) ───────────────────────────
+
+    private static final int MAX_SUBMISSION_PAGE_SIZE = 100;
+
+    /** List past OKIRkapu XML submissions for the current tenant (paginated, tenant-scoped). */
+    @GetMapping("/submissions")
+    public ResponseEntity<EprSubmissionPage> listSubmissions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, Math.min(size, MAX_SUBMISSION_PAGE_SIZE));
+        List<EprSubmissionSummary> rows = eprService.listSubmissions(tenantId, safePage, safeSize);
+        long total = eprService.countSubmissions(tenantId);
+        return ResponseEntity.ok(new EprSubmissionPage(rows, total, safePage, safeSize));
+    }
+
+    /** Get a single submission summary by ID; 404 if not found or cross-tenant (intentional: prevents enumeration). */
+    @GetMapping("/submissions/{id}")
+    public ResponseEntity<EprSubmissionSummary> getSubmission(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        return eprService.findSubmission(id, tenantId)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
+    }
+
+    /** Download the raw XML of a past submission; 404 if xml_content is null. */
+    @GetMapping("/submissions/{id}/download")
+    public ResponseEntity<byte[]> downloadSubmission(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
+        // findSubmission checks tenant ownership — throws 404 if not found/wrong tenant
+        EprSubmissionSummary summary = eprService.findSubmission(id, tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Submission not found"));
+        byte[] xmlContent = eprService.getSubmissionXmlContent(id, tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "XML content not available for this submission"));
+        String rawName = summary.fileName() != null ? summary.fileName() : "okirkapu-" + id + ".xml";
+        String downloadName = sanitizeFilename(rawName);
+        auditService.recordSubmissionDownload(tenantId, userId, id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "application/xml")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + downloadName + "\"")
+                .body(xmlContent);
+    }
+
+    /**
+     * Strip characters that could break the Content-Disposition header: CR, LF, and
+     * double-quotes. File names in {@code epr_exports} are server-generated today,
+     * but this defence prevents any future caller from injecting header continuation
+     * bytes if the field becomes user-influenced.
+     */
+    private static String sanitizeFilename(String name) {
+        String stripped = name.replace("\"", "").replace("\r", "").replace("\n", "");
+        return stripped.isEmpty() ? "okirkapu.xml" : stripped;
     }
 
     // ─── Provenance endpoints ─────────────────────────────────────────────────

@@ -197,6 +197,20 @@
       "description": "Use the customer switcher in the top bar to select which client's EPR data you want to manage.",
       "title": "Select a customer first"
     },
+    "submissions": {
+      "columns": {
+        "download": "Download",
+        "period": "Period",
+        "submittedAt": "Submitted",
+        "submittedBy": "Submitted by",
+        "totalFee": "Total fee (HUF)",
+        "totalWeight": "Weight (kg)"
+      },
+      "deletedUser": "Deleted user",
+      "downloadUnavailable": "File unavailable",
+      "emptyMessage": "No submissions yet",
+      "panelTitle": "Submission History"
+    },
     "title": "EPR Manager",
     "wizard": {
       "back": "Back",

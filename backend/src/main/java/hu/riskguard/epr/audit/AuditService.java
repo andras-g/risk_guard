@@ -153,6 +153,17 @@ public class AuditService {
         aggregationAuditRepository.insertCsvExport(tenantId, userId, periodStart, periodEnd);
     }
 
+    /**
+     * Record that a user downloaded a past OKIRkapu XML submission (Story 10.9 AC #12).
+     *
+     * <p>Persists event_type=SUBMISSION_DOWNLOAD to {@code aggregation_audit_log}.
+     * Called from the controller after a successful response (ADR-0003 §caller-initiates pattern).
+     */
+    public void recordSubmissionDownload(UUID tenantId, UUID userId, UUID submissionId) {
+        aggregationAuditRepository.insertSubmissionDownload(tenantId, userId, submissionId);
+        writeCounters.get(AuditSource.EPR_AGGREGATION).increment();
+    }
+
     // ─── Registry-entry audit — reads ────────────────────────────────────────
 
     /**

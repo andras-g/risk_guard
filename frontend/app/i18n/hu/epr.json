@@ -197,6 +197,20 @@
       "description": "Használja a felső sávban található ügyfélváltót a kezelni kívánt ügyfél EPR adatainak kiválasztásához.",
       "title": "Válasszon ügyfelet"
     },
+    "submissions": {
+      "columns": {
+        "download": "Letöltés",
+        "period": "Periódus",
+        "submittedAt": "Beküldve",
+        "submittedBy": "Beküldte",
+        "totalFee": "Összeg (Ft)",
+        "totalWeight": "Súly (kg)"
+      },
+      "deletedUser": "Törölt felhasználó",
+      "downloadUnavailable": "Fájl nem elérhető",
+      "emptyMessage": "Még nincs bejelentés",
+      "panelTitle": "Bejelentési előzmények"
+    },
     "title": "EPR Kezelő",
     "wizard": {
       "back": "Vissza",
