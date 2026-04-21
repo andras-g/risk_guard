@@ -156,11 +156,23 @@ function onBootstrapCompleted() {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold">{{ t('registry.title') }}</h1>
-      <Button
-        :label="t('registry.actions.create')"
-        icon="pi pi-plus"
-        @click="router.push('/registry/new')"
-      />
+      <div class="flex items-center gap-2">
+        <!-- Story 10.10: secondary CTA to jump into the quarterly filing flow once there is data to report. -->
+        <Button
+          v-if="registryCompleteness.productsWithComponents.value > 0"
+          :label="t('registry.actions.openFiling')"
+          icon="pi pi-file"
+          severity="secondary"
+          outlined
+          data-testid="header-cta-filing"
+          @click="router.push('/epr/filing')"
+        />
+        <Button
+          :label="t('registry.actions.create')"
+          icon="pi pi-plus"
+          @click="router.push('/registry/new')"
+        />
+      </div>
     </div>
 
     <!-- Filters (hidden when registry is wholly empty — AC #14: only header stays visible) -->

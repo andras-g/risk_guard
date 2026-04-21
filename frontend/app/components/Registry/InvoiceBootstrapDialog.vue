@@ -197,6 +197,13 @@ function onOpenRegistry() {
   }
 }
 
+// Story 10.10: jump straight to the quarterly filing flow when the bootstrap produced
+// reportable data (COMPLETED with at least one created product and no hiányos rows left).
+function onOpenFiling() {
+  onClose()
+  router.push('/epr/filing')
+}
+
 watch(() => props.visible, (visible) => {
   if (visible) {
     overwriteConfirmed.value = false
@@ -373,6 +380,15 @@ onBeforeUnmount(clearPoll)
           :label="t('registry.bootstrap.completion.openRegistry')"
           data-testid="bootstrap-open-registry-btn"
           @click="onOpenRegistry"
+        />
+        <!-- Story 10.10: hand users off to filing when the bootstrap produced reportable data. -->
+        <Button
+          v-if="jobStatus.status === 'COMPLETED' && jobStatus.createdProducts > 0 && jobStatus.unresolvedPairs === 0"
+          :label="t('registry.bootstrap.completion.openFiling')"
+          severity="secondary"
+          outlined
+          data-testid="bootstrap-cta-filing"
+          @click="onOpenFiling"
         />
       </template>
     </template>

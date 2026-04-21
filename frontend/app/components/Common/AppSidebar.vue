@@ -150,6 +150,8 @@ const mainNavItems = computed(() => {
     { key: 'watchlist', to: '/watchlist', icon: 'pi-eye', showBadge: true },
     // Registry requires PRO_EPR tier — hidden for ALAP/PRO users (AC 12)
     ...(hasProEpr.value ? [{ key: 'registry', to: '/registry', icon: 'pi-box' }] : []),
+    // Quarterly EPR filing entry — Story 10.10 discoverability fix. Same tier gate as registry.
+    ...(hasProEpr.value ? [{ key: 'eprFiling', to: '/epr/filing', icon: 'pi-file' }] : []),
   ]
   return items
 })

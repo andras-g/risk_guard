@@ -1180,3 +1180,30 @@ So that I can provide proof of a specific risk check if requested by legal autho
 - AC-to-task walkthrough (T1) filed.
 - **Post-migration task:** demo seed data refreshed — run a complete Story 10.4 bootstrap → Story 10.6 filing → Story 10.9 submission against each demo tenant so the Submission History panel shows realistic content for demo users. Tracked as the final task of Story 10.9's dev checklist.
 
+### Story 10.10: EPR Filing Navigation & Discoverability
+**Goal:** Close the UX discoverability gap left by Story 10.1's `/epr` (Anyagkönyvtár) menu deletion. Add a persistent sidebar nav entry for `/epr/filing` (PRO_EPR-gated), mirror it in the mobile drawer, surface a secondary CTA on the Registry page header when the Registry has components, and add a "Bejelentés megnyitása" CTA to the InvoiceBootstrapDialog completion summary. Post-Epic 10 acceptance-blocker: no UI path existed from any page to the filing screen; users had to type the URL.
+
+**Dependencies:** Stories 10.1, 10.6, 10.9 (all done). Parallel-safe with 10.7. Surfaced via CP-6 (sprint-change-proposal-2026-04-21.md).
+
+**Architecture:**
+- Frontend-only. No DB migrations, no backend changes, no ArchUnit rule changes.
+- New sidebar/drawer nav entry reuses the existing `useTierGate('PRO_EPR')` + role-visibility machinery from the `registry` entry.
+- New CTAs on `registry/index.vue` and `InvoiceBootstrapDialog.vue` reuse existing router + i18n patterns.
+- Breadcrumb `OBSOLETE_PARENT_SEGMENTS` retains `/epr` (no index page exists); comment updated to reflect Story 10.10 state.
+
+**Acceptance Criteria:**
+- `AppSidebar.vue` exposes an `eprFiling` nav entry (icon `pi-file`) routed to `/epr/filing`, positioned directly after `registry`; visible to PRO_EPR-tiered SME_ADMIN, ACCOUNTANT, PLATFORM_ADMIN; hidden for ALAP / PRO tiers.
+- `AppMobileDrawer.vue` mirrors the entry with identical gating and order.
+- `common.nav.eprFiling` i18n keys added alphabetically to `hu/common.json` ("Negyedéves bejelentés") and `en/common.json` ("Quarterly filing"); `lint:i18n` 22/22 green.
+- `registry/index.vue` header shows a secondary outlined "Negyedéves bejelentés" button next to "Új termék"; visible only when `registryCompleteness.productsWithComponents.value > 0`.
+- `InvoiceBootstrapDialog.vue` completion footer shows a secondary "Bejelentés megnyitása" CTA on `status === 'COMPLETED' && createdProducts > 0 && unresolvedPairs === 0`.
+- `deferred-work.md:88` D6 note marked as RESOLVED STALE (the old sidebar claim is no longer accurate post-10.1).
+- Existing vitest tests green; new specs for AppSidebar / AppMobileDrawer / registry/index / InvoiceBootstrapDialog covering tier + role + state-dependent visibility.
+- New Playwright E2E `nav-to-filing.e2e.ts` exercises the sidebar→filing click path for three roles (accountant, SME_ADMIN, ALAP-tier exclusion).
+- AC-to-task walkthrough (retro T1) filed in Dev Agent Record before any code is committed.
+
+**Non-goals:**
+- No redesign of the sidebar information architecture.
+- No new dashboard / flight-control widget for EPR filing (deferred to potential Epic 11 UX polish).
+- No in-app tutorial overlay, no post-first-filing congratulations state.
+

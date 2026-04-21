@@ -52,6 +52,7 @@
     "nav": {
       "admin": "Admin",
       "dashboard": "Főoldal",
+      "eprFiling": "Negyedéves bejelentés",
       "registry": "Nyilvántartás",
       "screening": "Átvilágítás",
       "watchlist": "Megfigyelőlista"

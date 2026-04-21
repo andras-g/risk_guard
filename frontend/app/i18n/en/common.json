@@ -52,6 +52,7 @@
     "nav": {
       "admin": "Admin",
       "dashboard": "Dashboard",
+      "eprFiling": "Quarterly filing",
       "registry": "Registry",
       "screening": "Screening",
       "watchlist": "Watchlist"

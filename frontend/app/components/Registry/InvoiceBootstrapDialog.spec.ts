@@ -166,3 +166,73 @@ describe('InvoiceBootstrapDialog — composable behaviour', () => {
     expect(mockTriggerBootstrap).toHaveBeenCalledWith('2026-01-01', '2026-03-31')
   })
 })
+
+// ─── Story 10.10: filing CTA visibility in the done-phase footer ──────────────
+// The v-if expression on the new bootstrap-cta-filing button must stay in sync with
+// isFilingCtaVisible(). The first block tests the predicate; the second reads the
+// actual SFC source to guarantee the template binding can't silently drift — this
+// catches the failure mode where someone edits the v-if to `unresolvedPairs > 0`
+// but the spec keeps passing.
+
+type BootstrapJobStatus = {
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'FAILED_PARTIAL' | 'CANCELLED'
+  createdProducts: number
+  unresolvedPairs: number
+}
+
+function isFilingCtaVisible(j: BootstrapJobStatus | null | undefined): boolean {
+  return !!j
+    && j.status === 'COMPLETED'
+    && j.createdProducts > 0
+    && j.unresolvedPairs === 0
+}
+
+describe('InvoiceBootstrapDialog — filing CTA visibility (Story 10.10)', () => {
+  it('filing CTA visible on COMPLETED with createdProducts > 0 && unresolvedPairs === 0', () => {
+    const j: BootstrapJobStatus = { status: 'COMPLETED', createdProducts: 5, unresolvedPairs: 0 }
+    expect(isFilingCtaVisible(j)).toBe(true)
+  })
+
+  it('filing CTA hidden on COMPLETED with unresolvedPairs > 0', () => {
+    // User must still fix hiányos rows before filing — keep them in Registry first.
+    const j: BootstrapJobStatus = { status: 'COMPLETED', createdProducts: 5, unresolvedPairs: 3 }
+    expect(isFilingCtaVisible(j)).toBe(false)
+  })
+
+  it.each([
+    { status: 'FAILED' as const, createdProducts: 0, unresolvedPairs: 0 },
+    { status: 'FAILED_PARTIAL' as const, createdProducts: 2, unresolvedPairs: 0 },
+    { status: 'CANCELLED' as const, createdProducts: 2, unresolvedPairs: 0 },
+    { status: 'COMPLETED' as const, createdProducts: 0, unresolvedPairs: 0 }, // empty-period
+  ])('filing CTA hidden on non-success state %s', (j) => {
+    expect(isFilingCtaVisible(j)).toBe(false)
+  })
+})
+
+// Guarantees the template v-if expression stays in sync with isFilingCtaVisible().
+// Without this, the predicate tests above become a tautology — someone could edit
+// the template to `unresolvedPairs > 0` and every pure-function test still passes.
+describe('InvoiceBootstrapDialog — filing CTA template v-if invariant (Story 10.10)', () => {
+  it('template v-if on bootstrap-cta-filing matches the predicate exactly', async () => {
+    const fs = await import('node:fs/promises')
+    const path = await import('node:path')
+    const sfcPath = path.resolve(__dirname, 'InvoiceBootstrapDialog.vue')
+    const source = await fs.readFile(sfcPath, 'utf-8')
+
+    // Anchor: the bootstrap-cta-filing button block. Extract its v-if expression.
+    const ctaMatch = source.match(
+      /<Button[^>]*\n\s*v-if="([^"]+)"\n[^>]*data-testid="bootstrap-cta-filing"/m,
+    )
+    expect(ctaMatch, 'bootstrap-cta-filing button v-if not found in SFC').not.toBeNull()
+    const vIfExpr = ctaMatch![1]!.trim()
+
+    // The expression MUST match — any edit to loosen/flip the guard breaks this test.
+    expect(vIfExpr).toBe(
+      "jobStatus.status === 'COMPLETED' && jobStatus.createdProducts > 0 && jobStatus.unresolvedPairs === 0",
+    )
+
+    // And the outer v-else-if on the done-phase template MUST guard against null jobStatus
+    // (otherwise the inner `jobStatus.status` access throws).
+    expect(source).toMatch(/v-else-if="phase === 'done' && jobStatus"/)
+  })
+})

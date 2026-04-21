@@ -1,6 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import AppSidebar from './AppSidebar.vue'
+import { TIER_ORDER } from '~/composables/auth/useTierGate'
+
+// Shared mutable tier — individual tests toggle this to cover PRO_EPR vs ALAP/PRO/null gating paths.
+// Story 10.10: AppSidebar reads tier via useTierGate/storeToRefs to gate the registry and eprFiling entries.
+const authState = vi.hoisted(() => ({ tier: 'PRO_EPR' as string | null, role: 'SME_ADMIN' as string | null }))
 
 /**
  * Unit tests for AppSidebar.vue logic.
@@ -13,6 +18,7 @@ import AppSidebar from './AppSidebar.vue'
 // Stub PrimeVue components
 const DividerStub = { template: '<hr />' }
 const NuxtLinkStub = { template: '<a :data-testid="$attrs[\'data-testid\']" :href="to"><slot /></a>', props: ['to'], inheritAttrs: true }
+const BadgeStub = { template: '<span class="badge-stub"><slot /></span>', props: ['value', 'severity'] }
 
 // Mock stores with ref-based state so storeToRefs returns usable refs
 vi.mock('pinia', async (importOriginal) => {
@@ -36,19 +42,39 @@ vi.mock('~/stores/layout', () => ({
   useLayoutStore: () => ({ sidebarExpanded: true, mobileDrawerOpen: false, toggleSidebar: vi.fn() })
 }))
 vi.mock('~/stores/auth', () => ({
-  useAuthStore: () => ({ role: 'SME_ADMIN', name: 'Test User', isAccountant: false, tier: 'PRO_EPR' })
+  useAuthStore: () => ({
+    name: 'Test User',
+    isAccountant: false,
+    get role() { return authState.role },
+    get tier() { return authState.tier }
+  })
 }))
+
+// Overrides the auto-import stub in vitest.setup.ts so useTierGate (which auto-imports
+// useAuthStore) resolves to the same mock as the component's storeToRefs path.
+vi.stubGlobal('useAuthStore', () => ({
+  name: 'Test User',
+  isAccountant: false,
+  get role() { return authState.role },
+  get tier() { return authState.tier }
+}))
+
+beforeEach(() => {
+  authState.tier = 'PRO_EPR'
+  authState.role = 'SME_ADMIN'
+})
 vi.mock('~/stores/watchlist', () => ({
   useWatchlistStore: () => ({ count: 3, entries: [], isLoading: false, error: null, fetchCount: vi.fn() })
 }))
 
 // Navigation items — same structure as component (Story 10.1: epr nav item removed,
-// Anyagkönyvtár page deleted; registry remains PRO_EPR-tier-gated.)
+// Anyagkönyvtár page deleted; Story 10.10: eprFiling added, also PRO_EPR-tier-gated.)
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
   { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
   { key: 'registry', to: '/registry', icon: 'pi-box' },
+  { key: 'eprFiling', to: '/epr/filing', icon: 'pi-file' },
 ]
 
 function isActive(routePath: string, itemPath: string): boolean {
@@ -56,13 +82,13 @@ function isActive(routePath: string, itemPath: string): boolean {
 }
 
 describe('AppSidebar — navigation items', () => {
-  it('has exactly 4 main navigation items (no epr link)', () => {
-    expect(mainNavItems).toHaveLength(4)
+  it('has exactly 5 main navigation items (no epr index link)', () => {
+    expect(mainNavItems).toHaveLength(5)
   })
 
-  it('includes Dashboard, Screening, Watchlist, and Registry items — no epr link', () => {
+  it('includes Dashboard, Screening, Watchlist, Registry, and EprFiling items — no epr index link', () => {
     const keys = mainNavItems.map(i => i.key)
-    expect(keys).toEqual(['dashboard', 'screening', 'watchlist', 'registry'])
+    expect(keys).toEqual(['dashboard', 'screening', 'watchlist', 'registry', 'eprFiling'])
     expect(keys).not.toContain('epr')
   })
 
@@ -71,6 +97,13 @@ describe('AppSidebar — navigation items', () => {
     expect(registry).toBeDefined()
     expect(registry?.to).toBe('/registry')
     expect(registry?.icon).toBe('pi-box')
+  })
+
+  it('includes eprFiling entry pointing to /epr/filing with pi-file icon', () => {
+    const filing = mainNavItems.find(i => i.key === 'eprFiling')
+    expect(filing).toBeDefined()
+    expect(filing?.to).toBe('/epr/filing')
+    expect(filing?.icon).toBe('pi-file')
   })
 
   it('each nav item has an i18n-compatible key', () => {
@@ -144,18 +177,56 @@ describe('AppSidebar — admin section role gating', () => {
   })
 })
 
-describe('AppSidebar — PRO_EPR tier gating for registry', () => {
-  it('registry entry is shown when tier is PRO_EPR', () => {
-    // TIER_ORDER: ALAP=0, PRO=1, PRO_EPR=2
-    const TIER_ORDER: Record<string, number> = { ALAP: 0, PRO: 1, PRO_EPR: 2 }
-    function hasProEpr(tier: string | null): boolean {
-      if (!tier) return false
-      return (TIER_ORDER[tier] ?? -1) >= (TIER_ORDER['PRO_EPR'] ?? 0)
-    }
-    expect(hasProEpr('PRO_EPR')).toBe(true)
-    expect(hasProEpr('PRO')).toBe(false)
-    expect(hasProEpr('ALAP')).toBe(false)
-    expect(hasProEpr(null)).toBe(false)
+describe('AppSidebar — PRO_EPR tier gating for registry and eprFiling', () => {
+  // Sanity check on the tier hierarchy constant imported from the composable —
+  // guards against accidental renumbering that would silently flip gate outcomes.
+  it('TIER_ORDER hierarchy is ALAP < PRO < PRO_EPR', () => {
+    expect(TIER_ORDER.ALAP).toBeLessThan(TIER_ORDER.PRO)
+    expect(TIER_ORDER.PRO).toBeLessThan(TIER_ORDER.PRO_EPR)
+  })
+
+  function mountSidebar() {
+    return mount(AppSidebar, {
+      global: {
+        stubs: {
+          NuxtLink: NuxtLinkStub,
+          Divider: DividerStub,
+          Badge: BadgeStub
+        },
+        directives: {
+          tooltip: () => {}
+        },
+        mocks: {
+          $t: (key: string) => key
+        }
+      }
+    })
+  }
+
+  it('registry AND eprFiling entries are rendered when tier is PRO_EPR', () => {
+    authState.tier = 'PRO_EPR'
+    const wrapper = mountSidebar()
+    expect(wrapper.find('[data-testid="nav-item-registry"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="nav-item-eprFiling"]').exists()).toBe(true)
+  })
+
+  it('eprFiling entry is hidden when tier is PRO', () => {
+    authState.tier = 'PRO'
+    const wrapper = mountSidebar()
+    expect(wrapper.find('[data-testid="nav-item-eprFiling"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="nav-item-registry"]').exists()).toBe(false)
+  })
+
+  it('eprFiling entry is hidden when tier is ALAP', () => {
+    authState.tier = 'ALAP'
+    const wrapper = mountSidebar()
+    expect(wrapper.find('[data-testid="nav-item-eprFiling"]').exists()).toBe(false)
+  })
+
+  it('eprFiling entry is hidden when tier is null', () => {
+    authState.tier = null
+    const wrapper = mountSidebar()
+    expect(wrapper.find('[data-testid="nav-item-eprFiling"]').exists()).toBe(false)
   })
 })
 
@@ -216,8 +287,6 @@ describe('AppSidebar — structure', () => {
   })
 })
 
-const BadgeStub = { template: '<span class="badge-stub"><slot /></span>', props: ['value', 'severity'] }
-
 describe('AppSidebar — component mount smoke test', () => {
   it('renders without error and contains expected testid elements', () => {
     const wrapper = mount(AppSidebar, {
@@ -247,6 +316,8 @@ describe('AppSidebar — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="nav-item-epr"]').exists()).toBe(false)
     expect(wrapper.findAll('a[href="/epr"]')).toHaveLength(0)
     expect(wrapper.find('[data-testid="nav-item-registry"]').exists()).toBe(true)
+    // Story 10.10: quarterly filing nav entry under PRO_EPR tier gate.
+    expect(wrapper.find('[data-testid="nav-item-eprFiling"]').exists()).toBe(true)
     // Admin section SHOULD render for SME_ADMIN role
     expect(wrapper.find('[data-testid="admin-nav-section"]').exists()).toBe(true)
   })

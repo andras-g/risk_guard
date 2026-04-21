@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref, computed } from 'vue'
+import { mount } from '@vue/test-utils'
 import type { RegistryPageResponse, ProductSummaryResponse } from '~/composables/api/useRegistry'
+
+// Story 10.10: mutable ref for registry completeness so individual tests can flip visibility
+// of the new "Negyedéves bejelentés" CTA on the page header.
+const mockProductsWithComponents = ref(0)
+const mockTotalProducts = ref(0)
 
 // ─── Composable mock ────────────────────────────────────────────────────────
 
@@ -29,6 +36,29 @@ vi.mock('~/stores/registry', () => ({
 
 vi.mock('~/composables/api/useApiError', () => ({
   useApiError: () => ({ mapErrorType: (type: string) => type ?? 'error' }),
+}))
+
+// Story 10.10: mock composable the page instantiates to read productsWithComponents
+// for the filing-CTA v-if guard.
+vi.mock('~/composables/api/useRegistryCompleteness', () => ({
+  useRegistryCompleteness: vi.fn(() => ({
+    totalProducts: mockTotalProducts,
+    productsWithComponents: mockProductsWithComponents,
+    isLoading: ref(false),
+    isEmpty: computed(() => mockTotalProducts.value === 0),
+    refresh: vi.fn(),
+  })),
+}))
+
+// Story 10.10: force the PRO_EPR tier gate to pass so the registry body renders in tests.
+vi.mock('~/composables/auth/useTierGate', () => ({
+  useTierGate: vi.fn(() => ({
+    hasAccess: computed(() => true),
+    currentTier: computed(() => 'PRO_EPR' as const),
+    requiredTier: 'PRO_EPR' as const,
+    tierName: computed(() => 'Pro + EPR'),
+  })),
+  TIER_ORDER: { ALAP: 0, PRO: 1, PRO_EPR: 2 },
 }))
 
 vi.stubGlobal('useI18n', () => ({ t: (key: string) => key }))
@@ -172,5 +202,70 @@ describe('registry/index.vue — composable and filter logic', () => {
 
     const showBootstrapCta = isEmpty && (hasNavCredentials || isDemo)
     expect(showBootstrapCta).toBe(true)
+  })
+})
+
+// ─── Story 10.10: filing-CTA visibility ─────────────────────────────────────
+
+describe('registry/index.vue — filing CTA (Story 10.10)', () => {
+  async function mountRegistryPage() {
+    // Prevent the onMounted listProducts call from blowing up the mount.
+    mockListProducts.mockResolvedValue(buildPageResponse([], 0))
+
+    const routerPush = vi.fn()
+    vi.stubGlobal('useRouter', () => ({ push: routerPush }))
+    vi.stubGlobal('useRoute', () => ({ path: '/registry', query: {} }))
+
+    // Lazy-import the SFC so the mocks (including useRegistryCompleteness) apply before setup.
+    const RegistryPage = (await import('./index.vue')).default
+
+    const wrapper = mount(RegistryPage, {
+      global: {
+        stubs: {
+          DataTable: true,
+          Column: true,
+          Tag: true,
+          InputText: true,
+          Select: true,
+          // Minimal Button stub preserves data-testid so visibility assertions work.
+          Button: {
+            template: '<button :data-testid="$attrs[\'data-testid\']" @click="$emit(\'click\')"><slot /></button>',
+            inheritAttrs: true,
+          },
+          RegistryOnboardingBlock: true,
+          RegistryInvoiceBootstrapDialog: true,
+          RegistryIncompleteBanner: true,
+        },
+      },
+    })
+    return { wrapper, routerPush }
+  }
+
+  beforeEach(() => {
+    mockProductsWithComponents.value = 0
+    mockTotalProducts.value = 0
+    vi.clearAllMocks()
+  })
+
+  it('renders filing CTA when productsWithComponents > 0', async () => {
+    mockProductsWithComponents.value = 1
+    mockTotalProducts.value = 3
+
+    const { wrapper, routerPush } = await mountRegistryPage()
+
+    const cta = wrapper.find('[data-testid="header-cta-filing"]')
+    expect(cta.exists()).toBe(true)
+
+    await cta.trigger('click')
+    expect(routerPush).toHaveBeenCalledWith('/epr/filing')
+  })
+
+  it('hides filing CTA when productsWithComponents === 0', async () => {
+    mockProductsWithComponents.value = 0
+    mockTotalProducts.value = 0
+
+    const { wrapper } = await mountRegistryPage()
+
+    expect(wrapper.find('[data-testid="header-cta-filing"]').exists()).toBe(false)
   })
 })

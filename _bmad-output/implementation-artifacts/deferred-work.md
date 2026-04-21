@@ -85,7 +85,7 @@
 - D3: PLATFORM_ADMIN has no post-login landing page — global middleware sends to SME dashboard (watchlist/screening) which is irrelevant; pre-existing middleware design gap.
 - D4: `admin/index.vue` has no test file — new `onMounted` redirect (GUEST → /dashboard) and `v-if="isPlatformAdmin"` card visibility logic are entirely untested; AC11 only required updating existing specs, not creating new ones.
 - D5: `requirePlatformAdminRole` / `requireAnyAdminRole` duplicated identically across 3 controllers — no shared utility; latent consistency risk if a new role is added; pre-existing pattern from Story 8.4.
-- D6: `AppSidebar` shows PLATFORM_ADMIN SME-oriented nav items (Watchlist, Screening, EPR Filing) — these features are irrelevant to a platform operator; pre-existing nav structure; address in UX polish sprint.
+- D6: ~~`AppSidebar` shows PLATFORM_ADMIN SME-oriented nav items (Watchlist, Screening, EPR Filing)~~ **RESOLVED STALE (2026-04-21, CP-6):** The "EPR Filing" entry no longer exists in the sidebar (removed inadvertently by Story 10.1's Anyagkönyvtár deletion). Story 10.10 re-adds it with proper PRO_EPR tier gating. Watchlist + Screening irrelevance for PLATFORM_ADMIN remains valid but is deferred to Epic 11 UX polish. See `_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-21.md`.
 
 ## Deferred from: code review of 8-3-invoice-driven-epr-auto-fill (2026-04-03)
 

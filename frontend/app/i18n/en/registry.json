@@ -6,7 +6,8 @@
       "back": "Back to Registry",
       "cancel": "Cancel",
       "create": "New Product",
-      "edit": "Edit"
+      "edit": "Edit",
+      "openFiling": "Open filing"
     },
     "audit": {
       "diff": "Change",
@@ -30,6 +31,7 @@
         "close": "Close",
         "failed": "Error: {message}",
         "noInvoicesFound": "No NAV invoices found in the selected period — nothing to import.",
+        "openFiling": "Open filing",
         "openRegistry": "Open Registry",
         "partial": "Done (partial). {created} products created, {uncertain} uncertain, {incomplete} incomplete.",
         "success": "Done. {created} products created, {uncertain} uncertain, {incomplete} incomplete."

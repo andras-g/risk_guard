@@ -6,7 +6,8 @@
       "back": "Vissza a nyilvántartáshoz",
       "cancel": "Mégse",
       "create": "Új termék",
-      "edit": "Szerkesztés"
+      "edit": "Szerkesztés",
+      "openFiling": "Negyedéves bejelentés"
     },
     "audit": {
       "diff": "Változás",
@@ -30,6 +31,7 @@
         "close": "Bezárás",
         "failed": "Hiba: {message}",
         "noInvoicesFound": "Nem található NAV-számla a megadott időszakban — nincs mit importálni.",
+        "openFiling": "Bejelentés megnyitása",
         "openRegistry": "Megnyitás",
         "partial": "Kész (részleges). {created} termék létrehozva, {uncertain} bizonytalan, {incomplete} hiányos.",
         "success": "Kész. {created} termék létrehozva, {uncertain} bizonytalan, {incomplete} hiányos."

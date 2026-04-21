@@ -76,8 +76,11 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 /**
  * Route segments whose top-level index page no longer exists. A parent segment of such a
  * route renders as a non-clickable label so users never land on a deleted page.
- * Story 10.1 removed `/epr` (Anyagkönyvtár); `/epr/filing` still exists until Story 10.6/10.7
- * rebuilds it.
+ * Story 10.1 removed the `/epr` index page (Anyagkönyvtár). As of Story 10.10, `/epr/filing`
+ * is the only active route under `/epr/*`, and the sidebar's new "Negyedéves bejelentés"
+ * entry routes directly there — so breadcrumb users never need to click the "EPR" parent
+ * segment. The non-clickable parent treatment remains; `epr` stays in this set until an
+ * `/epr` index page is reintroduced (not planned).
  */
 const OBSOLETE_PARENT_SEGMENTS = new Set<string>(['epr'])
 

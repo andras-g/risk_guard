@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, computed } from 'vue'
 import { mount } from '@vue/test-utils'
 import AppMobileDrawer from './AppMobileDrawer.vue'
+
+// Shared mutable tier — individual tests toggle this to cover PRO_EPR vs ALAP gating paths.
+// Story 10.10: AppMobileDrawer reads tier via useTierGate('PRO_EPR') to gate the eprFiling entry.
+const authState = vi.hoisted(() => ({ tier: 'PRO_EPR' as string | null }))
 
 // Mock stores with storeToRefs override
 vi.mock('pinia', async (importOriginal) => {
@@ -24,8 +28,25 @@ vi.mock('~/stores/layout', () => ({
   useLayoutStore: () => ({ mobileDrawerOpen: true, sidebarExpanded: true, closeMobileDrawer: vi.fn() })
 }))
 vi.mock('~/stores/auth', () => ({
-  useAuthStore: () => ({ name: 'Andras', role: 'SME_ADMIN' })
+  useAuthStore: () => ({
+    name: 'Andras',
+    role: 'SME_ADMIN',
+    get tier() { return authState.tier }
+  })
 }))
+
+// Overrides the auto-import stub in vitest.setup.ts so useTierGate (which auto-imports
+// useAuthStore) resolves to the same mock as the component's explicit import.
+vi.stubGlobal('useAuthStore', () => ({
+  name: 'Andras',
+  role: 'SME_ADMIN',
+  get tier() { return authState.tier }
+}))
+
+beforeEach(() => {
+  // Default to PRO_EPR so existing tests exercise the full drawer. Per-describe overrides restore.
+  authState.tier = 'PRO_EPR'
+})
 
 /**
  * Unit tests for AppMobileDrawer.vue logic.
@@ -35,11 +56,12 @@ vi.mock('~/stores/auth', () => ({
  * Co-located with AppMobileDrawer.vue per architecture rules.
  */
 
-// Story 10.1: epr nav link removed; Anyagkönyvtár page deleted.
+// Story 10.1: epr nav link removed; Story 10.10: eprFiling added under PRO_EPR tier gate.
 const mainNavItems = [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' }
+  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
+  { key: 'eprFiling', to: '/epr/filing', icon: 'pi-file' },
 ]
 
 function computeUserInitials(name: string | null): string {
@@ -79,9 +101,16 @@ describe('AppMobileDrawer — visibility binding', () => {
 })
 
 describe('AppMobileDrawer — navigation items', () => {
-  it('has 3 main navigation items after Story 10.1 (epr link removed)', () => {
-    expect(mainNavItems).toHaveLength(3)
+  it('has 4 main navigation items after Story 10.10 (epr index still absent; eprFiling added)', () => {
+    expect(mainNavItems).toHaveLength(4)
     expect(mainNavItems.some(i => i.key === 'epr')).toBe(false)
+  })
+
+  it('includes eprFiling drawer entry pointing to /epr/filing with pi-file icon', () => {
+    const filing = mainNavItems.find(i => i.key === 'eprFiling')
+    expect(filing).toBeDefined()
+    expect(filing?.to).toBe('/epr/filing')
+    expect(filing?.icon).toBe('pi-file')
   })
 
   it('each item uses i18n key pattern common.nav.{key}', () => {
@@ -190,6 +219,8 @@ describe('AppMobileDrawer — component mount smoke test', () => {
     expect(wrapper.find('[data-testid="drawer-nav"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-dashboard"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="drawer-nav-screening"]').exists()).toBe(true)
+    // Story 10.10: eprFiling entry on PRO_EPR (hoisted authState default).
+    expect(wrapper.find('[data-testid="drawer-nav-eprFiling"]').exists()).toBe(true)
   })
 
   // Story 10.1 AC #8 / R3-P4: symmetric with AppSidebar spec — mount the real component
@@ -204,6 +235,57 @@ describe('AppMobileDrawer — component mount smoke test', () => {
     const wrapper = mountDrawer()
     expect(wrapper.find('[data-testid="drawer-locale-switcher"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="locale-switcher"]').exists()).toBe(true)
+  })
+})
+
+describe('AppMobileDrawer — PRO_EPR tier gating for eprFiling (Story 10.10)', () => {
+  function mountDrawer() {
+    const NuxtLinkStub = { template: '<a :data-testid="$attrs[\'data-testid\']" :href="to" :aria-current="$attrs[\'aria-current\']"><slot /></a>', props: ['to'], inheritAttrs: true }
+    const DrawerStub = {
+      template: '<div data-testid="mobile-drawer"><slot /><slot name="header" /><slot name="footer" /></div>',
+      props: ['visible', 'position', 'header']
+    }
+    const AvatarStub = { template: '<div />' }
+    const DividerStub = { template: '<hr />' }
+    const LocaleSwitcherStub = { template: '<div data-testid="locale-switcher" />' }
+    return mount(AppMobileDrawer, {
+      global: {
+        stubs: {
+          Drawer: DrawerStub,
+          NuxtLink: NuxtLinkStub,
+          Avatar: AvatarStub,
+          Divider: DividerStub,
+          CommonLocaleSwitcher: LocaleSwitcherStub
+        },
+        mocks: {
+          $t: (key: string) => key
+        }
+      }
+    })
+  }
+
+  it('eprFiling entry is rendered when tier is PRO_EPR', () => {
+    authState.tier = 'PRO_EPR'
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-nav-eprFiling"]').exists()).toBe(true)
+  })
+
+  it('eprFiling entry is hidden when tier is ALAP', () => {
+    authState.tier = 'ALAP'
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-nav-eprFiling"]').exists()).toBe(false)
+  })
+
+  it('eprFiling entry is hidden when tier is PRO', () => {
+    authState.tier = 'PRO'
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-nav-eprFiling"]').exists()).toBe(false)
+  })
+
+  it('eprFiling entry is hidden when tier is null', () => {
+    authState.tier = null
+    const wrapper = mountDrawer()
+    expect(wrapper.find('[data-testid="drawer-nav-eprFiling"]').exists()).toBe(false)
   })
 })
 

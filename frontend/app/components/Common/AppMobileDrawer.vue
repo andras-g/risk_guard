@@ -93,6 +93,7 @@
 import { storeToRefs } from 'pinia'
 import { useLayoutStore } from '~/stores/layout'
 import { useAuthStore } from '~/stores/auth'
+import { useTierGate } from '~/composables/auth/useTierGate'
 
 const { t: $t } = useI18n()
 const route = useRoute()
@@ -101,6 +102,7 @@ const authStore = useAuthStore()
 
 const { mobileDrawerOpen } = storeToRefs(layoutStore)
 const { name: userName, role: userRole } = storeToRefs(authStore)
+const { hasAccess: hasProEpr } = useTierGate('PRO_EPR')
 
 const drawerVisible = computed({
   get: () => mobileDrawerOpen.value,
@@ -117,11 +119,13 @@ const userInitials = computed(() => {
   return n.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 })
 
-const mainNavItems = [
+const mainNavItems = computed(() => [
   { key: 'dashboard', to: '/dashboard', icon: 'pi-th-large' },
   { key: 'screening', to: '/screening', icon: 'pi-search' },
-  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' }
-]
+  { key: 'watchlist', to: '/watchlist', icon: 'pi-eye' },
+  // Story 10.10: quarterly EPR filing entry, PRO_EPR tier-gated. Pre-existing registry gap deferred to Epic 11.
+  ...(hasProEpr.value ? [{ key: 'eprFiling', to: '/epr/filing', icon: 'pi-file' }] : []),
+])
 
 function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
