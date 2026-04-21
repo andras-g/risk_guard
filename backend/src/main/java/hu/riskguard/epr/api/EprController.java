@@ -7,9 +7,12 @@ import hu.riskguard.epr.api.dto.CopyQuarterRequest;
 import hu.riskguard.epr.api.dto.KfCodeListResponse;
 import hu.riskguard.epr.api.dto.MaterialTemplateRequest;
 import hu.riskguard.epr.api.dto.MaterialTemplateResponse;
+import hu.riskguard.epr.aggregation.api.dto.ProvenanceLine;
+import hu.riskguard.epr.aggregation.api.dto.ProvenancePage;
+import hu.riskguard.epr.aggregation.domain.AggregationProvenanceLine;
 import hu.riskguard.epr.api.dto.OkirkapuExportRequest;
-import hu.riskguard.epr.api.dto.OkirkapuPreviewResponse;
 import hu.riskguard.epr.api.dto.RecurringToggleRequest;
+import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.api.dto.RetryLinkRequest;
 import hu.riskguard.epr.api.dto.RetryLinkResponse;
 import hu.riskguard.epr.api.dto.WizardConfirmRequest;
@@ -37,9 +40,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.context.i18n.LocaleContextHolder;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -55,9 +65,12 @@ import java.util.UUID;
 @TierRequired(Tier.PRO_EPR)
 public class EprController {
 
+    private static final int MAX_PROVENANCE_PAGE_SIZE = 500;
+
     private final EprService eprService;
     private final ProducerProfileService producerProfileService;
     private final InvoiceDrivenFilingAggregator aggregator;
+    private final AuditService auditService;
 
     /**
      * Create a new material template.
@@ -280,20 +293,138 @@ public class EprController {
                 .body(artifact.bytes());
     }
 
+    // ─── Provenance endpoints ─────────────────────────────────────────────────
+
     /**
-     * Preview OKIRkapu export: return provenance lines and summary without binary file.
-     * Useful for the frontend provenance panel before the user triggers the actual download.
+     * Paginated provenance: per-component lines showing how invoice lines drove KF-code totals.
+     * AC #1-#8: page/size defaults, size clamped to 500, role + tier + profile guards.
      */
-    @PostMapping("/filing/okirkapu-preview")
-    public ResponseEntity<OkirkapuPreviewResponse> previewOkirkapu(
-            @Valid @RequestBody OkirkapuExportRequest request,
+    @GetMapping("/filing/aggregation/provenance")
+    public ResponseEntity<ProvenancePage> getProvenance(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal Jwt jwt) {
+
+        JwtUtil.requireRole(jwt, "Provenance requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
-        var aggregationResult = aggregator.aggregateForPeriod(tenantId, request.from(), request.to());
-        EprReportArtifact artifact = eprService.previewReport(
-                new EprReportRequest(tenantId, request.from(), request.to(), request.taxNumber()),
-                aggregationResult.kfTotals());
-        return ResponseEntity.ok(OkirkapuPreviewResponse.from(artifact));
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
+
+        if (from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period start must not be after end");
+        }
+
+        int safeSize = Math.max(1, Math.min(size, MAX_PROVENANCE_PAGE_SIZE));
+        int safePage = Math.max(0, page);
+
+        // 412 if producer profile is incomplete (throws ResponseStatusException)
+        producerProfileService.get(tenantId);
+
+        var result = aggregator.aggregateForPeriod(tenantId, from, to);
+        List<AggregationProvenanceLine> all = result.provenanceLines();
+        // long-cast guard against page * size overflow on pathological inputs
+        long startIdx = (long) safePage * (long) safeSize;
+        int fromIdx = (int) Math.min(startIdx, all.size());
+        int toIdx = (int) Math.min(startIdx + safeSize, all.size());
+        List<ProvenanceLine> pageContent = all.subList(fromIdx, toIdx).stream()
+                .map(EprController::toDto)
+                .toList();
+
+        auditService.recordProvenanceFetch(tenantId, userId, from, to, safePage, safeSize);
+        return ResponseEntity.ok(new ProvenancePage(pageContent, all.size(), safePage, safeSize));
+    }
+
+    /**
+     * CSV export of full provenance dataset (no pagination). Streams to avoid OOM (AC #9-#11).
+     * Flush every 500 rows; UTF-8 BOM; semicolon delimiter; Content-Disposition attachment.
+     */
+    @GetMapping(value = "/filing/aggregation/provenance.csv", produces = "text/csv;charset=UTF-8")
+    public ResponseEntity<StreamingResponseBody> exportProvenanceCsv(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        JwtUtil.requireRole(jwt, "Provenance CSV requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
+
+        if (from.isAfter(to)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Reporting period start must not be after end");
+        }
+
+        // 412 if producer profile is incomplete (throws ResponseStatusException)
+        producerProfileService.get(tenantId);
+
+        var result = aggregator.aggregateForPeriod(tenantId, from, to);
+        List<AggregationProvenanceLine> lines = result.provenanceLines();
+
+        String tenantShortId = tenantId.toString().substring(0, 8);
+        String filename = "provenance-" + tenantShortId + "-" + from + "-" + to + ".csv";
+
+        StreamingResponseBody body = outputStream -> {
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+            writer.print('\uFEFF'); // UTF-8 BOM
+            writer.println("Számlaszám;Sorszám;VTSZ;Megnevezés;Mennyiség;ME;Termékazonosító;Terméknév;KF-kód;Csomagolási szint;Súly hozzájárulás (kg);Provenance tag");
+            int rowCount = 0;
+            for (AggregationProvenanceLine line : lines) {
+                writer.println(formatCsvRow(line));
+                if (++rowCount % 500 == 0) writer.flush();
+            }
+            writer.flush();
+        };
+
+        auditService.recordCsvExport(tenantId, userId, from, to);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
+                .body(body);
+    }
+
+    private static ProvenanceLine toDto(AggregationProvenanceLine p) {
+        return new ProvenanceLine(
+                p.invoiceNumber(), p.lineNumber(), p.vtsz(), p.description(),
+                p.quantity(), p.unitOfMeasure(), p.resolvedProductId(), p.productName(),
+                p.componentId(), p.wrappingLevel(), p.componentKfCode(),
+                p.weightContributionKg(), p.provenanceTag());
+    }
+
+    private static String formatCsvRow(AggregationProvenanceLine p) {
+        return String.join(";",
+                csvEscape(p.invoiceNumber()),
+                String.valueOf(p.lineNumber()),
+                csvEscape(p.vtsz()),
+                csvEscape(p.description()),
+                p.quantity() != null ? p.quantity().toPlainString() : "",
+                csvEscape(p.unitOfMeasure()),
+                p.resolvedProductId() != null ? p.resolvedProductId().toString() : "",
+                csvEscape(p.productName()),
+                csvEscape(p.componentKfCode()),
+                p.wrappingLevel() != null ? String.valueOf(p.wrappingLevel()) : "",
+                p.weightContributionKg().setScale(4, RoundingMode.HALF_UP).toPlainString(),
+                p.provenanceTag().name()
+        );
+    }
+
+    private static String csvEscape(String value) {
+        if (value == null) return "";
+        // Neutralise Excel/LibreOffice formula injection (CWE-1236) by prefixing a
+        // single-quote when the cell starts with =, +, -, @, \t, or \r. Invoice descriptions
+        // can contain attacker-influenced text, so we apply this BEFORE delimiter handling.
+        String safe = value;
+        if (!safe.isEmpty()) {
+            char first = safe.charAt(0);
+            if (first == '=' || first == '+' || first == '-' || first == '@' || first == '\t' || first == '\r') {
+                safe = "'" + safe;
+            }
+        }
+        if (safe.contains(";") || safe.contains("\"") || safe.contains("\n") || safe.contains("\r")) {
+            return "\"" + safe.replace("\"", "\"\"") + "\"";
+        }
+        return safe;
     }
 
     // ─── Producer profile endpoints ──────────────────────────────────────────

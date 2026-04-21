@@ -1,6 +1,7 @@
 package hu.riskguard.epr.audit;
 
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
+import hu.riskguard.epr.audit.internal.AggregationAuditRepository;
 import hu.riskguard.epr.audit.internal.RegistryAuditRepository;
 import io.micrometer.core.instrument.Counter;
 
@@ -45,11 +46,14 @@ public class AuditService {
     private static final int BATCH_FLUSH_SIZE = 500;
 
     private final RegistryAuditRepository registryAuditRepository;
+    private final AggregationAuditRepository aggregationAuditRepository;
     private final Map<AuditSource, Counter> writeCounters;
 
     public AuditService(RegistryAuditRepository registryAuditRepository,
+                        AggregationAuditRepository aggregationAuditRepository,
                         MeterRegistry meterRegistry) {
         this.registryAuditRepository = registryAuditRepository;
+        this.aggregationAuditRepository = aggregationAuditRepository;
         this.writeCounters = new EnumMap<>(AuditSource.class);
         for (AuditSource s : AuditSource.values()) {
             writeCounters.put(s, Counter.builder("audit.writes")
@@ -112,18 +116,41 @@ public class AuditService {
     // ─── Aggregation audit ───────────────────────────────────────────────────
 
     /**
-     * Record that an aggregation run completed (Story 10.5 AC #9 — metadata only, no row-by-row data).
+     * Record that an aggregation run completed (Story 10.5 AC #9; Story 10.8 AC #14 adds DB persist).
      *
-     * <p>Logs the aggregation metadata via structured logging with source EPR_AGGREGATION.
-     * Story 10.8 will add a dedicated aggregation_audit_log table and persist this event there;
-     * for now the audit event is emitted as an INFO log (satisfies AC #9 "via AuditService").
+     * <p>Structured log + DB row in {@code aggregation_audit_log} with event_type=AGGREGATION_RUN.
      */
     public void recordAggregationRun(UUID tenantId, LocalDate periodStart, LocalDate periodEnd,
                                       long durationMs, int resolvedCount, int unresolvedCount) {
         log.info("[audit source={}] aggregation_run tenant={} period={}/{} duration_ms={} resolved={} unresolved={}",
                 AuditSource.EPR_AGGREGATION, tenantId, periodStart, periodEnd,
                 durationMs, resolvedCount, unresolvedCount);
+        aggregationAuditRepository.insertAggregationRun(
+                tenantId, periodStart, periodEnd, durationMs, resolvedCount, unresolvedCount);
         writeCounters.get(AuditSource.EPR_AGGREGATION).increment();
+    }
+
+    /**
+     * Record that a user fetched a provenance page (Story 10.8 AC #15).
+     *
+     * <p>Persists event_type=PROVENANCE_FETCH to {@code aggregation_audit_log}.
+     * Called from the controller after a successful response (ADR-0003 §caller-initiates pattern).
+     */
+    public void recordProvenanceFetch(UUID tenantId, UUID userId,
+                                      LocalDate periodStart, LocalDate periodEnd,
+                                      int page, int pageSize) {
+        aggregationAuditRepository.insertProvenanceFetch(tenantId, userId, periodStart, periodEnd, page, pageSize);
+    }
+
+    /**
+     * Record that a user triggered a CSV export (Story 10.8 AC #15).
+     *
+     * <p>Persists event_type=CSV_EXPORT to {@code aggregation_audit_log}.
+     * Called from the controller after a successful response (ADR-0003 §caller-initiates pattern).
+     */
+    public void recordCsvExport(UUID tenantId, UUID userId,
+                                 LocalDate periodStart, LocalDate periodEnd) {
+        aggregationAuditRepository.insertCsvExport(tenantId, userId, periodStart, periodEnd);
     }
 
     // ─── Registry-entry audit — reads ────────────────────────────────────────

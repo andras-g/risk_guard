@@ -539,6 +539,6 @@ class InvoiceDrivenFilingAggregatorTest {
         return new InvoiceDrivenFilingAggregator.ComponentRow(
                 UUID.randomUUID(), PRODUCT_ID, kfCode,
                 wrappingLevel, itemsPerParent, new BigDecimal(weight),
-                null, wrappingLevel, "Test label");
+                null, wrappingLevel, "Test label", "Test Product");
     }
 }

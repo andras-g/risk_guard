@@ -11,6 +11,7 @@ import hu.riskguard.datasource.domain.InvoiceSummary;
 import hu.riskguard.epr.aggregation.api.dto.AggregationMetadata;
 import hu.riskguard.epr.aggregation.api.dto.FilingAggregationResult;
 import hu.riskguard.epr.aggregation.api.dto.KfCodeTotal;
+import hu.riskguard.epr.aggregation.api.dto.ProvenanceTag;
 import hu.riskguard.epr.aggregation.api.dto.SoldProductLine;
 import hu.riskguard.epr.aggregation.api.UnresolvedReason;
 import hu.riskguard.epr.aggregation.api.dto.UnresolvedInvoiceLine;
@@ -156,6 +157,7 @@ public class InvoiceDrivenFilingAggregator {
         Map<String, KfTotalAccumulator> kfAccumulators = new LinkedHashMap<>();
         Map<String, SoldProductAccumulator> soldAccumulators = new LinkedHashMap<>();
         List<UnresolvedInvoiceLine> unresolved = new ArrayList<>();
+        List<AggregationProvenanceLine> provenanceLines = new ArrayList<>();
         int invoiceLineCount = 0;
         int resolvedLineCount = 0;
 
@@ -176,6 +178,9 @@ public class InvoiceDrivenFilingAggregator {
                 unresolved.add(new UnresolvedInvoiceLine(
                         invoiceNumber, line.lineNumber(), vtszCode, description,
                         quantity, unitOfMeasure, UnresolvedReason.UNSUPPORTED_UNIT_OF_MEASURE));
+                provenanceLines.add(AggregationProvenanceLine.unresolved(
+                        invoiceNumber, line.lineNumber(), vtszCode, description,
+                        quantity, unitOfMeasure, ProvenanceTag.UNSUPPORTED_UNIT));
                 continue;
             }
 
@@ -188,6 +193,9 @@ public class InvoiceDrivenFilingAggregator {
                 unresolved.add(new UnresolvedInvoiceLine(
                         invoiceNumber, line.lineNumber(), vtszCode, description,
                         quantity, unitOfMeasure, UnresolvedReason.NO_MATCHING_PRODUCT));
+                provenanceLines.add(AggregationProvenanceLine.unresolved(
+                        invoiceNumber, line.lineNumber(), vtszCode, description,
+                        quantity, unitOfMeasure, ProvenanceTag.UNRESOLVED));
                 continue;
             }
 
@@ -196,6 +204,9 @@ public class InvoiceDrivenFilingAggregator {
                 unresolved.add(new UnresolvedInvoiceLine(
                         invoiceNumber, line.lineNumber(), vtszCode, description,
                         quantity, unitOfMeasure, UnresolvedReason.ZERO_COMPONENTS));
+                provenanceLines.add(AggregationProvenanceLine.unresolved(
+                        invoiceNumber, line.lineNumber(), vtszCode, description,
+                        quantity, unitOfMeasure, ProvenanceTag.UNRESOLVED));
                 continue;
             }
 
@@ -215,8 +226,11 @@ public class InvoiceDrivenFilingAggregator {
                     k -> new SoldProductAccumulator(productId, vtszCode, description, unitOfMeasure))
                     .add(quantity);
 
-            // Aggregate components per AC #2 math formula
-            boolean contributed = aggregateComponents(quantity, components, kfAccumulators, hasFallback);
+            // Aggregate components per AC #2 math formula + capture provenance
+            boolean contributed = aggregateComponentsWithProvenance(
+                    quantity, components, kfAccumulators, hasFallback,
+                    invoiceNumber, line.lineNumber(), vtszCode, description, unitOfMeasure,
+                    provenanceLines);
             if (contributed) resolvedLineCount++;
         }
 
@@ -230,14 +244,26 @@ public class InvoiceDrivenFilingAggregator {
                 invoiceLineCount, resolvedLineCount, activeConfigVersion,
                 periodStart, periodEnd, durationMs);
 
-        return new FilingAggregationResult(soldProducts, kfTotals, unresolved, metadata);
+        return new FilingAggregationResult(soldProducts, kfTotals, unresolved, metadata, provenanceLines);
     }
 
     // ─── AC #2 aggregation math ───────────────────────────────────────────────
 
+    /** Called from tests — delegates to the provenance-capturing variant with a no-op list. */
     boolean aggregateComponents(BigDecimal quantity, List<ComponentRow> components,
                                          Map<String, KfTotalAccumulator> kfAccumulators,
                                          boolean lineFallback) {
+        return aggregateComponentsWithProvenance(
+                quantity, components, kfAccumulators, lineFallback,
+                null, 0, null, null, null, new ArrayList<>());
+    }
+
+    private boolean aggregateComponentsWithProvenance(
+            BigDecimal quantity, List<ComponentRow> components,
+            Map<String, KfTotalAccumulator> kfAccumulators, boolean lineFallback,
+            String invoiceNumber, int lineNumber, String vtsz, String description,
+            String unitOfMeasure, List<AggregationProvenanceLine> provenanceLines) {
+
         List<ComponentRow> sorted = components.stream()
                 .sorted((a, b) -> Integer.compare(a.componentOrder(), b.componentOrder()))
                 .toList();
@@ -288,10 +314,21 @@ public class InvoiceDrivenFilingAggregator {
             String kfCode = comp.kfCode();
             if (kfCode == null || kfCode.isBlank()) continue;
 
+            boolean isFallback = lineFallback || "VTSZ_FALLBACK".equals(comp.classifierSource());
             kfAccumulators.computeIfAbsent(kfCode,
                     k -> new KfTotalAccumulator(k, comp.classificationLabel()))
-                    .accumulate(weightContribution, comp.productId(), lineFallback || "VTSZ_FALLBACK".equals(comp.classifierSource()));
+                    .accumulate(weightContribution, comp.productId(), isFallback);
             contributed = true;
+
+            // Capture per-component provenance (AC #6 sum invariant relies on this)
+            if (invoiceNumber != null) {
+                ProvenanceTag tag = isFallback ? ProvenanceTag.VTSZ_FALLBACK : ProvenanceTag.REGISTRY_MATCH;
+                provenanceLines.add(AggregationProvenanceLine.resolved(
+                        invoiceNumber, lineNumber, vtsz, description, quantity, unitOfMeasure,
+                        comp.productId(), comp.productName(),
+                        comp.componentId(), level, kfCode,
+                        weightContribution, tag));
+            }
         }
         return contributed;
     }
@@ -377,7 +414,8 @@ public class InvoiceDrivenFilingAggregator {
                     defaultDecimal(row.weightPerUnitKg(), BigDecimal.ZERO),
                     row.classifierSource(),
                     defaultInt(row.componentOrder(), 0),
-                    row.materialDescription()
+                    row.materialDescription(),
+                    row.name()
             ));
         }
         return byKey;
@@ -413,7 +451,8 @@ public class InvoiceDrivenFilingAggregator {
             BigDecimal weightPerUnitKg,
             String classifierSource,
             int componentOrder,
-            String classificationLabel
+            String classificationLabel,
+            String productName
     ) {}
 
     static class KfTotalAccumulator {

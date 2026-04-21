@@ -3,6 +3,7 @@ package hu.riskguard.epr;
 import hu.riskguard.epr.aggregation.domain.InvoiceDrivenFilingAggregator;
 import hu.riskguard.epr.api.EprController;
 import hu.riskguard.epr.api.dto.*;
+import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.jooq.tables.records.EprMaterialTemplatesRecord;
@@ -44,13 +45,16 @@ class EprControllerTest {
     @Mock
     private InvoiceDrivenFilingAggregator aggregator;
 
+    @Mock
+    private AuditService auditService;
+
     private EprController controller;
 
     private static final UUID TENANT_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        controller = new EprController(eprService, producerProfileService, aggregator);
+        controller = new EprController(eprService, producerProfileService, aggregator, auditService);
     }
 
     @Test

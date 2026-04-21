@@ -8,6 +8,30 @@
       "title": "MOHU Export"
     },
     "filing": {
+      "audit": {
+        "columns": {
+          "description": "Megnevezés",
+          "invoiceNumber": "Számlaszám",
+          "kfCode": "KF-kód",
+          "lineNumber": "Sor",
+          "productName": "Terméknév",
+          "provenanceTag": "Provenance",
+          "quantity": "Mennyiség",
+          "unitOfMeasure": "ME",
+          "vtsz": "VTSZ",
+          "weightContributionKg": "Súly hozzájárulás (kg)",
+          "wrappingLevel": "Csomag. szint"
+        },
+        "emptyMessage": "Nincs megjelenítendő adat",
+        "exportCsv": "CSV exportálás",
+        "panelTitle": "Bejelentés részletei",
+        "tagLabel": {
+          "REGISTRY_MATCH": "Egyező",
+          "UNRESOLVED": "Azonosítatlan",
+          "UNSUPPORTED_UNIT": "Nem tám. ME",
+          "VTSZ_FALLBACK": "VTSZ fallback"
+        }
+      },
       "backToLibrary": "Vissza a könyvtárhoz",
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Exportálás sikertelen: {message}",

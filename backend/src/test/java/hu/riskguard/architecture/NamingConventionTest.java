@@ -53,10 +53,11 @@ public class NamingConventionTest {
                     });
 
     @ArchTest
-    static final ArchRule dtos_should_be_records =
+    static final ArchRule dtos_should_be_records_or_enums =
             classes().that().resideInAPackage("..api.dto..")
                     .and().haveSimpleNameNotContaining("package-info")
                     .and().doNotHaveSimpleName("package-info")
+                    .and().areNotEnums()
                     .should().beRecords();
 
     // --- Module boundary enforcement: jOOQ table isolation ---
@@ -202,7 +203,9 @@ public class NamingConventionTest {
                                 "hu.riskguard.jooq.tables.Tenants",
                                 // Story 9.4 — producer profiles + NAV tenant credentials join
                                 "hu.riskguard.jooq.tables.ProducerProfiles",
-                                "hu.riskguard.jooq.tables.NavTenantCredentials"
+                                "hu.riskguard.jooq.tables.NavTenantCredentials",
+                                // Story 10.8 — aggregation audit log (provenance fetch + CSV export events)
+                                "hu.riskguard.jooq.tables.AggregationAuditLog"
                         );
                         private static final String JOOQ_TABLES_PKG = "hu.riskguard.jooq.tables.";
 

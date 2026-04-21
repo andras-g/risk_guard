@@ -9,8 +9,10 @@ import { useTierGate } from '~/composables/auth/useTierGate'
 import { useAuthStore } from '~/stores/auth'
 import { useEprFilingStore } from '~/stores/eprFiling'
 import { useRegistryCompleteness } from '~/composables/api/useRegistryCompleteness'
+import { useEprFilingProvenance } from '~/composables/api/useEprFilingProvenance'
 import EprSoldProductsTable from '~/components/Epr/EprSoldProductsTable.vue'
 import EprKfTotalsTable from '~/components/Epr/EprKfTotalsTable.vue'
+import EprProvenanceTable from '~/components/Epr/EprProvenanceTable.vue'
 import type { UnresolvedInvoiceLine } from '~/types/epr'
 
 const { t } = useI18n()
@@ -20,6 +22,7 @@ const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const authStore = useAuthStore()
 const filingStore = useEprFilingStore()
 const registryCompleteness = useRegistryCompleteness()
+const provenance = useEprFilingProvenance()
 
 // Accountant with home tenant active = no client selected yet
 const needsClientSelection = computed(() =>
@@ -43,6 +46,7 @@ const periodTo = ref(
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 const pendingRefresh = ref(false)
 watch([periodFrom, periodTo], ([from, to]) => {
+  provenance.invalidate()
   if (debounceTimer) clearTimeout(debounceTimer)
   // Empty or inverted range → skip fetch (user is mid-edit); surface as client error
   if (!from || !to) {
@@ -101,6 +105,20 @@ const grandTotalFee = computed(() => {
     filingStore.grandTotalFeeHuf,
   ) + ' Ft'
 })
+
+// Audit panel
+const auditPanelCollapsed = ref(true)
+
+function onAuditPanelToggle(collapsed: boolean) {
+  auditPanelCollapsed.value = collapsed
+  if (!collapsed && provenance.rows.value.length === 0) {
+    provenance.fetch(periodFrom.value, periodTo.value, 0, 50)
+  }
+}
+
+function onProvenancePage(event: { page: number; rows: number }) {
+  provenance.fetch(periodFrom.value, periodTo.value, event.page, event.rows)
+}
 
 // Unresolved panel
 const unresolvedPanelCollapsed = ref(true)
@@ -408,6 +426,38 @@ const genericErrorMessage = computed(() => {
           @click="handleExport"
         />
       </div>
+    </div>
+
+    <!-- Audit / Provenance Panel -->
+    <div class="mb-6" data-testid="audit-panel-wrapper">
+      <Panel
+        :header="t('epr.filing.audit.panelTitle')"
+        :collapsed="auditPanelCollapsed"
+        toggleable
+        data-testid="audit-panel"
+        @update:collapsed="onAuditPanelToggle"
+      >
+        <template #icons>
+          <Button
+            icon="pi pi-file-export"
+            :aria-label="t('epr.filing.audit.exportCsv')"
+            :title="t('epr.filing.audit.exportCsv')"
+            text
+            rounded
+            :loading="provenance.isCsvExporting.value"
+            data-testid="audit-csv-export"
+            @click="provenance.exportCsv(periodFrom, periodTo)"
+          />
+        </template>
+        <EprProvenanceTable
+          :rows="provenance.rows.value"
+          :total-elements="provenance.totalElements.value"
+          :is-loading="provenance.isLoading.value"
+          :period="{ from: periodFrom, to: periodTo }"
+          data-testid="provenance-table-section"
+          @page="onProvenancePage"
+        />
+      </Panel>
     </div>
 
     </template>

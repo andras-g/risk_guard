@@ -8,6 +8,30 @@
       "title": "MOHU Export"
     },
     "filing": {
+      "audit": {
+        "columns": {
+          "description": "Description",
+          "invoiceNumber": "Invoice Number",
+          "kfCode": "KF Code",
+          "lineNumber": "Line",
+          "productName": "Product Name",
+          "provenanceTag": "Provenance Tag",
+          "quantity": "Quantity",
+          "unitOfMeasure": "Unit",
+          "vtsz": "VTSZ",
+          "weightContributionKg": "Weight Contribution (kg)",
+          "wrappingLevel": "Wrap. Level"
+        },
+        "emptyMessage": "No data to display",
+        "exportCsv": "Export CSV",
+        "panelTitle": "Filing Provenance Details",
+        "tagLabel": {
+          "REGISTRY_MATCH": "Matched",
+          "UNRESOLVED": "Unresolved",
+          "UNSUPPORTED_UNIT": "Unsupported Unit",
+          "VTSZ_FALLBACK": "VTSZ Fallback"
+        }
+      },
       "backToLibrary": "Back to Library",
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Export failed: {message}",

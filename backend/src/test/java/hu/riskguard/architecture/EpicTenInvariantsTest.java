@@ -86,6 +86,23 @@ public class EpicTenInvariantsTest {
                     .allowEmptyShould(true);
 
     /**
+     * Story 10.8 AC #16 — aggregation audit write boundary.
+     *
+     * <p>Only classes inside {@code hu.riskguard.epr.audit} may depend on
+     * {@code AggregationAuditRepository}. Mirrors invariant 1 for the new table.
+     */
+    @ArchTest
+    static final ArchRule only_audit_package_writes_to_aggregation_audit_log =
+            noClasses()
+                    .that().resideOutsideOfPackage("..epr.audit..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().resideOutsideOfPackage("..jooq..")
+                    .and().haveSimpleNameNotEndingWith("BeanDefinitions")
+                    .and().haveSimpleNameNotEndingWith("BeanFactoryRegistrations")
+                    .should().dependOnClassesThat().haveSimpleName("AggregationAuditRepository")
+                    .allowEmptyShould(true);
+
+    /**
      * Story 10.4 AC #31 invariant 3 — bootstrap classes reside in the bootstrap package.
      *
      * <p>Classes named *BootstrapService, *BootstrapWorker, or *BootstrapController that

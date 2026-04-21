@@ -1,5 +1,30 @@
 # Deferred Work
 
+## Deferred from: R2 code review of 10-8-audit-reszletek-collapsible-panel (2026-04-21)
+
+- R2-W1: PrintWriter/OutputStreamWriter not closed in `exportProvenanceCsv` — standard Spring `StreamingResponseBody` pattern; closing the underlying servlet output stream is hazardous. Errors swallowed by PrintWriter. [EprController.java:357–366]
+- R2-W2: Sum invariant (AC #6) precision drift when summing 4dp provenance rows vs 3dp kfTotal — verified only with 2 lines in current test; pre-existing scale trade-off already noted in R1-W6.
+- R2-W3: No AbortController / request-id on `useEprFilingProvenance.fetch` — same pattern as Story 10.6 R2-D1 aggregation race; cross-cutting refactor deferred to follow-up story.
+- R2-W4: Period-change watcher calls `provenance.invalidate()` synchronously (not inside debounce timer) — can flicker an expanded panel while user edits a date string. Minor UX.
+- R2-W5: Panel re-expand after period change does not force a new fetch when `rows.value.length > 0` — if user types new period chars quickly, panel may display stale rows. Low risk given R2-W4 flicker already clears rows via `invalidate()`.
+- R2-W6: No rate limit on provenance/CSV endpoints — infrastructure-layer concern; unbounded audit writes possible. Tracked for gateway WAF/rate-limit work.
+- R2-W7: Silently-dropped invoice lines (blank VTSZ, non-positive quantity) produce no provenance row — pre-existing aggregator behaviour from Story 10.5; AC #5 speaks of component-invoice pairs only.
+- R2-W8: `AggregationProvenanceLine` is a public record; Dev Notes suggested "package-private or nested" — moving to package-private requires relocating the `toDto` mapper out of the controller package (refactor churn).
+- R2-W9: Full `provenanceLines` list materialized before page slice — acknowledged in R1-W1; spec-intended design.
+
+## Deferred from: code review of 10-8-audit-reszletek-collapsible-panel (2026-04-21)
+
+- W1: In-memory unbounded provenance list — entire `provenanceLines` list materialized before page slice; spec-intended design (`Dev Notes §Architecture`); `StreamingResponseBody` avoids HTTP response buffering but not heap buffering. [InvoiceDrivenFilingAggregator.java]
+- W2: Content-Disposition header not RFC 6266-compliant — `LocalDate.toString()` and UUID prefix are safe ASCII; pattern is structurally sloppy but no practical risk. [EprController.java]
+- W3: Audit logged before StreamingResponseBody executes — intentional per ADR-0003 §caller-initiates; records export initiated, not export fully delivered. [EprController.java exportProvenanceCsv]
+- W4: `$fetch` vs `apiFetch` for CSV export — verify this matches `exportOkirkapu` pattern in `useEprFilingStore.ts` before next story; if exportOkirkapu uses `$fetch` + blob, consistent and safe to keep. [frontend/app/composables/api/useEprFilingProvenance.ts:33]
+- W5: Caffeine concurrent aggregation race (double audit rows) — pre-existing design reviewed in Story 10.5 R3; Caffeine single-flight contract. [InvoiceDrivenFilingAggregator.java]
+- W6: Sum invariant rounding accumulation — 4dp provenance vs 3dp kfTotal; gap only visible with 100+ lines; pre-existing scale trade-off. [AggregationProvenanceLine.java]
+- W7: `FilingAggregationResult` (api.dto) imports domain type `AggregationProvenanceLine` — spec-intended; controller maps to public `ProvenanceLine` DTO. [FilingAggregationResult.java]
+- W8: Cross-tenant 403 test missing — `tenantId` always JWT-derived; no URL parameter to inject different tenant; implicit protection. [FilingAggregationProvenanceControllerTest.java]
+- W9: No structured logging in `recordProvenceFetch`/`recordCsvExport` — spec only requires "logging kept" for AGGREGATION_RUN; new methods intentionally DB-only. [AuditService.java]
+- W10: `setTimeout(100ms)` blob URL revoke race in `exportCsv` — consistent with `exportOkirkapu` project-wide pattern. [useEprFilingProvenance.ts]
+
 ## Deferred from: code review of 10-7-empty-registry-block-guided-onboarding (2026-04-21)
 
 - W1: Stale cache after bootstrap/create/archive — `summaryCache` in RegistryService has 10s TTL only; `onBootstrapCompleted → refresh()` may return cached empty state. Fix: call `summaryCache.invalidate(tenantId)` in `RegistryService.create/archive` and in the bootstrap completion hook (Story 10.4 scope).

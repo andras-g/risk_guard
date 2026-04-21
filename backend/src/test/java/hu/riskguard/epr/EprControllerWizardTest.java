@@ -7,6 +7,7 @@ import hu.riskguard.core.security.TierGateInterceptor;
 import hu.riskguard.epr.aggregation.domain.InvoiceDrivenFilingAggregator;
 import hu.riskguard.epr.api.EprController;
 import hu.riskguard.epr.api.dto.*;
+import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.domain.EprService;
 import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.identity.domain.IdentityService;
@@ -69,6 +70,9 @@ class EprControllerWizardTest {
     private ProducerProfileService producerProfileService;
 
     @Mock
+    private AuditService auditService;
+
+    @Mock
     private InvoiceDrivenFilingAggregator aggregator;
 
     private MockMvc mockMvc;
@@ -125,7 +129,7 @@ class EprControllerWizardTest {
     void setUp() {
         TierGateInterceptor interceptor = new TierGateInterceptor(identityService);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new EprController(eprService, producerProfileService, aggregator))
+                .standaloneSetup(new EprController(eprService, producerProfileService, aggregator, auditService))
                 .addFilters(new SecurityContextFilter())
                 .addInterceptors(interceptor)
                 .setControllerAdvice(new TierGateExceptionHandler())

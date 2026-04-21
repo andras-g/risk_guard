@@ -1,6 +1,7 @@
 package hu.riskguard.epr.audit;
 
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
+import hu.riskguard.epr.audit.internal.AggregationAuditRepository;
 import hu.riskguard.epr.audit.internal.RegistryAuditRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -36,6 +37,9 @@ class AuditServiceTest {
     @Mock
     private RegistryAuditRepository repository;
 
+    @Mock
+    private AggregationAuditRepository aggregationAuditRepository;
+
     private MeterRegistry meterRegistry;
     private AuditService auditService;
 
@@ -46,7 +50,7 @@ class AuditServiceTest {
     @BeforeEach
     void setUp() {
         meterRegistry = new SimpleMeterRegistry();
-        auditService = new AuditService(repository, meterRegistry);
+        auditService = new AuditService(repository, aggregationAuditRepository, meterRegistry);
     }
 
     @Test

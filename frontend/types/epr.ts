@@ -175,3 +175,30 @@ export interface FilingAggregationResult {
   unresolved: UnresolvedInvoiceLine[]
   metadata: AggregationMetadata
 }
+
+// ─── Provenance types (Story 10.8) ──────────────────────────────────────────
+
+export type ProvenanceTag = 'REGISTRY_MATCH' | 'VTSZ_FALLBACK' | 'UNRESOLVED' | 'UNSUPPORTED_UNIT'
+
+export interface ProvenanceLine {
+  invoiceNumber: string
+  lineNumber: number
+  vtsz: string
+  description: string
+  quantity: number
+  unitOfMeasure: string
+  resolvedProductId: string | null
+  productName: string | null
+  componentId: string | null
+  wrappingLevel: number | null
+  componentKfCode: string | null
+  weightContributionKg: number
+  provenanceTag: ProvenanceTag
+}
+
+export interface ProvenancePage {
+  content: ProvenanceLine[]
+  totalElements: number
+  page: number
+  size: number
+}

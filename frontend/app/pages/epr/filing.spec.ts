@@ -39,6 +39,27 @@ vi.mock('~/stores/auth', () => ({
   }),
 }))
 
+// ─── Provenance mock ──────────────────────────────────────────────────────────
+const mockProvenanceFetch = vi.fn().mockResolvedValue(undefined)
+const mockProvenanceExportCsv = vi.fn().mockResolvedValue(undefined)
+const mockProvenanceInvalidate = vi.fn()
+let mockProvenanceRows: unknown[] = []
+let mockProvenanceTotalElements = 0
+let mockProvenanceIsLoading = false
+let mockProvenanceIsCsvExporting = false
+
+vi.mock('~/composables/api/useEprFilingProvenance', () => ({
+  useEprFilingProvenance: () => ({
+    get rows() { return { value: mockProvenanceRows } },
+    get totalElements() { return { value: mockProvenanceTotalElements } },
+    get isLoading() { return { value: mockProvenanceIsLoading } },
+    get isCsvExporting() { return { value: mockProvenanceIsCsvExporting } },
+    fetch: mockProvenanceFetch,
+    exportCsv: mockProvenanceExportCsv,
+    invalidate: mockProvenanceInvalidate,
+  }),
+}))
+
 // Stub child components
 const EprSoldProductsTableStub = {
   template: '<div data-testid="sold-products-table-stub" />',
@@ -48,14 +69,21 @@ const EprKfTotalsTableStub = {
   template: '<div data-testid="kf-totals-table-stub" />',
   props: ['kfTotals', 'loading'],
 }
+const EprProvenanceTableStub = {
+  template: '<div data-testid="provenance-table-stub" />',
+  props: ['rows', 'totalElements', 'isLoading', 'period'],
+  emits: ['page'],
+}
 const ButtonStub = {
   template: '<button :disabled="$attrs.disabled" :data-testid="$attrs[\'data-testid\']" @click="$emit(\'click\')"><slot /></button>',
   emits: ['click'],
   inheritAttrs: true,
 }
 const PanelStub = {
-  template: '<div data-testid="unresolved-panel"><slot /></div>',
+  template: '<div :data-testid="$attrs[\'data-testid\'] || \'panel-stub\'"><slot /><slot name="icons" /></div>',
   props: ['header', 'collapsed', 'toggleable'],
+  emits: ['update:collapsed'],
+  inheritAttrs: false,
 }
 const DataTableStub = {
   template: '<div />',
@@ -144,6 +172,7 @@ function mountPage() {
         Column: ColumnStub,
         EprSoldProductsTable: EprSoldProductsTableStub,
         EprKfTotalsTable: EprKfTotalsTableStub,
+        EprProvenanceTable: EprProvenanceTableStub,
         RegistryOnboardingBlock: RegistryOnboardingBlockStub,
       },
     },
@@ -166,6 +195,10 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     mockIsEmpty = false
     mockRegistryIsLoading = false
     mockTotalProducts = 1
+    mockProvenanceRows = []
+    mockProvenanceTotalElements = 0
+    mockProvenanceIsLoading = false
+    mockProvenanceIsCsvExporting = false
   })
 
   it('renders period selector on mount', () => {
@@ -319,6 +352,66 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     const wrapper = mountPage()
     expect(wrapper.find('[data-testid="period-selector"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="registry-onboarding-block"]').exists()).toBe(false)
+  })
+
+  // ─── Audit panel tests (AC #35) ───────────────────────────────────────────
+
+  it('audit panel is rendered when registry is not empty', () => {
+    mockIsEmpty = false
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="audit-panel"]').exists()).toBe(true)
+  })
+
+  it('audit panel is absent when registry is empty (isEmpty=true)', () => {
+    mockIsEmpty = true
+    mockTotalProducts = 0
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="audit-panel"]').exists()).toBe(false)
+  })
+
+  it('audit panel expand triggers provenance.fetch', async () => {
+    mockIsEmpty = false
+    const wrapper = mountPage()
+    // Find the audit panel stub (second Panel on the page)
+    const auditPanel = wrapper.find('[data-testid="audit-panel"]')
+    expect(auditPanel.exists()).toBe(true)
+    // Emit collapsed=false (expand) from audit panel
+    const allPanels = wrapper.findAllComponents(PanelStub)
+    const auditPanelComponent = allPanels.find(p => (p.element as HTMLElement).getAttribute('data-testid') === 'audit-panel')
+    if (auditPanelComponent) {
+      await auditPanelComponent.vm.$emit('update:collapsed', false)
+    }
+    expect(mockProvenanceFetch).toHaveBeenCalled()
+  })
+
+  it('period change calls provenance.invalidate but NOT fetch', async () => {
+    mockIsEmpty = false
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountPage()
+      await Promise.resolve()
+      mockProvenanceInvalidate.mockClear()
+      mockProvenanceFetch.mockClear()
+      const fromInput = wrapper.find('[data-testid="period-from-input"]')
+      await fromInput.setValue('2025-10-01')
+      // Invalidate should be called immediately on period change
+      expect(mockProvenanceInvalidate).toHaveBeenCalled()
+      // Fetch should NOT be called (no panel expand)
+      vi.advanceTimersByTime(1000)
+      expect(mockProvenanceFetch).not.toHaveBeenCalled()
+    }
+    finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('CSV export button calls provenance.exportCsv', async () => {
+    mockIsEmpty = false
+    const wrapper = mountPage()
+    const csvBtn = wrapper.find('[data-testid="audit-csv-export"]')
+    expect(csvBtn.exists()).toBe(true)
+    await csvBtn.trigger('click')
+    expect(mockProvenanceExportCsv).toHaveBeenCalled()
   })
 
   it('onBootstrapCompleted calls registryCompleteness.refresh', async () => {
