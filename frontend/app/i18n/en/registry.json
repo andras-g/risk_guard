@@ -154,6 +154,22 @@
       "statusAll": "All statuses",
       "statusFilter": "Status"
     },
+    "onboarding": {
+      "allIncompleteBanner": "All products incomplete — add packaging components",
+      "body": {
+        "filing": "To prepare your EPR filing, first add your products and their packaging components to the Registry.",
+        "registry": "Add products to track packaging components and KF codes, or bootstrap the registry from your NAV invoices."
+      },
+      "ctaBootstrap": "Bootstrap from invoices",
+      "ctaManual": "Add product manually",
+      "helpLink": "What is this?",
+      "helpModal": {
+        "body": "The Registry is the foundation of EPR filing. Every sold product and its packaging components must be entered here with KF codes and weights. The system automatically calculates the packaging quantities to be reported based on your NAV invoices and the Registry.\n\nThe fastest method is the \"Bootstrap from invoices\" button, which automatically populates the Registry from the last 3 months of NAV invoices using AI suggestions. Afterwards, review and correct any uncertain rows.\n\nFor manual entry, click the \"Add product manually\" button.",
+        "close": "Close",
+        "title": "About the Product-Packaging Registry"
+      },
+      "title": "The Product-Packaging Registry is empty"
+    },
     "rowBadge": {
       "missingPackaging": "Incomplete",
       "vtszFallback": "Uncertain"

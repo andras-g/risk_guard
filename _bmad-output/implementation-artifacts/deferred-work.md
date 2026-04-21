@@ -1,5 +1,12 @@
 # Deferred Work
 
+## Deferred from: code review of 10-7-empty-registry-block-guided-onboarding (2026-04-21)
+
+- W1: Stale cache after bootstrap/create/archive — `summaryCache` in RegistryService has 10s TTL only; `onBootstrapCompleted → refresh()` may return cached empty state. Fix: call `summaryCache.invalidate(tenantId)` in `RegistryService.create/archive` and in the bootstrap completion hook (Story 10.4 scope).
+- W2: `RegistrySummaryResponse` imports `RegistryRepository.RegistrySummary` from `internal` package — mild upward layering; ArchUnit passes currently. Refactor `from()` factory to accept primitive ints instead.
+- W3: Double `fetchProducts` call on `registry/index.vue` mount when `onlyIncomplete` auto-activates and the watcher fires simultaneously; `fetchProducts` is debounced so 1 effective call, but emits 2 debounced invocations. Minor perf.
+- W4: 1-tick initial flash of onboarding block before skeleton shows — `isLoading` initializes as `false`; fix by initializing `ref(true)` and updating the spec test expectation `[false,true,true,false] → [true,true,true,false]`.
+
 ## Deferred from: code review of 10-6-epr-filing-ui-rebuild-two-tier-display (2026-04-21)
 
 - R2-D1: AbortController for `fetchAggregation` races — concurrent fetches can land out of order and overwrite newer state; in-flight fetch not cancelled on unmount. Cross-cutting refactor; follow-up.

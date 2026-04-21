@@ -154,6 +154,22 @@
       "statusAll": "Minden státusz",
       "statusFilter": "Státusz"
     },
+    "onboarding": {
+      "allIncompleteBanner": "Minden termék hiányos — végy fel csomagolást",
+      "body": {
+        "filing": "A bejelentés elkészítéséhez először vegye fel a termékeket és azok csomagolási elemeit a Nyilvántartásba.",
+        "registry": "Adjon hozzá termékeket a csomagolási elemek és KF-kódok nyomon követéséhez, vagy töltse fel a nyilvántartást a NAV-számlái alapján."
+      },
+      "ctaBootstrap": "Feltöltés számlák alapján",
+      "ctaManual": "Kézi termék hozzáadása",
+      "helpLink": "Mire jó ez?",
+      "helpModal": {
+        "body": "A Nyilvántartás az EPR-bejelentés alapja. Minden eladott terméket és annak csomagolási elemeit itt kell felvenni KF-kóddal és tömeggel. A rendszer a NAV-számlák és a nyilvántartás alapján automatikusan kiszámítja a bejelentendő csomagolási mennyiségeket.\n\nA leggyorsabb módszer a \"Feltöltés számlák alapján\" gomb, amely az elmúlt 3 hónap NAV-számláiból automatikusan feltölti a nyilvántartást AI-javaslatok segítségével. Ezt követően ellenőrizze és szükség esetén korrigálja a bizonytalan sorokat.\n\nKézi hozzáadás esetén kattintson a \"Kézi termék hozzáadása\" gombra.",
+        "close": "Bezárás",
+        "title": "A Termék–Csomagolás Nyilvántartásról"
+      },
+      "title": "A Termék–Csomagolás Nyilvántartás üres"
+    },
     "rowBadge": {
       "missingPackaging": "Hiányos",
       "vtszFallback": "Bizonytalan"

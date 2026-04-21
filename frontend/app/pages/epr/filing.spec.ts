@@ -66,6 +66,22 @@ const ColumnStub = {
   props: ['field', 'header'],
 }
 
+// ─── Registry completeness mock (default: non-empty registry) ────────────────
+const mockRefresh = vi.fn().mockResolvedValue(undefined)
+let mockIsEmpty = false
+let mockRegistryIsLoading = false
+let mockTotalProducts = 1
+
+vi.mock('~/composables/api/useRegistryCompleteness', () => ({
+  useRegistryCompleteness: () => ({
+    get isEmpty() { return { value: mockIsEmpty } },
+    get isLoading() { return { value: mockRegistryIsLoading } },
+    get totalProducts() { return { value: mockTotalProducts } },
+    get productsWithComponents() { return { value: mockIsEmpty ? 0 : 1 } },
+    refresh: mockRefresh,
+  }),
+}))
+
 const mockFetchAggregation = vi.fn().mockResolvedValue(undefined)
 const mockExportOkirkapu = vi.fn().mockResolvedValue(undefined)
 const mockReset = vi.fn()
@@ -106,16 +122,29 @@ function makeAggregation(overrides: Partial<FilingAggregationResult> = {}): Fili
   }
 }
 
+const RegistryOnboardingBlockStub = {
+  name: 'RegistryOnboardingBlock',
+  template: '<div data-testid="registry-onboarding-block" />',
+  emits: ['bootstrap-completed'],
+  props: ['context'],
+}
+const SkeletonStub = {
+  template: '<div data-testid="skeleton-stub" />',
+  props: ['height'],
+}
+
 function mountPage() {
   return mount(FilingPage, {
     global: {
       stubs: {
         Button: ButtonStub,
         Panel: PanelStub,
+        Skeleton: SkeletonStub,
         DataTable: DataTableStub,
         Column: ColumnStub,
         EprSoldProductsTable: EprSoldProductsTableStub,
         EprKfTotalsTable: EprKfTotalsTableStub,
+        RegistryOnboardingBlock: RegistryOnboardingBlockStub,
       },
     },
   })
@@ -124,6 +153,7 @@ function mountPage() {
 describe('EPR Filing Page (10.6 rebuild)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRefresh.mockResolvedValue(undefined)
     mockToastAdd.mockReset()
     mockAggregation = null
     mockIsLoading = false
@@ -133,6 +163,9 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     mockGrandTotalWeightKg = 0
     mockGrandTotalFeeHuf = 0
     mockTotalKfCodes = 0
+    mockIsEmpty = false
+    mockRegistryIsLoading = false
+    mockTotalProducts = 1
   })
 
   it('renders period selector on mount', () => {
@@ -268,5 +301,34 @@ describe('EPR Filing Page (10.6 rebuild)', () => {
     expect(wrapper.exists()).toBe(true)
     // If filing.vue still referenced these fields, TypeScript would have caught it
     // and the test would fail to mount
+  })
+
+  // ─── Empty-registry gate tests (AC #23) ──────────────────────────────────────
+
+  it('shows RegistryOnboardingBlock when registry is empty (isEmpty=true)', () => {
+    mockIsEmpty = true
+    mockTotalProducts = 0
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="registry-onboarding-block"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="period-selector"]').exists()).toBe(false)
+  })
+
+  it('shows period selector and filing content when registry is not empty (isEmpty=false)', () => {
+    mockIsEmpty = false
+    mockTotalProducts = 3
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="period-selector"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="registry-onboarding-block"]').exists()).toBe(false)
+  })
+
+  it('onBootstrapCompleted calls registryCompleteness.refresh', async () => {
+    mockIsEmpty = true
+    mockTotalProducts = 0
+    const wrapper = mountPage()
+    const onboardingBlock = wrapper.findComponent(RegistryOnboardingBlockStub)
+    expect(onboardingBlock.exists()).toBe(true)
+    await onboardingBlock.vm.$emit('bootstrap-completed')
+    await flushPromises()
+    expect(mockRefresh).toHaveBeenCalled()
   })
 })

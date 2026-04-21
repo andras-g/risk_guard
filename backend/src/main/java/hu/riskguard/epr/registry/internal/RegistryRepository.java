@@ -405,6 +405,37 @@ public class RegistryRepository extends BaseRepository {
                 ));
     }
 
+    /**
+     * Returns total non-archived products and how many have at least one component with a non-null kf_code.
+     * Used by the registry summary endpoint (Story 10.7).
+     */
+    public RegistrySummary countSummary(UUID tenantId) {
+        var hasKfCode = DSL.exists(
+                DSL.selectOne()
+                        .from(PRODUCT_PACKAGING_COMPONENTS)
+                        .where(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                        .and(PRODUCT_PACKAGING_COMPONENTS.KF_CODE.isNotNull())
+        );
+
+        var result = dsl
+                .select(
+                        DSL.count().as("total_products"),
+                        DSL.count().filterWhere(hasKfCode).as("products_with_components")
+                )
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.STATUS.ne("ARCHIVED"))
+                .fetchOne();
+
+        if (result == null) return new RegistrySummary(0, 0);
+        return new RegistrySummary(
+                result.get("total_products", Integer.class),
+                result.get("products_with_components", Integer.class)
+        );
+    }
+
+    public record RegistrySummary(int totalProducts, int productsWithComponents) {}
+
     /** MAX(updated_at) across products and components for a tenant — used as the Caffeine cache key signal. */
     public OffsetDateTime resolveMaxUpdatedAt(UUID tenantId) {
         OffsetDateTime productsMax = dsl.select(max(PRODUCTS.UPDATED_AT))

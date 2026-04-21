@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -538,6 +539,43 @@ class RegistryServiceTest {
         assertThat(result.id()).isEqualTo(newProductId);
         verify(registryRepository).existsMaterialTemplateForTenant(templateId, TENANT_ID);
         verify(registryRepository).insertComponent(newProductId, TENANT_ID, comp);
+    }
+
+    // ─── Story 10.7: summary cache — second call within TTL skips the repo ───
+
+    @Test
+    void getSummary_secondCallWithinTtl_returnsCachedValueWithoutReHittingRepository() {
+        // AC #24: spy on repository — verify the Caffeine cache actually short-circuits
+        // the repository call when the same tenant key is requested twice within the 10s TTL.
+        when(registryRepository.countSummary(TENANT_ID))
+                .thenReturn(new RegistryRepository.RegistrySummary(7, 4));
+
+        RegistryRepository.RegistrySummary first = registryService.getSummary(TENANT_ID);
+        RegistryRepository.RegistrySummary second = registryService.getSummary(TENANT_ID);
+
+        assertThat(first.totalProducts()).isEqualTo(7);
+        assertThat(first.productsWithComponents()).isEqualTo(4);
+        assertThat(second).isEqualTo(first);
+        // Cache hit: repository queried exactly once despite two service calls.
+        verify(registryRepository, times(1)).countSummary(TENANT_ID);
+    }
+
+    @Test
+    void getSummary_differentTenants_eachMissesCacheOnce() {
+        // Cache is keyed by tenantId — distinct tenants must NOT share cache entries.
+        UUID otherTenant = UUID.randomUUID();
+        when(registryRepository.countSummary(TENANT_ID))
+                .thenReturn(new RegistryRepository.RegistrySummary(3, 2));
+        when(registryRepository.countSummary(otherTenant))
+                .thenReturn(new RegistryRepository.RegistrySummary(11, 9));
+
+        registryService.getSummary(TENANT_ID);
+        registryService.getSummary(otherTenant);
+        registryService.getSummary(TENANT_ID);      // cached
+        registryService.getSummary(otherTenant);    // cached
+
+        verify(registryRepository, times(1)).countSummary(TENANT_ID);
+        verify(registryRepository, times(1)).countSummary(otherTenant);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

@@ -7,9 +7,9 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useRegistry } from '~/composables/api/useRegistry'
+import { useRegistryCompleteness } from '~/composables/api/useRegistryCompleteness'
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
-import { useHealthStore } from '~/stores/health'
 import type { ProductSummaryResponse, RegistryPageResponse } from '~/composables/api/useRegistry'
 
 const { t } = useI18n()
@@ -20,7 +20,7 @@ const registryStore = useRegistryStore()
 const { listProducts, archiveProduct } = useRegistry()
 const { mapErrorType } = useApiError()
 const toast = useToast()
-const healthStore = useHealthStore()
+const registryCompleteness = useRegistryCompleteness()
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 // Hydrate from query params so InvoiceBootstrapDialog's onOpenRegistry navigation
@@ -48,9 +48,6 @@ const totalRecords = ref(0)
 const products = ref<ProductSummaryResponse[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-
-// ─── Bootstrap dialog ─────────────────────────────────────────────────────────
-const showBootstrapDialog = ref(false)
 
 // ─── Fetch ────────────────────────────────────────────────────────────────────
 async function fetchProducts() {
@@ -121,17 +118,22 @@ async function onArchive(product: ProductSummaryResponse) {
   }
 }
 
-onMounted(() => fetchProducts())
-
-const isEmpty = computed(() => !isLoading.value && !error.value && products.value.length === 0 && !searchQ.value && !kfCodeFilter.value && !statusFilter.value && !onlyIncomplete.value && !onlyUncertain.value)
-
-const showBootstrapCta = computed(() => {
-  if (!isEmpty.value) return false
-  const navAdapter = healthStore.adapters.find(a => a.adapterName === 'nav-online-szamla')
-  const hasNavCredentials = navAdapter?.credentialStatus === 'VALID'
-  const isDemo = navAdapter?.dataSourceMode === 'demo'
-  return hasNavCredentials || isDemo
+onMounted(async () => {
+  await registryCompleteness.refresh()
+  if (registryCompleteness.totalProducts.value > 0
+    && registryCompleteness.productsWithComponents.value === 0) {
+    onlyIncomplete.value = true
+  }
+  // Skip the listing call when the registry is provably empty — the onboarding
+  // block renders instead of the DataTable, so any list response would be discarded.
+  if (registryCompleteness.totalProducts.value > 0) {
+    fetchProducts()
+  }
 })
+
+function onBootstrapCompleted() {
+  registryCompleteness.refresh().then(() => fetchProducts())
+}
 </script>
 
 <template>
@@ -161,8 +163,11 @@ const showBootstrapCta = computed(() => {
       />
     </div>
 
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-3 items-end">
+    <!-- Filters (hidden when registry is wholly empty — AC #14: only header stays visible) -->
+    <div
+      v-if="!(registryCompleteness.totalProducts.value === 0 && !registryCompleteness.isLoading.value)"
+      class="flex flex-wrap gap-3 items-end"
+    >
       <div class="flex flex-col gap-1 flex-1 min-w-48">
         <label for="registry-search" class="text-sm font-medium">{{ t('registry.list.search') }}</label>
         <InputText
@@ -211,35 +216,26 @@ const showBootstrapCta = computed(() => {
       </div>
     </div>
 
-    <!-- Empty state -->
+    <!-- Empty registry onboarding (no products at all) -->
+    <RegistryOnboardingBlock
+      v-if="registryCompleteness.totalProducts.value === 0 && !registryCompleteness.isLoading.value"
+      context="registry"
+      @bootstrap-completed="onBootstrapCompleted"
+    />
+
+    <!-- All-incomplete banner (products exist but none have kf_code components) -->
     <div
-      v-if="isEmpty"
-      class="flex flex-col items-center justify-center py-16 gap-4 text-center"
-      aria-live="polite"
+      v-if="registryCompleteness.totalProducts.value > 0 && registryCompleteness.productsWithComponents.value === 0 && !registryCompleteness.isLoading.value"
+      class="p-3 bg-amber-50 border border-amber-200 rounded flex items-center gap-3"
+      data-testid="all-incomplete-banner"
     >
-      <i class="pi pi-box text-5xl text-gray-400" aria-hidden="true" />
-      <h2 class="text-xl font-medium">{{ t('registry.empty.title') }}</h2>
-      <p class="text-gray-500">{{ t('registry.empty.description') }}</p>
-      <div class="flex gap-3 flex-wrap justify-center">
-        <Button
-          :label="t('registry.empty.cta')"
-          icon="pi pi-plus"
-          @click="router.push('/registry/new')"
-        />
-        <Button
-          v-if="showBootstrapCta"
-          :label="t('registry.bootstrap.emptyCta')"
-          icon="pi pi-cloud-download"
-          severity="secondary"
-          data-testid="bootstrap-cta"
-          @click="showBootstrapDialog = true"
-        />
-      </div>
+      <i class="pi pi-exclamation-triangle text-amber-500" aria-hidden="true" />
+      <span class="text-amber-800 text-sm">{{ t('registry.onboarding.allIncompleteBanner') }}</span>
     </div>
 
-    <!-- Data table -->
+    <!-- Data table (shown when products exist, even if all incomplete) -->
     <DataTable
-      v-else
+      v-show="registryCompleteness.totalProducts.value > 0"
       :value="products"
       :loading="isLoading"
       lazy
@@ -313,10 +309,5 @@ const showBootstrapCta = computed(() => {
       </Column>
     </DataTable>
 
-    <!-- Invoice Bootstrap Dialog (AC #23, #26) -->
-    <RegistryInvoiceBootstrapDialog
-      v-model:visible="showBootstrapDialog"
-      @completed="fetchProducts"
-    />
   </div>
 </template>

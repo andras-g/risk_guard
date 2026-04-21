@@ -31,6 +31,16 @@ public class RegistryController {
     private final RegistryService registryService;
 
     /**
+     * Returns total non-archived products and how many have at least one kf_code component.
+     * Result is cached per-tenant for 10 seconds (see RegistryService.summaryCache).
+     */
+    @GetMapping("/summary")
+    public RegistrySummaryResponse summary(@AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        return RegistrySummaryResponse.from(registryService.getSummary(tenantId));
+    }
+
+    /**
      * List products with optional filters and server-side pagination.
      */
     @GetMapping

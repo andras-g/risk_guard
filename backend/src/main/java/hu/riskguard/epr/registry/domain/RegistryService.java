@@ -1,10 +1,13 @@
 package hu.riskguard.epr.registry.domain;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.audit.RegistryAuditEntry;
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
+import hu.riskguard.epr.registry.internal.RegistryRepository.RegistrySummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Domain service for the Product-Packaging Registry.
@@ -30,6 +34,12 @@ public class RegistryService {
     private final RegistryRepository registryRepository;
     private final AuditService auditService;
 
+    private final Cache<UUID, RegistrySummary> summaryCache =
+            Caffeine.newBuilder()
+                    .expireAfterWrite(10, TimeUnit.SECONDS)
+                    .maximumSize(1000)
+                    .build();
+
     public RegistryService(RegistryRepository registryRepository,
                            AuditService auditService) {
         this.registryRepository = registryRepository;
@@ -46,6 +56,12 @@ public class RegistryService {
     @Transactional(readOnly = true)
     public long count(UUID tenantId, RegistryListFilter filter) {
         return registryRepository.countByTenantWithFilters(tenantId, filter);
+    }
+
+    // ─── Summary ──────────────────────────────────────────────────────────────
+
+    public RegistrySummary getSummary(UUID tenantId) {
+        return summaryCache.get(tenantId, registryRepository::countSummary);
     }
 
     // ─── Get ─────────────────────────────────────────────────────────────────

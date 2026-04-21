@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
+import Skeleton from 'primevue/skeleton'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { useToast } from 'primevue/usetoast'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useAuthStore } from '~/stores/auth'
 import { useEprFilingStore } from '~/stores/eprFiling'
+import { useRegistryCompleteness } from '~/composables/api/useRegistryCompleteness'
 import EprSoldProductsTable from '~/components/Epr/EprSoldProductsTable.vue'
 import EprKfTotalsTable from '~/components/Epr/EprKfTotalsTable.vue'
 import type { UnresolvedInvoiceLine } from '~/types/epr'
@@ -17,6 +19,7 @@ const toast = useToast()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const authStore = useAuthStore()
 const filingStore = useEprFilingStore()
+const registryCompleteness = useRegistryCompleteness()
 
 // Accountant with home tenant active = no client selected yet
 const needsClientSelection = computed(() =>
@@ -51,6 +54,11 @@ watch([periodFrom, periodTo], ([from, to]) => {
     filingStore.error = 'period.invalidRange'
     return
   }
+  // Registry empty → onboarding block is showing; aggregation fetch would be discarded.
+  if (registryCompleteness.isEmpty.value) {
+    pendingRefresh.value = false
+    return
+  }
   pendingRefresh.value = true
   debounceTimer = setTimeout(() => {
     pendingRefresh.value = false
@@ -63,12 +71,23 @@ onBeforeUnmount(() => {
   pendingRefresh.value = false
 })
 
-onMounted(() => {
+onMounted(async () => {
   filingStore.exportError = null
   if (!needsClientSelection.value && hasAccess.value) {
-    filingStore.fetchAggregation(periodFrom.value, periodTo.value)
+    await registryCompleteness.refresh()
+    if (!registryCompleteness.isEmpty.value) {
+      filingStore.fetchAggregation(periodFrom.value, periodTo.value)
+    }
   }
 })
+
+function onBootstrapCompleted() {
+  registryCompleteness.refresh().then(() => {
+    if (!registryCompleteness.isEmpty.value) {
+      filingStore.fetchAggregation(periodFrom.value, periodTo.value)
+    }
+  })
+}
 
 // Summary card derived values
 const grandTotalWeight = computed(() => {
@@ -199,6 +218,25 @@ const genericErrorMessage = computed(() => {
       <i class="pi pi-times-circle text-red-500" aria-hidden="true" />
       <span class="text-red-800 text-sm">{{ genericErrorMessage }}</span>
     </div>
+
+    <!-- Registry completeness loading skeleton (first load only) -->
+    <div
+      v-if="registryCompleteness.isLoading.value && registryCompleteness.totalProducts.value === 0"
+      class="py-8"
+      data-testid="registry-completeness-loading"
+    >
+      <Skeleton height="200px" />
+    </div>
+
+    <!-- Empty Registry onboarding block -->
+    <RegistryOnboardingBlock
+      v-else-if="registryCompleteness.isEmpty.value && !registryCompleteness.isLoading.value"
+      context="filing"
+      @bootstrap-completed="onBootstrapCompleted"
+    />
+
+    <!-- Period Selector (only when registry is not empty) -->
+    <template v-else>
 
     <!-- Period Selector -->
     <div class="bg-white border border-slate-200 rounded-lg p-6 mb-6" data-testid="period-selector">
@@ -371,5 +409,7 @@ const genericErrorMessage = computed(() => {
         />
       </div>
     </div>
+
+    </template>
   </div>
 </template>
