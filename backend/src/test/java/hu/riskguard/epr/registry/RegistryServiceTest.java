@@ -1,8 +1,10 @@
 package hu.riskguard.epr.registry;
 
+import hu.riskguard.epr.aggregation.domain.AggregationCacheInvalidator;
 import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.epr.registry.domain.*;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
 import hu.riskguard.jooq.tables.records.ProductPackagingComponentsRecord;
@@ -13,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -38,6 +42,7 @@ import static org.mockito.Mockito.when;
  * cross-tenant-404, archive-transitions, component-order-normalisation, PPWR-nullable-roundtrip.
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RegistryServiceTest {
 
     @Mock
@@ -45,6 +50,12 @@ class RegistryServiceTest {
 
     @Mock
     private AuditService auditService;
+
+    @Mock
+    private ProducerProfileService producerProfileService;
+
+    @Mock
+    private AggregationCacheInvalidator aggregationCacheInvalidator;
 
     private RegistryService registryService;
 
@@ -55,7 +66,11 @@ class RegistryServiceTest {
 
     @BeforeEach
     void setUp() {
-        registryService = new RegistryService(registryRepository, auditService);
+        registryService = new RegistryService(registryRepository, auditService,
+                producerProfileService, aggregationCacheInvalidator);
+        // Default mocked scope lookup → UNKNOWN (simple fallback) so existing create() tests
+        // do not trip on the new Story 10.11 default-scope resolution path.
+        when(producerProfileService.getDefaultEprScope(any())).thenReturn("UNKNOWN");
     }
 
     // ─── Test 1: create with components emits audit rows ─────────────────────
@@ -72,7 +87,7 @@ class RegistryServiceTest {
                 "ART-001", "Activia 125g", "3923", "pcs",
                 ProductStatus.ACTIVE, List.of(comp));
 
-        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.insertProduct(eq(TENANT_ID), eq(cmd), any())).thenReturn(newProductId);
         when(registryRepository.insertComponent(newProductId, TENANT_ID, comp)).thenReturn(newCompId);
         when(registryRepository.findProductByIdAndTenant(newProductId, TENANT_ID))
                 .thenReturn(Optional.of(buildProductRecord(newProductId, cmd)));
@@ -282,7 +297,7 @@ class RegistryServiceTest {
                 null, "Green Bottle", "3923", "pcs",
                 ProductStatus.DRAFT, List.of(comp));
 
-        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.insertProduct(eq(TENANT_ID), eq(cmd), any())).thenReturn(newProductId);
         when(registryRepository.insertComponent(newProductId, TENANT_ID, comp)).thenReturn(newCompId);
 
         ProductPackagingComponentsRecord compRecord = buildComponentRecord(newCompId, newProductId, comp);
@@ -504,7 +519,7 @@ class RegistryServiceTest {
                 "ART-X", "Cross-tenant", "3923", "pcs", ProductStatus.ACTIVE, List.of(comp));
         UUID newProductId = UUID.randomUUID();
 
-        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.insertProduct(eq(TENANT_ID), eq(cmd), any())).thenReturn(newProductId);
         when(registryRepository.existsMaterialTemplateForTenant(templateId, TENANT_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> registryService.create(TENANT_ID, USER_ID, cmd))
@@ -526,7 +541,7 @@ class RegistryServiceTest {
         UUID newProductId = UUID.randomUUID();
         UUID newCompId = UUID.randomUUID();
 
-        when(registryRepository.insertProduct(TENANT_ID, cmd)).thenReturn(newProductId);
+        when(registryRepository.insertProduct(eq(TENANT_ID), eq(cmd), any())).thenReturn(newProductId);
         when(registryRepository.existsMaterialTemplateForTenant(templateId, TENANT_ID)).thenReturn(true);
         when(registryRepository.insertComponent(newProductId, TENANT_ID, comp)).thenReturn(newCompId);
         when(registryRepository.findProductByIdAndTenant(newProductId, TENANT_ID))
@@ -576,6 +591,103 @@ class RegistryServiceTest {
 
         verify(registryRepository, times(1)).countSummary(TENANT_ID);
         verify(registryRepository, times(1)).countSummary(otherTenant);
+    }
+
+    // ─── Story 10.11 AC #6a — cache-invalidation unit tests ──────────────────
+
+    /**
+     * AC #6a — {@code updateProductScope} must call
+     * {@link AggregationCacheInvalidator#invalidateTenant(UUID)} exactly once per state-changing
+     * write. Unit test runs without an active Spring transaction, so the service's
+     * transaction-synchronization branch falls back to immediate invocation (verified path).
+     */
+    @Test
+    void updateProductScope_invalidatesAggregationCacheOnce() {
+        UUID scopedProductId = UUID.randomUUID();
+        ProductsRecord record = new ProductsRecord();
+        record.setId(scopedProductId);
+        record.setTenantId(TENANT_ID);
+        record.setStatus(ProductStatus.ACTIVE.name());
+        record.setEprScope("FIRST_PLACER");
+        record.setPrimaryUnit("pcs");
+        record.setName("P");
+        record.setCreatedAt(OffsetDateTime.now());
+        record.setUpdatedAt(OffsetDateTime.now());
+
+        when(registryRepository.findProductByIdAndTenant(scopedProductId, TENANT_ID))
+                .thenReturn(Optional.of(record));
+        when(registryRepository.updateEprScope(scopedProductId, TENANT_ID, "RESELLER")).thenReturn(1);
+        when(registryRepository.findComponentsByProductAndTenant(scopedProductId, TENANT_ID))
+                .thenReturn(List.of());
+
+        registryService.updateProductScope(TENANT_ID, scopedProductId, USER_ID, "RESELLER");
+
+        verify(aggregationCacheInvalidator, times(1)).invalidateTenant(TENANT_ID);
+    }
+
+    /**
+     * AC #6a — idempotent {@code updateProductScope} (current value) must NOT invalidate the cache
+     * nor emit an audit event. Regression guard for the "PATCH with current scope" idempotency
+     * contract (AC #7 last bullet).
+     */
+    @Test
+    void updateProductScope_idempotent_doesNotInvalidateCacheOrAudit() {
+        UUID scopedProductId = UUID.randomUUID();
+        ProductsRecord record = new ProductsRecord();
+        record.setId(scopedProductId);
+        record.setTenantId(TENANT_ID);
+        record.setStatus(ProductStatus.ACTIVE.name());
+        record.setEprScope("RESELLER");
+        record.setPrimaryUnit("pcs");
+        record.setName("P");
+        record.setCreatedAt(OffsetDateTime.now());
+        record.setUpdatedAt(OffsetDateTime.now());
+
+        when(registryRepository.findProductByIdAndTenant(scopedProductId, TENANT_ID))
+                .thenReturn(Optional.of(record));
+        when(registryRepository.findComponentsByProductAndTenant(scopedProductId, TENANT_ID))
+                .thenReturn(List.of());
+
+        registryService.updateProductScope(TENANT_ID, scopedProductId, USER_ID, "RESELLER");
+
+        verify(aggregationCacheInvalidator, never()).invalidateTenant(any());
+        verify(auditService, never()).recordEprScopeChanged(any(), any(), any(), any(), any());
+    }
+
+    /**
+     * AC #6a — {@code bulkUpdateProductScopes} invalidates the cache once for any state-changing
+     * batch (never per-row).
+     */
+    @Test
+    void bulkUpdateProductScopes_invalidatesCacheOncePerBatch() {
+        UUID idA = UUID.randomUUID();
+        UUID idB = UUID.randomUUID();
+        when(registryRepository.loadProductScopes(eq(TENANT_ID), any()))
+                .thenReturn(List.of(
+                        new RegistryRepository.ProductScopeRow(idA, "FIRST_PLACER", "ACTIVE"),
+                        new RegistryRepository.ProductScopeRow(idB, "UNKNOWN", "ACTIVE")));
+        when(registryRepository.updateEprScope(any(), eq(TENANT_ID), eq("RESELLER"))).thenReturn(1);
+
+        registryService.bulkUpdateProductScopes(TENANT_ID, USER_ID, List.of(idA, idB), "RESELLER");
+
+        verify(aggregationCacheInvalidator, times(1)).invalidateTenant(TENANT_ID);
+    }
+
+    /**
+     * AC #6a — idempotent-only batch (every row already at target) must NOT invalidate the cache.
+     */
+    @Test
+    void bulkUpdateProductScopes_allIdempotent_doesNotInvalidateCache() {
+        UUID idA = UUID.randomUUID();
+        UUID idB = UUID.randomUUID();
+        when(registryRepository.loadProductScopes(eq(TENANT_ID), any()))
+                .thenReturn(List.of(
+                        new RegistryRepository.ProductScopeRow(idA, "RESELLER", "ACTIVE"),
+                        new RegistryRepository.ProductScopeRow(idB, "RESELLER", "ACTIVE")));
+
+        registryService.bulkUpdateProductScopes(TENANT_ID, USER_ID, List.of(idA, idB), "RESELLER");
+
+        verify(aggregationCacheInvalidator, never()).invalidateTenant(any());
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

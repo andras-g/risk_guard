@@ -90,6 +90,19 @@ public class InvoiceDrivenFilingAggregator {
         cache.invalidateAll();
     }
 
+    /**
+     * Drop every cache entry for a tenant — used by Story 10.11 scope-write paths so that a
+     * product reclassification immediately re-aggregates on the next filing-page fetch.
+     *
+     * <p>Called via {@code AggregationCacheInvalidator.invalidateTenant(tenantId)} — the indirection
+     * exists so {@code RegistryService} does NOT take a direct compile-time dependency on the
+     * aggregator (which would reverse the dependency direction: registry → aggregation).
+     */
+    public void invalidateTenant(UUID tenantId) {
+        if (tenantId == null) return;
+        cache.asMap().keySet().removeIf(k -> tenantId.equals(k.tenantId()));
+    }
+
     public FilingAggregationResult aggregateForPeriod(UUID tenantId, LocalDate periodStart, LocalDate periodEnd) {
         long startNs = System.nanoTime();
 
@@ -158,6 +171,9 @@ public class InvoiceDrivenFilingAggregator {
         Map<String, SoldProductAccumulator> soldAccumulators = new LinkedHashMap<>();
         List<UnresolvedInvoiceLine> unresolved = new ArrayList<>();
         List<AggregationProvenanceLine> provenanceLines = new ArrayList<>();
+        // Story 10.11 AC #5: track DISTINCT products with epr_scope='UNKNOWN' that contributed
+        // at least one resolved invoice line (used to render the filing-page warning banner).
+        Set<UUID> unknownScopeProductsSeen = new HashSet<>();
         int invoiceLineCount = 0;
         int resolvedLineCount = 0;
 
@@ -231,7 +247,15 @@ public class InvoiceDrivenFilingAggregator {
                     quantity, components, kfAccumulators, hasFallback,
                     invoiceNumber, line.lineNumber(), vtszCode, description, unitOfMeasure,
                     provenanceLines);
-            if (contributed) resolvedLineCount++;
+            if (contributed) {
+                resolvedLineCount++;
+                // Story 10.11 AC #5: tally DISTINCT products with UNKNOWN scope that contributed.
+                // Scope is per-product, so any component row carries the same value — read from the first.
+                String scope = components.get(0).eprScope();
+                if ("UNKNOWN".equals(scope)) {
+                    unknownScopeProductsSeen.add(components.get(0).productId());
+                }
+            }
         }
 
         List<KfCodeTotal> kfTotals = buildKfTotals(kfAccumulators, feeRates);
@@ -242,7 +266,8 @@ public class InvoiceDrivenFilingAggregator {
         long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
         AggregationMetadata metadata = new AggregationMetadata(
                 invoiceLineCount, resolvedLineCount, activeConfigVersion,
-                periodStart, periodEnd, durationMs);
+                periodStart, periodEnd, durationMs,
+                unknownScopeProductsSeen.size());
 
         return new FilingAggregationResult(soldProducts, kfTotals, unresolved, metadata, provenanceLines);
     }
@@ -415,7 +440,8 @@ public class InvoiceDrivenFilingAggregator {
                     row.classifierSource(),
                     defaultInt(row.componentOrder(), 0),
                     row.materialDescription(),
-                    row.name()
+                    row.name(),
+                    row.eprScope()
             ));
         }
         return byKey;
@@ -452,7 +478,8 @@ public class InvoiceDrivenFilingAggregator {
             String classifierSource,
             int componentOrder,
             String classificationLabel,
-            String productName
+            String productName,
+            String eprScope
     ) {}
 
     static class KfTotalAccumulator {

@@ -155,4 +155,37 @@ public class ProducerProfileRepository extends BaseRepository {
         return findByTenantId(tenantId)
                 .orElseThrow(() -> new IllegalStateException("Failed to read back upserted producer profile for tenant " + tenantId));
     }
+
+    // ─── Story 10.11: default_epr_scope ──────────────────────────────────────
+
+    /** Load the tenant's default epr_scope. Empty when no {@code producer_profiles} row exists. */
+    public Optional<String> findDefaultEprScope(UUID tenantId) {
+        return dsl.select(PRODUCER_PROFILES.DEFAULT_EPR_SCOPE)
+                .from(PRODUCER_PROFILES)
+                .where(PRODUCER_PROFILES.TENANT_ID.eq(tenantId))
+                .fetchOptional(0, String.class);
+    }
+
+    /**
+     * Load the tenant's default epr_scope with a {@code SELECT ... FOR UPDATE} row lock. Used by
+     * {@link hu.riskguard.epr.producer.domain.ProducerProfileService#updateDefaultEprScope} to close
+     * the TOCTOU between read-old and write-new: a concurrent PATCH is serialised on the producer
+     * profile row until the enclosing transaction commits.
+     */
+    public Optional<String> findDefaultEprScopeForUpdate(UUID tenantId) {
+        return dsl.select(PRODUCER_PROFILES.DEFAULT_EPR_SCOPE)
+                .from(PRODUCER_PROFILES)
+                .where(PRODUCER_PROFILES.TENANT_ID.eq(tenantId))
+                .forUpdate()
+                .fetchOptional(0, String.class);
+    }
+
+    /** Update default_epr_scope for a tenant. Returns row count (0 when no profile exists). */
+    public int updateDefaultEprScope(UUID tenantId, String scope) {
+        return dsl.update(PRODUCER_PROFILES)
+                .set(PRODUCER_PROFILES.DEFAULT_EPR_SCOPE, scope)
+                .set(PRODUCER_PROFILES.UPDATED_AT, OffsetDateTime.now())
+                .where(PRODUCER_PROFILES.TENANT_ID.eq(tenantId))
+                .execute();
+    }
 }

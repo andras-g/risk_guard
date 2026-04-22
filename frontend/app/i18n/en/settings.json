@@ -1,6 +1,12 @@
 {
   "settings": {
     "producerProfile": {
+      "defaultEprScope": {
+        "helpText": "New products start with this value until explicitly reclassified in the editor.",
+        "saveError": "Failed to update default EPR scope",
+        "saveSuccess": "Default EPR scope updated",
+        "title": "Default EPR scope"
+      },
       "fields": {
         "addressCity": "City",
         "addressHouseNumber": "House Number",

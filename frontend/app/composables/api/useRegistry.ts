@@ -17,6 +17,8 @@ export interface ComponentResponse {
   updatedAt: string
 }
 
+export type EprScope = 'FIRST_PLACER' | 'RESELLER' | 'UNKNOWN'
+
 export interface ProductResponse {
   id: string
   tenantId: string
@@ -25,6 +27,7 @@ export interface ProductResponse {
   vtsz: string | null
   primaryUnit: string
   status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
+  eprScope: EprScope
   components: ComponentResponse[]
   createdAt: string
   updatedAt: string
@@ -41,6 +44,7 @@ export interface ProductSummaryResponse {
   classifierSource: 'MANUAL' | 'MANUAL_WIZARD' | 'AI_SUGGESTED_CONFIRMED' | 'AI_SUGGESTED_EDITED' | 'VTSZ_FALLBACK' | 'NAV_BOOTSTRAP' | null
   componentCount: number
   updatedAt: string
+  eprScope?: EprScope
 }
 
 export interface RegistryPageResponse {
@@ -88,7 +92,13 @@ export interface ProductUpsertRequest {
   vtsz?: string | null
   primaryUnit: string
   status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'
+  eprScope?: EprScope | null
   components: ComponentUpsertRequest[]
+}
+
+export interface BulkEprScopeResponse {
+  updated: number
+  skipped: number
 }
 
 export interface RegistryListFilter {
@@ -98,6 +108,7 @@ export interface RegistryListFilter {
   status?: 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | null
   reviewState?: 'MISSING_PACKAGING' | null
   classifierSource?: 'VTSZ_FALLBACK' | null
+  onlyUnknownScope?: boolean | null
   page?: number
   size?: number
 }
@@ -106,7 +117,7 @@ export function useRegistry() {
   const { apiFetch } = useApi()
 
   function listProducts(filter: RegistryListFilter = {}): Promise<RegistryPageResponse> {
-    const params: Record<string, string | number> = {
+    const params: Record<string, string | number | boolean> = {
       page: filter.page ?? 0,
       size: filter.size ?? 50,
     }
@@ -116,6 +127,7 @@ export function useRegistry() {
     if (filter.status) params.status = filter.status
     if (filter.reviewState) params.reviewState = filter.reviewState
     if (filter.classifierSource) params.classifierSource = filter.classifierSource
+    if (filter.onlyUnknownScope) params.onlyUnknownScope = true
 
     return apiFetch<RegistryPageResponse>('/api/v1/registry', { params })
   }
@@ -136,11 +148,38 @@ export function useRegistry() {
     return apiFetch<void>(`/api/v1/registry/${id}/archive`, { method: 'POST' })
   }
 
+  /** Story 10.11 AC #7 — PATCH a single product's epr_scope. */
+  function updateProductScope(id: string, scope: EprScope): Promise<ProductResponse> {
+    return apiFetch<ProductResponse>(`/api/v1/registry/products/${id}/epr-scope`, {
+      method: 'PATCH',
+      body: { scope },
+    })
+  }
+
+  /** Story 10.11 AC #8 — bulk scope update. */
+  function bulkUpdateProductScope(productIds: string[], scope: EprScope): Promise<BulkEprScopeResponse> {
+    return apiFetch<BulkEprScopeResponse>('/api/v1/registry/products/bulk-epr-scope', {
+      method: 'POST',
+      body: { productIds, scope },
+    })
+  }
+
+  /** Story 10.11 AC #15b — demo-only packaging reset (demo/e2e profile). */
+  function resetDemoPackaging(): Promise<{ deletedComponents: number; affectedProducts: number }> {
+    return apiFetch<{ deletedComponents: number; affectedProducts: number }>(
+      '/api/v1/registry/demo/reset-packaging',
+      { method: 'POST' }
+    )
+  }
+
   function getAuditLog(id: string, page = 0, size = 50): Promise<RegistryAuditPageResponse> {
     return apiFetch<RegistryAuditPageResponse>(`/api/v1/registry/${id}/audit-log`, {
       params: { page, size },
     })
   }
 
-  return { listProducts, getProduct, createProduct, updateProduct, archiveProduct, getAuditLog }
+  return {
+    listProducts, getProduct, createProduct, updateProduct, archiveProduct, getAuditLog,
+    updateProductScope, bulkUpdateProductScope, resetDemoPackaging,
+  }
 }

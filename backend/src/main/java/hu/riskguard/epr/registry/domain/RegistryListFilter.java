@@ -15,10 +15,17 @@ public record RegistryListFilter(
         String kfCode,                  // exact match via components join
         ProductStatus status,
         ReviewState reviewState,         // null = all; MISSING_PACKAGING = only incomplete
-        AuditSource classifierSource     // null = all; VTSZ_FALLBACK = only uncertain
+        AuditSource classifierSource,    // null = all; VTSZ_FALLBACK = only uncertain
+        Boolean onlyUnknownScope         // Story 10.11 AC #18: true = only epr_scope='UNKNOWN'
 ) {
     /** Backward-compatible 4-field constructor for existing callers. */
     public RegistryListFilter(String q, String vtsz, String kfCode, ProductStatus status) {
-        this(q, vtsz, kfCode, status, null, null);
+        this(q, vtsz, kfCode, status, null, null, null);
+    }
+
+    /** Story 10.4 6-field constructor retained for callers predating Story 10.11. */
+    public RegistryListFilter(String q, String vtsz, String kfCode, ProductStatus status,
+                              ReviewState reviewState, AuditSource classifierSource) {
+        this(q, vtsz, kfCode, status, reviewState, classifierSource, null);
     }
 }

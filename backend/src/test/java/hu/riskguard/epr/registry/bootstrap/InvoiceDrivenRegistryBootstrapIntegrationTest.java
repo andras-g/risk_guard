@@ -114,6 +114,8 @@ class InvoiceDrivenRegistryBootstrapIntegrationTest {
         lenient().when(dataSourceService.getTenantTaxNumber(TENANT_ID))
                 .thenReturn(java.util.Optional.of(TAX_NUMBER));
         lenient().doReturn(null).when(producerProfileService).get(TENANT_ID);
+        // Story 10.11: bootstrap inserts stamp epr_scope — mocked profile returns UNKNOWN default.
+        lenient().when(producerProfileService.getDefaultEprScope(TENANT_ID)).thenReturn("UNKNOWN");
         lenient().when(usageService.getMonthlyCap()).thenReturn(10_000);
         lenient().when(usageService.getCurrentMonthCallCount(TENANT_ID)).thenReturn(0);
     }
@@ -228,6 +230,61 @@ class InvoiceDrivenRegistryBootstrapIntegrationTest {
                         .and(REGISTRY_ENTRY_AUDIT_LOG.SOURCE.eq(AuditSource.NAV_BOOTSTRAP.name())));
         // 5 created events (one per new product) — no overwrites in this fixture.
         assertThat(auditEventCount).isGreaterThanOrEqualTo(5);
+
+        // Story 10.11 AC #23 — bootstrap-created products inherit the tenant's default_epr_scope
+        // (mocked to UNKNOWN in setUp). Negatively asserts any created product is missing a scope.
+        int unknownScopeCount = dsl.fetchCount(PRODUCTS,
+                PRODUCTS.TENANT_ID.eq(TENANT_ID).and(PRODUCTS.EPR_SCOPE.eq("UNKNOWN")));
+        assertThat(unknownScopeCount).isEqualTo(5);
+    }
+
+    /**
+     * Story 10.11 AC #23 (5th test) — {@code bootstrapCreatedProducts_useProducerProfileDefault}.
+     *
+     * <p>When the tenant's default scope is {@code FIRST_PLACER}, bootstrap-created products must
+     * land with {@code epr_scope='FIRST_PLACER'}. Isolates the scope-stamping path by stubbing the
+     * profile default and running a minimal 1-pair flow.
+     */
+    @Test
+    void bootstrapCreatedProducts_useProducerProfileDefault() throws Exception {
+        // Re-stub getDefaultEprScope → FIRST_PLACER for this test only.
+        lenient().when(producerProfileService.getDefaultEprScope(TENANT_ID)).thenReturn("FIRST_PLACER");
+
+        var summary = new InvoiceSummary("INV-FP", "CREATE", "12345678", null, null, null,
+                LocalDate.now(), null, null, null, InvoiceDirection.OUTBOUND);
+        var detail = new InvoiceDetail("INV-FP", "CREATE", "12345678", null, null, null,
+                LocalDate.now(), null, null, null, InvoiceDirection.OUTBOUND,
+                List.of(new InvoiceLineItem(1, "PET palack 0,5L",
+                        null, null, null, null, null, "3923", null, null)),
+                null, null);
+
+        when(dataSourceService.queryInvoices(eq(TAX_NUMBER), any(), any(), eq(InvoiceDirection.OUTBOUND)))
+                .thenReturn(new InvoiceQueryResult(List.of(summary), true));
+        when(dataSourceService.queryInvoiceDetails("INV-FP")).thenReturn(detail);
+
+        when(classifierService.classify(any(), eq(TENANT_ID)))
+                .thenAnswer(inv -> {
+                    List<hu.riskguard.epr.registry.api.dto.BatchPackagingRequest.PairRequest> req = inv.getArgument(0);
+                    List<BatchPackagingResult> results = new java.util.ArrayList<>();
+                    for (var p : req) {
+                        results.add(new BatchPackagingResult(p.vtsz(), p.description(),
+                                List.of(new PackagingLayerDto(1, "11020101",
+                                        new BigDecimal("0.05"), 1, p.description())),
+                                BatchPackagingResult.STRATEGY_GEMINI, "v-test-1"));
+                    }
+                    return results;
+                });
+
+        UUID jobId = bootstrapService.startJob(TENANT_ID, USER_ID,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 3, 31));
+        awaitTerminal(jobId);
+
+        assertThat(bootstrapJobRepository.findByIdAndTenant(jobId, TENANT_ID).orElseThrow().status())
+                .isEqualTo(BootstrapJobStatus.COMPLETED);
+
+        int firstPlacerCount = dsl.fetchCount(PRODUCTS,
+                PRODUCTS.TENANT_ID.eq(TENANT_ID).and(PRODUCTS.EPR_SCOPE.eq("FIRST_PLACER")));
+        assertThat(firstPlacerCount).isEqualTo(1);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

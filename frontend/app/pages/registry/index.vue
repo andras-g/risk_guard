@@ -5,11 +5,15 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import ConfirmDialog from 'primevue/confirmdialog'
+import { useConfirm } from 'primevue/useconfirm'
 import { useTierGate } from '~/composables/auth/useTierGate'
 import { useRegistry } from '~/composables/api/useRegistry'
 import { useRegistryCompleteness } from '~/composables/api/useRegistryCompleteness'
 import { useRegistryStore } from '~/stores/registry'
 import { useApiError } from '~/composables/api/useApiError'
+import { useAuthStore } from '~/stores/auth'
+import { useEprFilingStore } from '~/stores/eprFiling'
 import type { ProductSummaryResponse, RegistryPageResponse } from '~/composables/api/useRegistry'
 
 const { t } = useI18n()
@@ -17,10 +21,13 @@ const { hasAccess, tierName } = useTierGate('PRO_EPR')
 const router = useRouter()
 const route = useRoute()
 const registryStore = useRegistryStore()
-const { listProducts, archiveProduct } = useRegistry()
+const { listProducts, archiveProduct, resetDemoPackaging } = useRegistry()
 const { mapErrorType } = useApiError()
 const toast = useToast()
+const confirm = useConfirm()
 const registryCompleteness = useRegistryCompleteness()
+const authStore = useAuthStore()
+const filingStore = useEprFilingStore()
 
 // ─── Filter state ─────────────────────────────────────────────────────────────
 // Hydrate from query params so InvoiceBootstrapDialog's onOpenRegistry navigation
@@ -31,6 +38,23 @@ const statusFilter = ref<'ACTIVE' | 'ARCHIVED' | 'DRAFT' | null>(null)
 const kfCodeFilter = ref<string>('')
 const onlyIncomplete = ref(route.query.reviewState === 'MISSING_PACKAGING')
 const onlyUncertain = ref(route.query.classifierSource === 'VTSZ_FALLBACK')
+// Story 10.11 AC #18 — "Only unclassified scope" filter chip + deep-link support
+const onlyUnknownScope = ref(route.query.filter === 'epr-scope-unknown')
+// Story 10.11 AC #18 — unknown-scope warning banner count sourced from the filing-aggregation
+// metadata per the spec (previous client-side aggregate only saw the current page and was
+// structurally always-0 before eprScope landed in the list projection).
+const unknownScopeProducts = computed(() =>
+  filingStore.aggregation?.metadata?.unknownScopeProductsInPeriod ?? 0)
+
+// Story 10.11 AC #15c — demo reset button visibility. The backend is @Profile({"demo","e2e"})
+// gated AND tenant-whitelisted; the frontend here only hides the button for non-demo tenants
+// so it never appears in production. Demo tenant UUIDs match R__demo_data.sql seed values.
+const DEMO_TENANT_IDS = new Set([
+  '00000000-0000-4000-b000-000000000020',
+  '00000000-0000-4000-b000-000000000021',
+])
+const isDemoTenant = computed(() =>
+  !!authStore.activeTenantId && DEMO_TENANT_IDS.has(authStore.activeTenantId))
 
 const statusOptions = computed(() => [
   { label: t('registry.list.statusAll'), value: null },
@@ -60,6 +84,7 @@ async function fetchProducts() {
       kfCode: kfCodeFilter.value || undefined,
       reviewState: onlyIncomplete.value ? 'MISSING_PACKAGING' : undefined,
       classifierSource: onlyUncertain.value ? 'VTSZ_FALLBACK' : undefined,
+      onlyUnknownScope: onlyUnknownScope.value || undefined,
       page: currentPage.value,
       size: pageSize.value,
     })
@@ -90,6 +115,26 @@ watch(statusFilter, onFilterChange)
 watch(kfCodeFilter, onFilterChange)
 watch(onlyIncomplete, onFilterChange)
 watch(onlyUncertain, onFilterChange)
+watch(onlyUnknownScope, (next) => {
+  // Keep ?filter=epr-scope-unknown in sync with the chip so the deep-link from the filing
+  // page survives a page refresh and the back/forward buttons restore the visible filter
+  // state. Falls back to a bare /registry URL when toggled off.
+  const target = next ? 'epr-scope-unknown' : undefined
+  if (route.query.filter !== target) {
+    const next_query = { ...route.query }
+    if (target) next_query.filter = target
+    else delete next_query.filter
+    router.replace({ query: next_query })
+  }
+  onFilterChange()
+})
+// Hydrate the chip when the route query changes via in-app navigation (e.g., the filing-page
+// banner click while the user is already on /registry — Vue may reuse this component instance,
+// so the ref initialiser does not re-run).
+watch(() => route.query.filter, (next) => {
+  const wantsUnknown = next === 'epr-scope-unknown'
+  if (onlyUnknownScope.value !== wantsUnknown) onlyUnknownScope.value = wantsUnknown
+})
 
 function onPage(event: { page: number; rows: number }) {
   currentPage.value = event.page
@@ -104,6 +149,38 @@ function tagSeverity(status: 'ACTIVE' | 'ARCHIVED' | 'DRAFT'): 'success' | 'warn
     case 'DRAFT': return 'warn'
     case 'ARCHIVED': return 'secondary'
   }
+}
+
+// ─── Story 10.11 AC #15c — Demo reset ─────────────────────────────────────────
+function onDemoReset() {
+  confirm.require({
+    message: t('registry.demo.resetPackaging.confirmMessage'),
+    header: t('registry.demo.resetPackaging.button'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.actions.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('registry.demo.resetPackaging.button'), severity: 'danger' },
+    accept: async () => {
+      try {
+        const res = await resetDemoPackaging()
+        toast.add({
+          severity: 'success',
+          summary: t('registry.demo.resetPackaging.success', { count: res.deletedComponents }),
+          life: 4000,
+        })
+        await registryCompleteness.refresh()
+        fetchProducts()
+      }
+      catch (err: unknown) {
+        const e = err as { data?: { errorMessageKey?: string } }
+        const key = e?.data?.errorMessageKey
+        toast.add({
+          severity: 'error',
+          summary: key ? t(key) : t('registry.demo.resetPackaging.error'),
+          life: 5000,
+        })
+      }
+    },
+  })
 }
 
 // ─── Archive ──────────────────────────────────────────────────────────────────
@@ -172,8 +249,19 @@ function onBootstrapCompleted() {
           icon="pi pi-plus"
           @click="router.push('/registry/new')"
         />
+        <!-- Story 10.11 AC #15c — demo-only packaging reset button -->
+        <Button
+          v-if="isDemoTenant"
+          :label="t('registry.demo.resetPackaging.button')"
+          icon="pi pi-refresh"
+          severity="danger"
+          outlined
+          data-testid="demo-reset-packaging-btn"
+          @click="onDemoReset"
+        />
       </div>
     </div>
+    <ConfirmDialog />
 
     <!-- Filters (hidden when registry is wholly empty — AC #14: only header stays visible) -->
     <div
@@ -225,7 +313,28 @@ function onBootstrapCompleted() {
           data-testid="filter-chip-uncertain"
           @click="onlyUncertain = !onlyUncertain"
         />
+        <!-- Story 10.11 AC #18 — "Only unclassified EPR scope" chip -->
+        <Button
+          :label="t('registry.filters.eprScopeUnknown')"
+          :severity="onlyUnknownScope ? 'warn' : 'secondary'"
+          :outlined="!onlyUnknownScope"
+          size="small"
+          data-testid="filter-chip-epr-scope-unknown"
+          @click="onlyUnknownScope = !onlyUnknownScope"
+        />
       </div>
+    </div>
+
+    <!-- Story 10.11 AC #18 — unknown-scope warning banner -->
+    <div
+      v-if="unknownScopeProducts > 0"
+      class="p-3 bg-amber-50 border border-amber-200 rounded flex items-center gap-3"
+      data-testid="banner-unknown-scope"
+    >
+      <i class="pi pi-info-circle text-amber-500" aria-hidden="true" />
+      <span class="text-amber-800 text-sm">
+        {{ t('registry.list.banner.unknownScope', { n: unknownScopeProducts }) }}
+      </span>
     </div>
 
     <!-- Empty registry onboarding (no products at all) -->

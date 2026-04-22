@@ -97,6 +97,11 @@ function onBootstrapCompleted() {
 }
 
 // Summary card derived values
+// Story 10.11 AC #21 — unknown-scope counter surfaced by the aggregation response metadata.
+const unknownScopeProductsInPeriod = computed(() => {
+  return filingStore.aggregation?.metadata?.unknownScopeProductsInPeriod ?? 0
+})
+
 const grandTotalWeight = computed(() => {
   if (!filingStore.aggregation) return null
   return filingStore.grandTotalWeightKg.toFixed(3) + ' kg'
@@ -248,6 +253,22 @@ const genericErrorMessage = computed(() => {
     >
       <i class="pi pi-times-circle text-red-500" aria-hidden="true" />
       <span class="text-red-800 text-sm">{{ genericErrorMessage }}</span>
+    </div>
+
+    <!-- Story 10.11 AC #21 — unknown-scope warning banner with deep-link to Registry filter -->
+    <div
+      v-if="unknownScopeProductsInPeriod > 0"
+      class="mb-6 p-3 bg-amber-50 border border-amber-200 rounded flex items-center gap-3 cursor-pointer"
+      data-testid="filing-banner-unknown-scope"
+      role="button"
+      tabindex="0"
+      @click="router.push('/registry?filter=epr-scope-unknown')"
+      @keyup.enter="router.push('/registry?filter=epr-scope-unknown')"
+    >
+      <i class="pi pi-info-circle text-amber-500" aria-hidden="true" />
+      <span class="text-amber-800 text-sm">
+        {{ t('epr.filing.banner.unknownScope', { n: unknownScopeProductsInPeriod }) }}
+      </span>
     </div>
 
     <!-- Registry completeness loading skeleton (first load only) -->

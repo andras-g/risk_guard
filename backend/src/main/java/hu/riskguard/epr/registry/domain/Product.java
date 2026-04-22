@@ -15,6 +15,7 @@ public record Product(
         String vtsz,
         String primaryUnit,
         ProductStatus status,
+        String eprScope,
         List<ProductPackagingComponent> components,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

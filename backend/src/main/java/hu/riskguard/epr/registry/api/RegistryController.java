@@ -51,6 +51,7 @@ public class RegistryController {
             @RequestParam(required = false) ProductStatus status,
             @RequestParam(required = false) ReviewState reviewState,
             @RequestParam(required = false) AuditSource classifierSource,
+            @RequestParam(required = false) Boolean onlyUnknownScope,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal Jwt jwt) {
@@ -58,7 +59,8 @@ public class RegistryController {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         int clampedPage = Math.max(0, page);
         int clampedSize = Math.min(Math.max(1, size), MAX_PAGE_SIZE);
-        RegistryListFilter filter = new RegistryListFilter(q, vtsz, kfCode, status, reviewState, classifierSource);
+        RegistryListFilter filter = new RegistryListFilter(q, vtsz, kfCode, status,
+                reviewState, classifierSource, onlyUnknownScope);
 
         var summaries = registryService.list(tenantId, filter, clampedPage, clampedSize);
         long total = registryService.count(tenantId, filter);
@@ -117,6 +119,40 @@ public class RegistryController {
         UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
         UUID actingUserId = JwtUtil.requireUuidClaim(jwt, "user_id");
         registryService.archive(tenantId, id, actingUserId);
+    }
+
+    /**
+     * Story 10.11 AC #7 — PATCH a single product's {@code epr_scope}.
+     *
+     * <p>400 on invalid scope; 404 on cross-tenant / missing product; 409 when product is archived.
+     * Idempotent: PATCH with the current scope returns 200 with no state change and no audit row.
+     */
+    @PatchMapping("/products/{id}/epr-scope")
+    public ProductResponse updateEprScope(@PathVariable UUID id,
+                                           @Valid @RequestBody UpdateEprScopeRequest request,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID actingUserId = JwtUtil.requireUuidClaim(jwt, "user_id");
+        JwtUtil.requireRole(jwt, "PATCH epr-scope requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
+        return ProductResponse.from(
+                registryService.updateProductScope(tenantId, id, actingUserId, request.scope()));
+    }
+
+    /**
+     * Story 10.11 AC #8 — POST bulk scope update. Max 500 IDs; single transaction; all-or-nothing
+     * on cross-tenant / missing IDs; idempotent rows returned as {@code skipped}.
+     */
+    @PostMapping("/products/bulk-epr-scope")
+    public BulkEprScopeResponse bulkUpdateEprScope(@Valid @RequestBody BulkEprScopeRequest request,
+                                                    @AuthenticationPrincipal Jwt jwt) {
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID actingUserId = JwtUtil.requireUuidClaim(jwt, "user_id");
+        JwtUtil.requireRole(jwt, "Bulk scope update requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
+        return BulkEprScopeResponse.from(
+                registryService.bulkUpdateProductScopes(tenantId, actingUserId,
+                        request.productIds(), request.scope()));
     }
 
     /**

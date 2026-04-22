@@ -47,13 +47,26 @@ public class RegistryRepository extends BaseRepository {
     // ─── Product writes ──────────────────────────────────────────────────────
 
     public UUID insertProduct(UUID tenantId, ProductUpsertCommand cmd) {
-        UUID id = dsl.insertInto(PRODUCTS)
+        return insertProduct(tenantId, cmd, null);
+    }
+
+    /**
+     * Insert a product, optionally stamping {@code epr_scope} to the given value. When
+     * {@code resolvedEprScope} is null the DB DEFAULT ({@code 'UNKNOWN'}) takes effect — kept as
+     * null to preserve current behaviour for callers that have not yet migrated to Story 10.11.
+     */
+    public UUID insertProduct(UUID tenantId, ProductUpsertCommand cmd, String resolvedEprScope) {
+        var insert = dsl.insertInto(PRODUCTS)
                 .set(PRODUCTS.TENANT_ID, tenantId)
                 .set(PRODUCTS.ARTICLE_NUMBER, cmd.articleNumber())
                 .set(PRODUCTS.NAME, cmd.name())
                 .set(PRODUCTS.VTSZ, cmd.vtsz())
                 .set(PRODUCTS.PRIMARY_UNIT, cmd.primaryUnit())
-                .set(PRODUCTS.STATUS, cmd.status().name())
+                .set(PRODUCTS.STATUS, cmd.status().name());
+        if (resolvedEprScope != null) {
+            insert = insert.set(PRODUCTS.EPR_SCOPE, resolvedEprScope);
+        }
+        UUID id = insert
                 .returning(PRODUCTS.ID)
                 .fetchOne(PRODUCTS.ID);
         if (id == null) {
@@ -141,6 +154,7 @@ public class RegistryRepository extends BaseRepository {
                         PRODUCTS.PRIMARY_UNIT,
                         PRODUCTS.STATUS,
                         PRODUCTS.REVIEW_STATE,
+                        PRODUCTS.EPR_SCOPE,
                         vtszFallbackBadge,
                         countSub,
                         PRODUCTS.CREATED_AT,
@@ -162,6 +176,7 @@ public class RegistryRepository extends BaseRepository {
                         r.get(PRODUCTS.REVIEW_STATE) != null
                                 ? ReviewState.valueOf(r.get(PRODUCTS.REVIEW_STATE)) : null,
                         r.get("classifier_source_badge", String.class),
+                        r.get(PRODUCTS.EPR_SCOPE),
                         r.get("component_count", Integer.class),
                         r.get(PRODUCTS.CREATED_AT),
                         r.get(PRODUCTS.UPDATED_AT)
@@ -219,6 +234,10 @@ public class RegistryRepository extends BaseRepository {
                             .where(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
                             .and(PRODUCT_PACKAGING_COMPONENTS.CLASSIFIER_SOURCE.eq(src.name()))
             ));
+        }
+        // Story 10.11 AC #18: onlyUnknownScope filter chip
+        if (Boolean.TRUE.equals(filter.onlyUnknownScope())) {
+            condition = condition.and(PRODUCTS.EPR_SCOPE.eq("UNKNOWN"));
         }
         return condition;
     }
@@ -363,19 +382,28 @@ public class RegistryRepository extends BaseRepository {
     /**
      * One row per PRODUCTS LEFT JOIN PRODUCT_PACKAGING_COMPONENTS.
      * {@code componentId} is null when the product has zero components.
+     *
+     * <p>Story 10.11: {@code eprScope} surfaces the per-product scope flag so downstream aggregators
+     * can distinguish FIRST_PLACER vs UNKNOWN rows (both pass the RESELLER-excluding filter, but
+     * UNKNOWN rows contribute to the unclassified-count warning counter).
      */
     public record AggregationRow(
-            UUID productId, String vtsz, String name, String reviewState,
+            UUID productId, String vtsz, String name, String reviewState, String eprScope,
             UUID componentId, String kfCode, Integer wrappingLevel,
             BigDecimal itemsPerParent, BigDecimal weightPerUnitKg,
             String classifierSource, Integer componentOrder, String materialDescription
     ) {}
 
-    /** Bulk-load active registry for the aggregator — one LEFT JOIN query per tenant. */
+    /** Bulk-load active registry for the aggregator — one LEFT JOIN query per tenant.
+     *
+     * <p>Story 10.11 AC #3: filters on {@code epr_scope IN ('FIRST_PLACER','UNKNOWN')} — RESELLER
+     * rows are dropped (out-of-scope for filing). UNKNOWN is INCLUDED as the compliance-safe default
+     * per product-decision locked 2026-04-22.
+     */
     public List<AggregationRow> loadForAggregation(UUID tenantId) {
         var compId = PRODUCT_PACKAGING_COMPONENTS.ID.as("comp_id");
         return dsl.select(
-                        PRODUCTS.ID, PRODUCTS.VTSZ, PRODUCTS.NAME, PRODUCTS.REVIEW_STATE,
+                        PRODUCTS.ID, PRODUCTS.VTSZ, PRODUCTS.NAME, PRODUCTS.REVIEW_STATE, PRODUCTS.EPR_SCOPE,
                         compId,
                         PRODUCT_PACKAGING_COMPONENTS.KF_CODE,
                         PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL,
@@ -389,11 +417,13 @@ public class RegistryRepository extends BaseRepository {
                 .on(PRODUCT_PACKAGING_COMPONENTS.PRODUCT_ID.eq(PRODUCTS.ID))
                 .where(PRODUCTS.TENANT_ID.eq(tenantId))
                 .and(PRODUCTS.STATUS.eq("ACTIVE"))
+                .and(PRODUCTS.EPR_SCOPE.in("FIRST_PLACER", "UNKNOWN"))
                 .fetch(r -> new AggregationRow(
                         r.get(PRODUCTS.ID),
                         r.get(PRODUCTS.VTSZ),
                         r.get(PRODUCTS.NAME),
                         r.get(PRODUCTS.REVIEW_STATE),
+                        r.get(PRODUCTS.EPR_SCOPE),
                         r.get(compId),
                         r.get(PRODUCT_PACKAGING_COMPONENTS.KF_CODE),
                         r.get(PRODUCT_PACKAGING_COMPONENTS.WRAPPING_LEVEL),
@@ -404,6 +434,100 @@ public class RegistryRepository extends BaseRepository {
                         r.get(PRODUCT_PACKAGING_COMPONENTS.MATERIAL_DESCRIPTION)
                 ));
     }
+
+    /**
+     * Returns RESELLER products that had OUTBOUND invoice line-item traffic in the given period —
+     * purely informational, surfaced on the filing page "Viszonteladóként kizárt termékek" panel
+     * (Story 10.11 AC #6 + AC #20).
+     *
+     * <p>Matches the aggregator's VTSZ + product-name matching rule by joining
+     * {@code product_packaging_components}-sourced invoice lines via the {@code products} table.
+     * Since the aggregator's line-item source is NAV invoices (not a DB table), the period filter
+     * degrades to "products that the caller lists as sold in the period" — computed at call-time by
+     * passing sold product IDs from the aggregation result. This method intentionally does NOT
+     * re-query NAV; it reads only the Registry + accepts the set of product IDs the caller observed
+     * in the period.
+     */
+    public List<ExcludedProductRow> loadExcludedResellerProducts(UUID tenantId, java.util.Set<UUID> soldProductIds) {
+        if (soldProductIds == null || soldProductIds.isEmpty()) return List.of();
+
+        return dsl.select(PRODUCTS.ID, PRODUCTS.VTSZ, PRODUCTS.NAME, PRODUCTS.ARTICLE_NUMBER)
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.EPR_SCOPE.eq("RESELLER"))
+                .and(PRODUCTS.ID.in(soldProductIds))
+                .and(PRODUCTS.STATUS.eq("ACTIVE"))
+                .orderBy(PRODUCTS.VTSZ.asc(), PRODUCTS.NAME.asc())
+                .fetch(r -> new ExcludedProductRow(
+                        r.get(PRODUCTS.ID),
+                        r.get(PRODUCTS.VTSZ),
+                        r.get(PRODUCTS.NAME),
+                        r.get(PRODUCTS.ARTICLE_NUMBER),
+                        0, BigDecimal.ZERO));
+    }
+
+    /**
+     * Registry-only variant of {@link #loadExcludedResellerProducts} that does NOT require a
+     * caller-supplied sold-product set: returns ALL RESELLER products for the tenant. Used when the
+     * caller wants to populate the "excluded" panel even before the aggregation has completed.
+     */
+    public List<ExcludedProductRow> loadResellerProducts(UUID tenantId) {
+        return dsl.select(PRODUCTS.ID, PRODUCTS.VTSZ, PRODUCTS.NAME, PRODUCTS.ARTICLE_NUMBER)
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.EPR_SCOPE.eq("RESELLER"))
+                .and(PRODUCTS.STATUS.eq("ACTIVE"))
+                .orderBy(PRODUCTS.VTSZ.asc(), PRODUCTS.NAME.asc())
+                .fetch(r -> new ExcludedProductRow(
+                        r.get(PRODUCTS.ID),
+                        r.get(PRODUCTS.VTSZ),
+                        r.get(PRODUCTS.NAME),
+                        r.get(PRODUCTS.ARTICLE_NUMBER),
+                        0, BigDecimal.ZERO));
+    }
+
+    public record ExcludedProductRow(
+            UUID productId,
+            String vtsz,
+            String name,
+            String articleNumber,
+            int invoiceLineCount,
+            BigDecimal totalUnitsSold
+    ) {}
+
+    // ─── Scope mutations (Story 10.11) ───────────────────────────────────────
+
+    /**
+     * Update {@code epr_scope} on a single product; returns number of rows affected.
+     * <p>
+     * Guards against TOCTOU: the WHERE clause explicitly rejects {@code ARCHIVED} rows so a
+     * concurrent archive between the service-layer read and this write cannot slip an update
+     * past the 409 guard. Returns 0 for any of: tenant mismatch, archived row, missing id.
+     */
+    public int updateEprScope(UUID productId, UUID tenantId, String scope) {
+        return dsl.update(PRODUCTS)
+                .set(PRODUCTS.EPR_SCOPE, scope)
+                .set(PRODUCTS.UPDATED_AT, OffsetDateTime.now())
+                .where(PRODUCTS.ID.eq(productId))
+                .and(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.STATUS.ne(ProductStatus.ARCHIVED.name()))
+                .execute();
+    }
+
+    /** Load (productId, currentScope, status) for a set of products — used by bulk PATCH endpoint. */
+    public List<ProductScopeRow> loadProductScopes(UUID tenantId, java.util.Collection<UUID> productIds) {
+        if (productIds == null || productIds.isEmpty()) return List.of();
+        return dsl.select(PRODUCTS.ID, PRODUCTS.EPR_SCOPE, PRODUCTS.STATUS)
+                .from(PRODUCTS)
+                .where(PRODUCTS.TENANT_ID.eq(tenantId))
+                .and(PRODUCTS.ID.in(productIds))
+                .fetch(r -> new ProductScopeRow(
+                        r.get(PRODUCTS.ID),
+                        r.get(PRODUCTS.EPR_SCOPE),
+                        r.get(PRODUCTS.STATUS)));
+    }
+
+    public record ProductScopeRow(UUID productId, String currentScope, String status) {}
 
     /**
      * Returns total non-archived products and how many have at least one component with a non-null kf_code.
@@ -464,6 +588,7 @@ public class RegistryRepository extends BaseRepository {
                 p.getId(), p.getTenantId(), p.getArticleNumber(), p.getName(),
                 p.getVtsz(), p.getPrimaryUnit(),
                 ProductStatus.valueOf(p.getStatus()),
+                p.getEprScope(),
                 comps.stream().map(RegistryRepository::toComponent).toList(),
                 p.getCreatedAt(), p.getUpdatedAt()
         );

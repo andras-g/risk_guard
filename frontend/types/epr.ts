@@ -165,8 +165,17 @@ export interface UnresolvedInvoiceLine {
 }
 
 export interface AggregationMetadata {
-  period: { from: string; to: string }
-  generatedAt: string
+  period?: { from: string; to: string }
+  generatedAt?: string
+  // Story 10.11 AC #5: count of distinct products with epr_scope='UNKNOWN' that contributed
+  // resolved invoice lines in the period — drives the filing-page warning banner.
+  unknownScopeProductsInPeriod?: number
+  invoiceLineCount?: number
+  resolvedLineCount?: number
+  activeConfigVersion?: number
+  periodStart?: string
+  periodEnd?: string
+  aggregationDurationMs?: number
 }
 
 export interface FilingAggregationResult {

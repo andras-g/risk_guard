@@ -8,5 +8,6 @@ public record AggregationMetadata(
         int activeConfigVersion,
         LocalDate periodStart,
         LocalDate periodEnd,
-        long aggregationDurationMs
+        long aggregationDurationMs,
+        int unknownScopeProductsInPeriod
 ) {}

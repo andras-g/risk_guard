@@ -1,5 +1,6 @@
 package hu.riskguard.epr.audit;
 
+import hu.riskguard.epr.audit.events.EprScopeChangeEvent;
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
 import hu.riskguard.epr.audit.internal.AggregationAuditRepository;
 import hu.riskguard.epr.audit.internal.RegistryAuditRepository;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -111,6 +113,68 @@ public class AuditService {
             subBatch.forEach(e -> writeCounters.get(e.source()).increment());
             log.debug("audit-batch flush: {} rows (offset {})", subBatch.size(), i);
         }
+    }
+
+    // ─── Story 10.11: EPR-scope audit writes ─────────────────────────────────
+
+    /**
+     * Record a single product {@code epr_scope} change — Story 10.11 AC #12.
+     *
+     * <p>Persists a {@code registry_entry_audit_log} row with
+     * {@code field_changed='epr_scope'}, {@code old_value=fromScope}, {@code new_value=toScope}
+     * (Deviation D1 in the story's Dev Agent Record: no separate {@code change_type} column).
+     * Source is {@link AuditSource#MANUAL} — scope changes are always user-initiated.
+     *
+     * <p>The caller must ensure the product belongs to {@code tenantId} BEFORE calling this.
+     */
+    public void recordEprScopeChanged(UUID productId, UUID tenantId,
+                                       String fromScope, String toScope, UUID userId) {
+        Objects.requireNonNull(productId, "productId must not be null");
+        Objects.requireNonNull(tenantId, "tenantId must not be null");
+        registryAuditRepository.insertAuditRow(
+                productId, tenantId,
+                "epr_scope",
+                fromScope, toScope,
+                userId,
+                AuditSource.MANUAL);
+        writeCounters.get(AuditSource.MANUAL).increment();
+    }
+
+    /**
+     * Record a company-wide {@code default_epr_scope} change — Story 10.11 AC #12.
+     *
+     * <p>This is a tenant-scoped (no productId) event so it lands as a structured log entry
+     * rather than a {@code registry_entry_audit_log} row (the existing schema requires a
+     * non-null {@code product_id}). Storage as a log line keeps the audit trail visible in
+     * standard ops tooling without inventing a new table just for a one-off preference change.
+     */
+    public void recordDefaultEprScopeChanged(UUID tenantId, String fromScope, String toScope, UUID userId) {
+        log.info("[audit source={} event=default_epr_scope_changed tenant={} user={} from={} to={}]",
+                AuditSource.MANUAL, tenantId, userId, fromScope, toScope);
+        writeCounters.get(AuditSource.MANUAL).increment();
+    }
+
+    /**
+     * Record a batch of {@code epr_scope} changes — Story 10.11 AC #12, bulk PATCH path.
+     *
+     * <p>Uses the batched-connection path inherited from Story 10.4's bootstrap pattern so 500
+     * events produce roughly one JDBC round-trip. Empty / null event lists are a no-op.
+     */
+    public void recordEprScopeChangedBatch(UUID tenantId, List<EprScopeChangeEvent> events, UUID userId) {
+        if (events == null || events.isEmpty()) return;
+        Objects.requireNonNull(tenantId, "tenantId must not be null");
+
+        List<FieldChangeEvent> fieldEvents = new ArrayList<>(events.size());
+        for (EprScopeChangeEvent e : events) {
+            fieldEvents.add(new FieldChangeEvent(
+                    e.productId(), tenantId,
+                    "epr_scope",
+                    e.fromScope(), e.toScope(),
+                    userId,
+                    AuditSource.MANUAL,
+                    null, null));
+        }
+        recordRegistryBootstrapBatch(fieldEvents);
     }
 
     // ─── Aggregation audit ───────────────────────────────────────────────────

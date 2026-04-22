@@ -33,6 +33,16 @@
         }
       },
       "backToLibrary": "Vissza a könyvtárhoz",
+      "banner": {
+        "unknownScope": "{n} termék EPR-hatálya ismeretlen. A bejelentés ezeket alapértelmezésként tartalmazza — kérjük, osztályozza őket."
+      },
+      "excludedProducts": {
+        "columns": {
+          "invoiceLineCount": "Számlasorok",
+          "totalUnitsSold": "Eladott egységek"
+        },
+        "title": "Viszonteladóként kizárt termékek"
+      },
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Exportálás sikertelen: {message}",
       "exportGenerating": "XML generálása...",
@@ -238,7 +248,7 @@
       "hints": {
         "step1": "Válassza ki a termék fő kategóriáját (pl. csomagolás, elektronika, gumiabroncs).",
         "step2": "Milyen anyagból készül a bejelentendő tétel?",
-        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag \u201eFa\u201d, a tartály \u201ePET palack\u201d.",
+        "step3depositGroup": "Válassza ki a tartály típusát, amelyhez az adott anyag-komponens tartozik. Például egy fa záróelem egy PET palackon: az anyag „Fa”, a tartály „PET palack”.",
         "step3group": "Válassza ki a csomagolás felhasználási szintjét.",
         "step3subgroup": "Válassza ki a pontos altípust a besorolás véglegesítéséhez."
       },

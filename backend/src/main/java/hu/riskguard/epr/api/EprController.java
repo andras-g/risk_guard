@@ -528,6 +528,39 @@ public class EprController {
                 ProducerProfileResponse.from(producerProfileService.upsert(tenantId, request)));
     }
 
+    /**
+     * Story 10.11 AC #9 — GET/PATCH company-wide {@code default_epr_scope}.
+     *
+     * <p>Hosted here (rather than on a standalone {@code ProducerProfileController}) per Deviation D2
+     * in the story's Dev Agent Record — the codebase already owns producer-profile state on this
+     * controller. Roles: SME_ADMIN, ACCOUNTANT, PLATFORM_ADMIN.
+     */
+    @GetMapping("/producer-profile/default-epr-scope")
+    public ResponseEntity<hu.riskguard.epr.api.dto.DefaultEprScopeResponse> getDefaultEprScope(
+            @AuthenticationPrincipal Jwt jwt) {
+        JwtUtil.requireRole(jwt, "Default scope read requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        return ResponseEntity.ok(new hu.riskguard.epr.api.dto.DefaultEprScopeResponse(
+                producerProfileService.getDefaultEprScope(tenantId)));
+    }
+
+    @PatchMapping("/producer-profile/default-epr-scope")
+    public ResponseEntity<hu.riskguard.epr.api.dto.DefaultEprScopeResponse> updateDefaultEprScope(
+            @Valid @RequestBody hu.riskguard.epr.api.dto.UpdateDefaultEprScopeRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        JwtUtil.requireRole(jwt, "Default scope update requires SME_ADMIN, ACCOUNTANT, or PLATFORM_ADMIN role",
+                "SME_ADMIN", "ACCOUNTANT", "PLATFORM_ADMIN");
+        UUID tenantId = JwtUtil.requireUuidClaim(jwt, "active_tenant_id");
+        UUID userId = JwtUtil.requireUuidClaim(jwt, "user_id");
+
+        var update = producerProfileService.updateDefaultEprScope(tenantId, request.defaultScope());
+        if (!java.util.Objects.equals(update.fromScope(), update.toScope())) {
+            auditService.recordDefaultEprScopeChanged(tenantId, update.fromScope(), update.toScope(), userId);
+        }
+        return ResponseEntity.ok(new hu.riskguard.epr.api.dto.DefaultEprScopeResponse(update.toScope()));
+    }
+
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private void requireSmeAdminRole(Jwt jwt) {

@@ -4,6 +4,10 @@
       "archive": "Archiválás",
       "archived": "Termék archiválva",
       "back": "Vissza a nyilvántartáshoz",
+      "bulkEprScope": {
+        "firstPlacer": "Jelölés EPR-hatályúnak",
+        "reseller": "Jelölés viszonteladóként"
+      },
       "cancel": "Mégse",
       "create": "Új termék",
       "edit": "Szerkesztés",
@@ -82,6 +86,18 @@
       "tooltipEnabled": "AI által javasolt KF-kód a termék neve és VTSZ alapján",
       "weightEstimateTooltip": "Becsült érték — ellenőrizze a tényleges tömeg alapján"
     },
+    "columns": {
+      "eprScope": "EPR-hatály"
+    },
+    "demo": {
+      "resetPackaging": {
+        "button": "Demo: csomagolások törlése",
+        "confirmMessage": "Ez törli az összes csomagolási komponenst ezen a demo tenanten. Biztosan folytatja?",
+        "error": "A csomagolások törlése sikertelen",
+        "notADemoTenant": "A művelet csak a demo tenanten érhető el.",
+        "success": "Demo visszaállítás: {count} komponens törölve"
+      }
+    },
     "empty": {
       "cta": "Első termék létrehozása",
       "description": "Adja hozzá a termékeket a csomagolási elemek és KF-kódok nyomon követéséhez.",
@@ -90,6 +106,9 @@
     "filter": {
       "onlyIncomplete": "Csak hiányos",
       "onlyUncertain": "Csak bizonytalan"
+    },
+    "filters": {
+      "eprScopeUnknown": "Csak ismeretlen EPR-hatály"
     },
     "form": {
       "addComponent": "Elem hozzáadása",
@@ -140,6 +159,9 @@
       "weightPerUnitKg": "Egységenkénti tömeg (kg)"
     },
     "list": {
+      "banner": {
+        "unknownScope": "{n} termék EPR-hatálya ismeretlen. A bejelentés ezeket alapértelmezésként tartalmazza — kérjük, osztályozza őket."
+      },
       "columns": {
         "actions": "Műveletek",
         "articleNumber": "Cikkszám",
@@ -171,6 +193,23 @@
         "title": "A Termék–Csomagolás Nyilvántartásról"
       },
       "title": "A Termék–Csomagolás Nyilvántartás üres"
+    },
+    "product": {
+      "eprScope": {
+        "helpText": {
+          "firstPlacer": "Az Ön vállalata az első forgalmazó a magyar piacon — ez a termék EPR-bejelentés köteles.",
+          "reseller": "Az Ön vállalata más EU-forgalmazótól veszi a terméket — nem tartozik a bejelentésbe.",
+          "unknown": "Még nincs besorolva — a bejelentés jelenleg tartalmazza, de érdemes minél előbb osztályozni."
+        },
+        "saveError": "Az EPR-hatály módosítása sikertelen",
+        "saveSuccess": "EPR-hatály frissítve",
+        "title": "EPR-hatály",
+        "values": {
+          "firstPlacer": "Első forgalmazó",
+          "reseller": "Viszonteladó",
+          "unknown": "Nincs besorolva"
+        }
+      }
     },
     "rowBadge": {
       "missingPackaging": "Hiányos",

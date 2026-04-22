@@ -31,11 +31,15 @@ export interface ProducerProfileData {
   taxNumber?: string
 }
 
+export type EprScope = 'FIRST_PLACER' | 'RESELLER' | 'UNKNOWN'
+
 export function useProducerProfile() {
   const profile = ref<ProducerProfileData | null>(null)
   const pending = ref(false)
   const saveError = ref<string | null>(null)
   const savedSuccessfully = ref(false)
+  // Story 10.11 AC #19 — default epr_scope for the tenant
+  const defaultEprScope = ref<EprScope>('UNKNOWN')
 
   async function fetchProfile(): Promise<void> {
     pending.value = true
@@ -79,6 +83,35 @@ export function useProducerProfile() {
     }
   }
 
+  async function fetchDefaultScope(): Promise<void> {
+    const config = useRuntimeConfig()
+    try {
+      const data = await $fetch<{ defaultScope: EprScope }>(
+        '/api/v1/epr/producer-profile/default-epr-scope',
+        { baseURL: config.public.apiBase as string, credentials: 'include' }
+      )
+      defaultEprScope.value = data?.defaultScope ?? 'UNKNOWN'
+    }
+    catch {
+      defaultEprScope.value = 'UNKNOWN'
+    }
+  }
+
+  async function updateDefaultScope(scope: EprScope): Promise<EprScope> {
+    const config = useRuntimeConfig()
+    const data = await $fetch<{ defaultScope: EprScope }>(
+      '/api/v1/epr/producer-profile/default-epr-scope',
+      {
+        method: 'PATCH',
+        body: { defaultScope: scope },
+        baseURL: config.public.apiBase as string,
+        credentials: 'include',
+      }
+    )
+    defaultEprScope.value = data.defaultScope
+    return data.defaultScope
+  }
+
   return {
     profile,
     pending,
@@ -86,5 +119,8 @@ export function useProducerProfile() {
     savedSuccessfully,
     fetchProfile,
     saveProfile,
+    defaultEprScope,
+    fetchDefaultScope,
+    updateDefaultScope,
   }
 }

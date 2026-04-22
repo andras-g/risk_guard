@@ -159,7 +159,7 @@ class FilingAggregationControllerTest {
     private static FilingAggregationResult emptyResult() {
         return new FilingAggregationResult(
                 List.of(), List.of(), List.of(),
-                new AggregationMetadata(0, 0, 1, Q1_START, Q1_END, 0L),
+                new AggregationMetadata(0, 0, 1, Q1_START, Q1_END, 0L, 0),
                 List.of());
     }
 }

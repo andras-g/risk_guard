@@ -1,6 +1,12 @@
 {
   "settings": {
     "producerProfile": {
+      "defaultEprScope": {
+        "helpText": "Új termékeknél ez az érték lesz beállítva, amíg ki nem választ mást a termék szerkesztőben.",
+        "saveError": "Az alapértelmezett EPR-hatály módosítása sikertelen",
+        "saveSuccess": "Alapértelmezett EPR-hatály frissítve",
+        "title": "Alapértelmezett EPR-hatály"
+      },
       "fields": {
         "addressCity": "Város",
         "addressHouseNumber": "Házszám",

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
+import SelectButton from 'primevue/selectbutton'
 import { useToast } from 'primevue/usetoast'
 import { useAuthStore } from '~/stores/auth'
 import { useProducerProfile } from '~/composables/api/useProducerProfile'
+import type { EprScope } from '~/composables/api/useProducerProfile'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -21,7 +23,35 @@ const {
   savedSuccessfully,
   fetchProfile,
   saveProfile,
+  defaultEprScope,
+  fetchDefaultScope,
+  updateDefaultScope,
 } = useProducerProfile()
+
+const eprScopeOptions = computed(() => [
+  { label: t('registry.product.eprScope.values.firstPlacer'), value: 'FIRST_PLACER' as EprScope },
+  { label: t('registry.product.eprScope.values.reseller'), value: 'RESELLER' as EprScope },
+  { label: t('registry.product.eprScope.values.unknown'), value: 'UNKNOWN' as EprScope },
+])
+
+async function onDefaultScopeChange(value: EprScope | null) {
+  if (!value || value === defaultEprScope.value) return
+  try {
+    await updateDefaultScope(value)
+    toast.add({
+      severity: 'success',
+      summary: t('settings.producerProfile.defaultEprScope.saveSuccess'),
+      life: 3000,
+    })
+  }
+  catch {
+    toast.add({
+      severity: 'error',
+      summary: t('settings.producerProfile.defaultEprScope.saveError'),
+      life: 5000,
+    })
+  }
+}
 
 // Form state
 const form = reactive({
@@ -57,6 +87,7 @@ const kshValid = computed(() =>
 
 onMounted(async () => {
   await fetchProfile()
+  await fetchDefaultScope()
   if (profile.value) {
     Object.assign(form, {
       legalName: profile.value.legalName ?? '',
@@ -160,6 +191,27 @@ async function handleSave() {
               data-testid="field-okir-client-id" />
           </div>
         </div>
+      </section>
+
+      <!-- Story 10.11 AC #19 — default EPR scope section -->
+      <section
+        class="bg-white border border-slate-200 rounded-lg p-6"
+        data-testid="settings-default-epr-scope"
+      >
+        <h2 class="text-base font-semibold text-slate-700 mb-4">
+          {{ t('settings.producerProfile.defaultEprScope.title') }}
+        </h2>
+        <SelectButton
+          :model-value="defaultEprScope"
+          :options="eprScopeOptions"
+          option-label="label"
+          option-value="value"
+          data-testid="settings-default-epr-scope-select"
+          @update:model-value="onDefaultScopeChange"
+        />
+        <p class="text-xs text-slate-500 mt-2">
+          {{ t('settings.producerProfile.defaultEprScope.helpText') }}
+        </p>
       </section>
 
       <!-- Registered address section -->

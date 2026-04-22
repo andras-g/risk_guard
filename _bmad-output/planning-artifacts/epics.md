@@ -1207,3 +1207,24 @@ So that I can provide proof of a specific risk check if requested by legal autho
 - No new dashboard / flight-control widget for EPR filing (deferred to potential Epic 11 UX polish).
 - No in-app tutorial overlay, no post-first-filing congratulations state.
 
+### Story 10.11: Per-Product EPR Scope Flag + Company-Level Default
+**Goal:** Close the regulatory-compliance gap identified in `_bmad-output/planning-artifacts/epr-packaging-calculation-gap-2026-04-14.md:47-68`. Under 80/2023 Korm. rendelet, only the **első forgalomba hozó** (first placer on the HU market) is liable for EPR fees — a reseller of EU-origin goods is not. The current aggregator includes every OUTBOUND-direction sale of a registered product regardless of scope, silently over-reporting and over-paying for mixed-portfolio tenants (e.g. 90 % EU reseller + 10 % non-EU importer). Add a per-product `epr_scope ∈ {FIRST_PLACER, RESELLER, UNKNOWN}` flag + a company-level default applied on product creation, with a safer-for-compliance aggregation rule (RESELLER excluded, UNKNOWN included with a visible warning).
+
+**Dependencies:** Stories 10.1 (registry schema), 10.5 (aggregator), 10.6 (filing UI), 9.4 (producer profile) — all done. Surfaced via Bob/create-story on 2026-04-22 from a Demo Accountant mixed-portfolio scenario.
+
+**Architecture:**
+- Mixed story: schema + backend service + frontend (4 Vue surfaces) + seed + E2E.
+- `products.epr_scope` + `producer_profiles.default_epr_scope` with `CHECK` constraint limiting values to the 3-enum set; index on `(tenant_id, epr_scope)` for the aggregator hot path.
+- `RegistryRepository.loadForAggregation` filters to `epr_scope IN ('FIRST_PLACER', 'UNKNOWN')` — UNKNOWN included by design (compliance-safe default), surfaced in the UI as a warning to be classified.
+- `InvoiceDrivenFilingAggregator` exposes an `unknownScopeProductsInPeriod` counter in the filing response; a new `loadExcludedResellerProducts(...)` endpoint data powers a read-only "Excluded from filing" panel on `filing.vue`.
+- 3 new endpoints: PATCH `/products/{id}/epr-scope` (single), POST `/products/bulk-epr-scope` (batch up to 200), PATCH `/settings/producer-profile/default-epr-scope`.
+- Every scope write goes through `AuditService` (ADR-0003 audit facade) — enforced by new ArchUnit rule `only_audit_package_writes_to_products_epr_scope`.
+- Frontend: `SelectButton` segmented control on the product editor + settings page; new registry-list column + filter chip + bulk actions; informational "Viszonteladóként kizárt termékek" collapsible panel on `filing.vue`.
+
+**Acceptance Criteria:** see full list in the story file (35 ACs across schema, aggregator, API, audit/ArchUnit, seed, 4 frontend surfaces, backend + frontend tests, E2E, process gates).
+
+**Non-goals:**
+- No per-invoice-line scope tracking (tenant-level decision: stable sourcing per SKU; re-sourced goods get a new `article_number`).
+- No auto-classification via AI (LLM cannot reliably know a specific tenant's supply-chain origin).
+- No breaking change to Epic 9 filing path — Epic 9 flow is already retired, so no migration concern.
+

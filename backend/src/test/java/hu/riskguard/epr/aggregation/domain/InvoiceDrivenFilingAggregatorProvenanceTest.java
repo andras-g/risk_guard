@@ -252,7 +252,8 @@ class InvoiceDrivenFilingAggregatorProvenanceTest {
                 String[] parts = entry.getKey().split("~", 2);
                 allRows.add(new RegistryRepository.AggregationRow(
                         UUID.randomUUID(), parts[0], parts.length > 1 ? parts[1] : "",
-                        "APPROVED", null, null, null, null, null, null, null, null));
+                        "APPROVED", "FIRST_PLACER",
+                        null, null, null, null, null, null, null, null));
             } else {
                 allRows.addAll(entry.getValue());
             }
@@ -264,7 +265,7 @@ class InvoiceDrivenFilingAggregatorProvenanceTest {
             UUID productId, String vtsz, String name, String kfCode,
             String weight, int level, String source) {
         return new RegistryRepository.AggregationRow(
-                productId, vtsz, name, "APPROVED",
+                productId, vtsz, name, "APPROVED", "FIRST_PLACER",
                 UUID.randomUUID(), kfCode, level,
                 BigDecimal.ONE, new BigDecimal(weight),
                 source, level, "Material");

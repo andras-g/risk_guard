@@ -1,7 +1,12 @@
 package hu.riskguard.architecture;
 
+import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaCodeUnit;
+import com.tngtech.archunit.core.domain.JavaFieldAccess;
+import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -9,8 +14,13 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import org.junit.jupiter.api.Test;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.util.Set;
@@ -136,6 +146,86 @@ public class EpicTenInvariantsTest {
                     .and().haveSimpleNameNotEndingWith("BeanFactoryRegistrations")
                     .should().dependOnClassesThat().haveSimpleName("EprBootstrapJobs")
                     .allowEmptyShould(true);
+
+    /**
+     * Story 10.11 AC #13 — scope writes go through the audit-aware service layer.
+     *
+     * <p>Only {@code RegistryService} (the audit-enforced scope-mutation facade) may call
+     * {@code RegistryRepository.updateEprScope(...)}. Any other caller bypasses the audit trail
+     * and the aggregator-cache invalidation step — a silent compliance regression. The bootstrap
+     * service inserts a fresh row with {@code PRODUCTS.EPR_SCOPE} set directly (AC #11); that is
+     * an INSERT, not an UPDATE, so it does not hit {@code updateEprScope}.
+     *
+     * <p>Allowed packages: {@code ..epr.registry.domain..} ({@code RegistryService} itself),
+     * {@code ..epr.registry.internal..} ({@code RegistryRepository}), and {@code ..epr.audit..}
+     * (the facade's own machinery). The bootstrap service in
+     * {@code ..epr.registry.bootstrap.domain..} INSERTs but never UPDATEs scope, so it does not
+     * need to appear here for the method-call rule (it is allowed by the field-access rule below).
+     */
+    @ArchTest
+    static final ArchRule only_audit_package_writes_to_products_epr_scope =
+            noClasses()
+                    .that().resideOutsideOfPackage("..epr.registry.domain..")
+                    .and().resideOutsideOfPackage("..epr.registry.internal..")
+                    .and().resideOutsideOfPackage("..epr.audit..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().resideOutsideOfPackage("..jooq..")
+                    .and().haveSimpleNameNotEndingWith("BeanDefinitions")
+                    .and().haveSimpleNameNotEndingWith("BeanFactoryRegistrations")
+                    .should().callMethodWhere(callToRegistryRepositoryUpdateEprScope())
+                    .allowEmptyShould(true);
+
+    private static DescribedPredicate<JavaMethodCall> callToRegistryRepositoryUpdateEprScope() {
+        return new DescribedPredicate<>("call RegistryRepository.updateEprScope(...)") {
+            @Override
+            public boolean test(JavaMethodCall call) {
+                return "updateEprScope".equals(call.getTarget().getName())
+                        && call.getTargetOwner().getFullName().endsWith("RegistryRepository");
+            }
+        };
+    }
+
+    /**
+     * Story 10.11 AC #13 (R2 reinforcement) — no class outside the allowed packages may even
+     * REFERENCE the {@code Products.EPR_SCOPE} jOOQ field. Closes the gap left by the method-call
+     * rule above: a one-off {@code dsl.update(PRODUCTS).set(PRODUCTS.EPR_SCOPE, ...)} (or an
+     * INSERT with {@code .set(PRODUCTS.EPR_SCOPE, ...)}) anywhere in the codebase would pass the
+     * call-site rule but bypass the audit / cache-invalidation invariant. This rule catches the
+     * {@code getstatic} bytecode that any direct field reference emits.
+     *
+     * <p>Allowed packages:
+     * <ul>
+     *   <li>{@code ..epr.audit..} — audit facade machinery may read scope to compute diffs.</li>
+     *   <li>{@code ..epr.registry.internal..} — {@code RegistryRepository} (the only writer).</li>
+     *   <li>{@code ..epr.registry.bootstrap.domain..} — {@code InvoiceDrivenRegistryBootstrapService}
+     *       INSERTs new products with the tenant default scope (AC #11). Note: spec text named the
+     *       bootstrap package {@code ..bootstrap.internal..} but the actual class lives in
+     *       {@code ..bootstrap.domain..} (verified on disk, R2 review correction).</li>
+     *   <li>{@code ..architecture..} and {@code ..jooq..} — this test + generated code.</li>
+     * </ul>
+     */
+    @ArchTest
+    static final ArchRule no_direct_references_to_products_epr_scope_field =
+            noClasses()
+                    .that().resideOutsideOfPackage("..epr.audit..")
+                    .and().resideOutsideOfPackage("..epr.registry.internal..")
+                    .and().resideOutsideOfPackage("..epr.registry.bootstrap.domain..")
+                    .and().resideOutsideOfPackage("..architecture..")
+                    .and().resideOutsideOfPackage("..jooq..")
+                    .and().haveSimpleNameNotEndingWith("BeanDefinitions")
+                    .and().haveSimpleNameNotEndingWith("BeanFactoryRegistrations")
+                    .should().accessFieldWhere(referencesProductsEprScopeField())
+                    .allowEmptyShould(true);
+
+    private static DescribedPredicate<JavaFieldAccess> referencesProductsEprScopeField() {
+        return new DescribedPredicate<>("reference Products.EPR_SCOPE jOOQ field") {
+            @Override
+            public boolean test(JavaFieldAccess access) {
+                return "EPR_SCOPE".equals(access.getTarget().getName())
+                        && access.getTarget().getOwner().getFullName().endsWith(".Products");
+            }
+        };
+    }
 
     /**
      * Story 10.5 T3 invariant 5 — no double/float fields in the aggregation package.
@@ -272,4 +362,45 @@ public class EpicTenInvariantsTest {
     //        "Method <java.math.BigDecimal.valueOf(double)> gets called …"
     //      Construct BigDecimals from String or integer literals only; DO NOT substitute
     //      BigDecimal.valueOf(double) — it is banned by the same rule.
+
+    // ── Story 10.11 AC #27 — explicit witness @Test methods ────────────────────
+    //
+    // Unlike the other witnesses (which live as comments because they would require a
+    // temporary main-source violation to assert), the Story 10.11 scope-write rule has a
+    // dedicated test-only fixture ({@link hu.riskguard.archtestfixture.scope.ScopeRuleRogueWriter})
+    // that calls {@code RegistryRepository.updateEprScope} from a package outside the rule's
+    // allowed-list. Two JUnit @Test methods below use ArchUnit's programmatic API to:
+    //   1. Positive witness: scan production classes only (tests excluded) and assert the rule
+    //      passes — proves the rule is active and legitimate writers are not false-positives.
+    //   2. Negative witness: scan production + the test fixture and assert the rule FAILS with
+    //      a violation naming {@link hu.riskguard.archtestfixture.scope.ScopeRuleRogueWriter}.
+    //
+    // Keeping both witnesses as real tests (rather than comments) is a review T12 follow-up
+    // from Story 10.11 (P12) — AC #27 requires explicit @Test methods, not commented hints.
+
+    @Test
+    void scopeRule_positive_witness_passes_on_production_classes() {
+        JavaClasses productionOnly = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("hu.riskguard");
+        assertDoesNotThrow(
+                () -> only_audit_package_writes_to_products_epr_scope.check(productionOnly),
+                "only_audit_package_writes_to_products_epr_scope must pass for production classes — "
+                        + "a failure here means some legitimate writer moved out of an allowed package");
+    }
+
+    @Test
+    void scopeRule_negative_witness_fires_on_rogue_test_fixture() {
+        JavaClasses withFixture = new ClassFileImporter()
+                .importPackages(
+                        "hu.riskguard.epr.registry.internal",
+                        "hu.riskguard.archtestfixture.scope");
+        AssertionError violation = assertThrows(AssertionError.class,
+                () -> only_audit_package_writes_to_products_epr_scope.check(withFixture),
+                "only_audit_package_writes_to_products_epr_scope must fail when a class outside "
+                        + "the allowed-list calls RegistryRepository.updateEprScope(...)");
+        assertTrue(violation.getMessage().contains("ScopeRuleRogueWriter"),
+                "ArchUnit violation message should name the offending class (ScopeRuleRogueWriter). "
+                        + "Actual message: " + violation.getMessage());
+    }
 }

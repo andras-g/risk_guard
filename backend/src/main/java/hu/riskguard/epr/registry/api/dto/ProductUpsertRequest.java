@@ -16,11 +16,14 @@ public record ProductUpsertRequest(
         @Pattern(regexp = "^[0-9]{4,8}$") String vtsz,
         @NotBlank String primaryUnit,
         @NotNull ProductStatus status,
+        @Pattern(regexp = "^(FIRST_PLACER|RESELLER|UNKNOWN)$",
+                message = "eprScope must be FIRST_PLACER, RESELLER, or UNKNOWN") String eprScope,
         @Valid @NotNull @Size(min = 1) List<ComponentUpsertRequest> components
 ) {
     public static ProductUpsertRequest from(ProductUpsertCommand cmd) {
         return new ProductUpsertRequest(
                 cmd.articleNumber(), cmd.name(), cmd.vtsz(), cmd.primaryUnit(), cmd.status(),
+                cmd.eprScope(),
                 cmd.components() == null ? null :
                         cmd.components().stream().map(ComponentUpsertRequest::from).toList()
         );
@@ -28,7 +31,7 @@ public record ProductUpsertRequest(
 
     public ProductUpsertCommand toCommand() {
         return new ProductUpsertCommand(
-                articleNumber, name, vtsz, primaryUnit, status,
+                articleNumber, name, vtsz, primaryUnit, status, eprScope,
                 components == null ? List.of() :
                         components.stream().map(ComponentUpsertRequest::toCommand).toList()
         );

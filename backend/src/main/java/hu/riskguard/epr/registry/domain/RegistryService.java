@@ -2,15 +2,20 @@ package hu.riskguard.epr.registry.domain;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import hu.riskguard.epr.aggregation.domain.AggregationCacheInvalidator;
 import hu.riskguard.epr.audit.AuditService;
 import hu.riskguard.epr.audit.AuditSource;
 import hu.riskguard.epr.audit.RegistryAuditEntry;
 import hu.riskguard.epr.audit.events.FieldChangeEvent;
+import hu.riskguard.epr.producer.domain.ProducerProfileService;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
+import hu.riskguard.epr.registry.internal.RegistryRepository.ProductScopeRow;
 import hu.riskguard.epr.registry.internal.RegistryRepository.RegistrySummary;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -31,8 +36,13 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class RegistryService {
 
+    private static final Set<String> ALLOWED_SCOPES = Set.of("FIRST_PLACER", "RESELLER", "UNKNOWN");
+    public static final int MAX_BULK_SCOPE_IDS = 500;
+
     private final RegistryRepository registryRepository;
     private final AuditService auditService;
+    private final ProducerProfileService producerProfileService;
+    private final AggregationCacheInvalidator aggregationCacheInvalidator;
 
     private final Cache<UUID, RegistrySummary> summaryCache =
             Caffeine.newBuilder()
@@ -41,9 +51,13 @@ public class RegistryService {
                     .build();
 
     public RegistryService(RegistryRepository registryRepository,
-                           AuditService auditService) {
+                           AuditService auditService,
+                           ProducerProfileService producerProfileService,
+                           AggregationCacheInvalidator aggregationCacheInvalidator) {
         this.registryRepository = registryRepository;
         this.auditService = auditService;
+        this.producerProfileService = producerProfileService;
+        this.aggregationCacheInvalidator = aggregationCacheInvalidator;
     }
 
     // ─── List ────────────────────────────────────────────────────────────────
@@ -88,10 +102,16 @@ public class RegistryService {
     /**
      * Create a new product, threading the given {@link AuditSource} into all audit rows.
      * Used by {@code RegistryBootstrapService} to record {@code NAV_BOOTSTRAP} as the source.
+     *
+     * <p>Story 10.11 AC #10: when {@code cmd.eprScope()} is null, the scope is resolved from the
+     * tenant's {@code default_epr_scope} (or falls back to {@code "UNKNOWN"} when no profile row
+     * exists). This is the only user-facing path where the company default is auto-applied — all
+     * explicit PATCH/bulk paths require an explicit scope.
      */
     @Transactional
     public Product create(UUID tenantId, UUID actingUserId, ProductUpsertCommand cmd, AuditSource source) {
-        UUID productId = registryRepository.insertProduct(tenantId, cmd);
+        String resolvedScope = resolveCreateScope(tenantId, cmd.eprScope());
+        UUID productId = registryRepository.insertProduct(tenantId, cmd, resolvedScope);
 
         // Emit one audit row per populated product field
         emitCreateAudit(productId, tenantId, actingUserId, "article_number", cmd.articleNumber(), source);
@@ -100,6 +120,7 @@ public class RegistryService {
         emitCreateAudit(productId, tenantId, actingUserId, "primary_unit", cmd.primaryUnit(), source);
         emitCreateAudit(productId, tenantId, actingUserId, "status",
                 cmd.status() != null ? cmd.status().name() : null, source);
+        emitCreateAudit(productId, tenantId, actingUserId, "epr_scope", resolvedScope, source);
 
         // Insert components
         if (cmd.components() != null) {
@@ -111,6 +132,25 @@ public class RegistryService {
         }
 
         return get(tenantId, productId);
+    }
+
+    /**
+     * Resolve the epr_scope to stamp on a new product — story 10.11 AC #10.
+     *
+     * <ol>
+     *   <li>If the caller provided an explicit value, validate it and use it as-is.</li>
+     *   <li>Otherwise use the tenant's {@code default_epr_scope} (falls back to {@code "UNKNOWN"}).</li>
+     * </ol>
+     */
+    private String resolveCreateScope(UUID tenantId, String explicitScope) {
+        if (explicitScope != null) {
+            if (!ALLOWED_SCOPES.contains(explicitScope)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Invalid eprScope: " + explicitScope);
+            }
+            return explicitScope;
+        }
+        return producerProfileService.getDefaultEprScope(tenantId);
     }
 
     // ─── Update ──────────────────────────────────────────────────────────────
@@ -200,6 +240,141 @@ public class RegistryService {
         if (rows == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "Product not found: " + productId);
+        }
+    }
+
+    // ─── Story 10.11: EPR scope mutations ────────────────────────────────────
+
+    /**
+     * Update {@code epr_scope} on a single product — Story 10.11 AC #7.
+     *
+     * <p>Idempotent: if the current scope equals the requested scope, the method returns the
+     * existing product without touching the DB or emitting an audit row. On any state change, the
+     * aggregator's tenant-scoped cache is invalidated so the next filing fetch runs fresh.
+     *
+     * @throws ResponseStatusException 400 when {@code newScope} is not one of FIRST_PLACER/RESELLER/UNKNOWN
+     * @throws ResponseStatusException 404 when the product does not exist or belongs to another tenant
+     * @throws ResponseStatusException 409 when the product is ARCHIVED
+     */
+    @Transactional
+    public Product updateProductScope(UUID tenantId, UUID productId, UUID actingUserId, String newScope) {
+        if (!ALLOWED_SCOPES.contains(newScope)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid eprScope: " + newScope);
+        }
+
+        var record = registryRepository.findProductByIdAndTenant(productId, tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Product not found: " + productId));
+
+        if (ProductStatus.ARCHIVED.name().equals(record.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot change epr_scope on an ARCHIVED product");
+        }
+
+        String currentScope = record.getEprScope();
+        if (Objects.equals(currentScope, newScope)) {
+            return get(tenantId, productId); // idempotent: no audit, no cache invalidation
+        }
+
+        int rows = registryRepository.updateEprScope(productId, tenantId, newScope);
+        if (rows == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Product not found: " + productId);
+        }
+
+        auditService.recordEprScopeChanged(productId, tenantId, currentScope, newScope, actingUserId);
+        invalidateAggregationCacheAfterCommit(tenantId);
+
+        return get(tenantId, productId);
+    }
+
+    /**
+     * Bulk-update {@code epr_scope} across a set of products — Story 10.11 AC #8.
+     *
+     * <p>Atomicity: the whole batch is a single transaction. Any cross-tenant or unknown ID aborts
+     * the entire batch with 400 (no partial writes). Returns a summary of updated vs skipped
+     * (current-value) rows. Emits a single {@link AuditService#recordEprScopeChangedBatch} audit
+     * entry covering all state-changing rows — idempotent rows do not produce audit entries.
+     *
+     * @return updated (rows whose scope actually changed), skipped (rows already at target)
+     * @throws ResponseStatusException 400 when the batch is empty, exceeds 500 IDs, contains
+     *                                  invalid UUIDs, or when any ID is not owned by the tenant
+     */
+    @Transactional
+    public BulkScopeResult bulkUpdateProductScopes(UUID tenantId, UUID actingUserId,
+                                                     List<UUID> productIds, String newScope) {
+        if (productIds == null || productIds.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "productIds must not be empty");
+        }
+        if (productIds.size() > MAX_BULK_SCOPE_IDS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Batch exceeds maximum size of " + MAX_BULK_SCOPE_IDS);
+        }
+        if (!ALLOWED_SCOPES.contains(newScope)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid eprScope: " + newScope);
+        }
+
+        List<UUID> distinctIds = productIds.stream().distinct().toList();
+        List<ProductScopeRow> owned = registryRepository.loadProductScopes(tenantId, distinctIds);
+
+        if (owned.size() != distinctIds.size()) {
+            // Any missing/cross-tenant ID aborts the batch — no partial writes per AC #8.
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "One or more productIds not found in tenant registry");
+        }
+
+        int updated = 0;
+        int skipped = 0;
+        List<hu.riskguard.epr.audit.events.EprScopeChangeEvent> events = new ArrayList<>();
+        for (ProductScopeRow row : owned) {
+            if (ProductStatus.ARCHIVED.name().equals(row.status())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Cannot change epr_scope on an ARCHIVED product: " + row.productId());
+            }
+            if (Objects.equals(row.currentScope(), newScope)) {
+                skipped++;
+                continue;
+            }
+            int rows = registryRepository.updateEprScope(row.productId(), tenantId, newScope);
+            if (rows == 0) {
+                // Concurrent archive (P8 guard) raced our snapshot. Treat as skipped — neither
+                // mutate nor audit a row whose state we no longer reflect.
+                skipped++;
+                continue;
+            }
+            events.add(new hu.riskguard.epr.audit.events.EprScopeChangeEvent(
+                    row.productId(), row.currentScope(), newScope));
+            updated++;
+        }
+
+        if (!events.isEmpty()) {
+            auditService.recordEprScopeChangedBatch(tenantId, events, actingUserId);
+            invalidateAggregationCacheAfterCommit(tenantId);
+        }
+        return new BulkScopeResult(updated, skipped);
+    }
+
+    public record BulkScopeResult(int updated, int skipped) {}
+
+    /**
+     * Invalidate the aggregator's tenant-scoped cache only after the enclosing transaction commits.
+     * Prevents a concurrent reader from re-populating the cache with pre-commit data during a scope
+     * write (review P4). Falls back to an immediate call when no transaction is active — used by
+     * unit tests that bypass {@code @Transactional} on plain service instantiation.
+     */
+    private void invalidateAggregationCacheAfterCommit(UUID tenantId) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    aggregationCacheInvalidator.invalidateTenant(tenantId);
+                }
+            });
+        } else {
+            aggregationCacheInvalidator.invalidateTenant(tenantId);
         }
     }
 

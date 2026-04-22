@@ -1,7 +1,9 @@
 package hu.riskguard.epr.registry;
 
+import hu.riskguard.epr.producer.internal.ProducerProfileRepository;
 import hu.riskguard.epr.registry.domain.*;
 import hu.riskguard.epr.registry.internal.RegistryRepository;
+import hu.riskguard.epr.registry.internal.RegistryRepository.ExcludedProductRow;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -18,8 +20,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
+import static hu.riskguard.jooq.Tables.PRODUCER_PROFILES;
 import static hu.riskguard.jooq.Tables.PRODUCT_PACKAGING_COMPONENTS;
 import static hu.riskguard.jooq.Tables.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -49,18 +53,31 @@ class RegistryRepositoryIntegrationTest {
     @Autowired
     private RegistryRepository registryRepository;
 
+    @Autowired
+    private RegistryService registryService;
+
+    @Autowired
+    private ProducerProfileRepository producerProfileRepository;
+
     private static final UUID TENANT_A = UUID.randomUUID();
     private static final UUID TENANT_B = UUID.randomUUID();
+    private static final UUID USER_A = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        // Clean registry tables
+        // Clean registry tables — order matters (FK from components → products)
         dsl.deleteFrom(PRODUCT_PACKAGING_COMPONENTS).execute();
         dsl.deleteFrom(PRODUCTS).execute();
+        dsl.deleteFrom(PRODUCER_PROFILES).where(
+                PRODUCER_PROFILES.TENANT_ID.in(TENANT_A, TENANT_B)).execute();
 
         // Ensure test tenants exist (idempotent)
         insertTenant(TENANT_A, "Tenant A");
         insertTenant(TENANT_B, "Tenant B");
+
+        // Seed one user per tenant so RegistryService.create audit rows satisfy the
+        // registry_entry_audit_log.changed_by_user_id FK.
+        insertUser(USER_A, TENANT_A, "fixture-a@riskguard.hu");
     }
 
     // ─── Test 1: basic insert and find ───────────────────────────────────────
@@ -142,6 +159,94 @@ class RegistryRepositoryIntegrationTest {
         assertThat(found.get().getStatus()).isEqualTo("ARCHIVED");
     }
 
+    // ─── Story 10.11 AC #23 — scope-driven aggregation + default-resolution ───
+
+    /**
+     * AC #23 test 1 — {@code loadForAggregation} must drop {@code RESELLER} rows and keep both
+     * {@code FIRST_PLACER} and {@code UNKNOWN} rows (compliance-safe include-on-UNKNOWN per AC #3).
+     */
+    @Test
+    void loadForAggregation_excludesResellerProducts() {
+        UUID firstPlacerId = registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-FP", "FirstPlacer", "3923", "pcs",
+                        ProductStatus.ACTIVE, "FIRST_PLACER", List.of()), "FIRST_PLACER");
+        UUID resellerId = registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-RS", "Reseller", "3924", "pcs",
+                        ProductStatus.ACTIVE, "RESELLER", List.of()), "RESELLER");
+        UUID unknownId = registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-UN", "Unknown", "3925", "pcs",
+                        ProductStatus.ACTIVE, "UNKNOWN", List.of()), "UNKNOWN");
+
+        var rows = registryRepository.loadForAggregation(TENANT_A);
+
+        assertThat(rows).extracting(RegistryRepository.AggregationRow::productId)
+                .containsExactlyInAnyOrder(firstPlacerId, unknownId)
+                .doesNotContain(resellerId);
+    }
+
+    /**
+     * AC #23 test 2 — {@code loadExcludedResellerProducts} returns the intersection of
+     * {@code RESELLER} products and the caller-supplied sold-product set, so products that the
+     * tenant re-sells but did NOT sell in the period are not shown on the filing "excluded" panel.
+     */
+    @Test
+    void loadExcludedResellerProducts_returnsOnlyResellerWithSales() {
+        UUID soldReseller = registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-SR", "SoldReseller", "7010", "pcs",
+                        ProductStatus.ACTIVE, "RESELLER", List.of()), "RESELLER");
+        registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-UR", "UnsoldReseller", "7011", "pcs",
+                        ProductStatus.ACTIVE, "RESELLER", List.of()), "RESELLER");
+        UUID firstPlacerId = registryRepository.insertProduct(TENANT_A,
+                new ProductUpsertCommand("ART-FP2", "FirstPlacer2", "7012", "pcs",
+                        ProductStatus.ACTIVE, "FIRST_PLACER", List.of()), "FIRST_PLACER");
+
+        List<ExcludedProductRow> excluded = registryRepository.loadExcludedResellerProducts(
+                TENANT_A, Set.of(soldReseller, firstPlacerId));
+
+        assertThat(excluded).extracting(ExcludedProductRow::productId)
+                .containsExactly(soldReseller);
+    }
+
+    /**
+     * AC #23 test 3 — {@link RegistryService#create} resolves the tenant's
+     * {@code default_epr_scope} from the {@code producer_profiles} row when the caller omits the
+     * scope field on the {@link ProductUpsertCommand}.
+     */
+    @Test
+    void insertProduct_defaultsFromProducerProfile() {
+        seedProducerProfile(TENANT_A, "FIRST_PLACER");
+
+        Product created = registryService.create(TENANT_A, USER_A,
+                new ProductUpsertCommand("ART-DP", "DefaultedProduct", "2202", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+
+        assertThat(created.eprScope()).isEqualTo("FIRST_PLACER");
+        String persisted = dsl.select(PRODUCTS.EPR_SCOPE)
+                .from(PRODUCTS).where(PRODUCTS.ID.eq(created.id()))
+                .fetchOne(0, String.class);
+        assertThat(persisted).isEqualTo("FIRST_PLACER");
+    }
+
+    /**
+     * AC #23 test 4 — when no {@code producer_profiles} row exists for the tenant,
+     * {@code RegistryService.create} must fall back to {@code 'UNKNOWN'} (AC #10 fallback contract).
+     */
+    @Test
+    void insertProduct_fallsBackToUnknownWhenNoProfile() {
+        // Intentionally no producer-profile insert for TENANT_A.
+
+        Product created = registryService.create(TENANT_A, USER_A,
+                new ProductUpsertCommand("ART-FB", "FallbackProduct", "2203", "pcs",
+                        ProductStatus.ACTIVE, List.of()));
+
+        assertThat(created.eprScope()).isEqualTo("UNKNOWN");
+        String persisted = dsl.select(PRODUCTS.EPR_SCOPE)
+                .from(PRODUCTS).where(PRODUCTS.ID.eq(created.id()))
+                .fetchOne(0, String.class);
+        assertThat(persisted).isEqualTo("UNKNOWN");
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private void insertTenant(UUID id, String name) {
@@ -150,6 +255,29 @@ class RegistryRepositoryIntegrationTest {
                 .set(org.jooq.impl.DSL.field("name", String.class), name)
                 .set(org.jooq.impl.DSL.field("tier", String.class), "PRO_EPR")
                 .onConflictDoNothing()
+                .execute();
+    }
+
+    private void insertUser(UUID id, UUID tenantId, String email) {
+        dsl.insertInto(org.jooq.impl.DSL.table("users"))
+                .set(org.jooq.impl.DSL.field("id", UUID.class), id)
+                .set(org.jooq.impl.DSL.field("tenant_id", UUID.class), tenantId)
+                .set(org.jooq.impl.DSL.field("email", String.class), email)
+                .set(org.jooq.impl.DSL.field("role", String.class), "SME_ADMIN")
+                .onConflictDoNothing()
+                .execute();
+    }
+
+    /**
+     * Minimal producer-profile seed — only the two columns the
+     * default-scope lookup reads ({@code tenant_id}, {@code default_epr_scope}). All other columns
+     * fall back to DB defaults / nullable and are not exercised by these tests.
+     */
+    private void seedProducerProfile(UUID tenantId, String defaultScope) {
+        dsl.insertInto(PRODUCER_PROFILES)
+                .set(PRODUCER_PROFILES.TENANT_ID, tenantId)
+                .set(PRODUCER_PROFILES.LEGAL_NAME, "Fixture Co Kft.")
+                .set(PRODUCER_PROFILES.DEFAULT_EPR_SCOPE, defaultScope)
                 .execute();
     }
 }

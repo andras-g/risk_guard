@@ -717,7 +717,8 @@ INSERT INTO nav_tenant_credentials (
 )
 ON CONFLICT (tenant_id) DO NOTHING;
 
--- Accountant client 1: Zöld Élelmiszer Kft. — 28 construction invoices
+-- Accountant client 1: Zöld Élelmiszer Kft. — ~7000 retail food invoices / quarter
+--   (1 invoice per 5 min × 8h × 6 days × 12 weeks ≈ 6912, rounded to 7000)
 INSERT INTO nav_tenant_credentials (
     id, tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number
 ) VALUES (
@@ -729,7 +730,7 @@ INSERT INTO nav_tenant_credentials (
 )
 ON CONFLICT (tenant_id) DO NOTHING;
 
--- Accountant client 2: Prémium Bútor Zrt. — 42 manufacturing invoices
+-- Accountant client 2: Prémium Bútor Zrt. — ~42 furniture-manufacturer invoices / quarter
 INSERT INTO nav_tenant_credentials (
     id, tenant_id, login_encrypted, password_hash, signing_key_enc, exchange_key_enc, tax_number
 ) VALUES (
@@ -755,9 +756,10 @@ INSERT INTO producer_profiles (
     contact_phone, contact_email,
     okir_client_id,
     is_manufacturer, is_individual_performer, is_subcontractor, is_concessionaire,
+    default_epr_scope,
     created_at, updated_at
 ) VALUES
--- demo@riskguard.hu — Bemutató Kereskedelmi Kft.
+-- demo@riskguard.hu — Bemutató Kereskedelmi Kft. (Story 10.11: default_epr_scope='UNKNOWN' — fresh-tenant sim)
 (
     '00000000-0000-4000-f000-000000000001',
     '00000000-0000-4000-b000-000000000001',
@@ -768,9 +770,10 @@ INSERT INTO producer_profiles (
     '+36-1-555-0101', 'demo@riskguard.hu',
     1234567,
     true, true, false, false,
+    'UNKNOWN',
     now() - INTERVAL '45 days', now() - INTERVAL '5 days'
 ),
--- Zöld Élelmiszer Kft. (accountant client 1)
+-- Zöld Élelmiszer Kft. (Story 10.11: default_epr_scope='FIRST_PLACER' — majority pattern)
 (
     '00000000-0000-4000-f000-000000000002',
     '00000000-0000-4000-b000-000000000020',
@@ -781,9 +784,10 @@ INSERT INTO producer_profiles (
     '+36-26-555-0120', 'penzugy@zoldelelmiszer.hu',
     2345678,
     true, true, false, false,
+    'FIRST_PLACER',
     now() - INTERVAL '90 days', now() - INTERVAL '10 days'
 ),
--- Prémium Bútor Zrt. (accountant client 2)
+-- Prémium Bútor Zrt. (Story 10.11: default_epr_scope='FIRST_PLACER' — majority pattern)
 (
     '00000000-0000-4000-f000-000000000003',
     '00000000-0000-4000-b000-000000000021',
@@ -794,6 +798,7 @@ INSERT INTO producer_profiles (
     '+36-76-555-0133', 'logisztika@premiumbutor.hu',
     3456789,
     true, false, true, false,
+    'FIRST_PLACER',
     now() - INTERVAL '59 days', now() - INTERVAL '3 days'
 )
 ON CONFLICT (tenant_id) DO NOTHING;
@@ -858,90 +863,127 @@ INSERT INTO product_packaging_components (
 ON CONFLICT (id) DO NOTHING;
 
 -- =============================================================================
--- SECTION 15: Product Registry — Zöld Élelmiszer Kft. (tax 99887766)
+-- SECTION 15: Product Registry — Zöld Élelmiszer Kft. (tax 99887766, FOOD)
 -- =============================================================================
--- DemoInvoiceFixtures VTSZ: 72142000 (rebar), 25232900 (cement)
-INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+-- 15 food products matching the Zöld Élelmiszer brand identity.
+-- Article numbers & VTSZ codes match DemoInvoiceFixtures.generateFoodCompanyInvoices(99887766).
+-- 3 products (olive oil, coffee, tea) are intentionally NEVER sold on invoices —
+-- represents unsold inventory still in the registry (product catalog ≠ sales).
+-- Story 10.11 AC #15 epr_scope distribution: 10 FIRST_PLACER / 4 RESELLER / 1 UNKNOWN
+INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, epr_scope, created_at, updated_at)
 VALUES
-(
-    '00000000-0000-4000-f000-000000009011',
-    '00000000-0000-4000-b000-000000000020',
-    'BA-12-B500B', 'Betonacél Ø12 B500B (6m)', '72142000', 'pcs', 'ACTIVE',
-    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
-),
-(
-    '00000000-0000-4000-f000-000000009012',
-    '00000000-0000-4000-b000-000000000020',
-    'CEM-II-25KG', 'Cement CEM II/B-M 32,5 R (25kg)', '25232900', 'pcs', 'ACTIVE',
-    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
-)
+('00000000-0000-4000-f000-000000009101', '00000000-0000-4000-b000-000000000020',
+    'KEN-F-500G',       'Kenyér fehér (500g)',                 '19059090', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009102', '00000000-0000-4000-b000-000000000020',
+    'LISZT-BL55-1KG',   'Búzaliszt BL-55 (1kg)',               '11010015', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009103', '00000000-0000-4000-b000-000000000020',
+    'RIZS-HB-1KG',      'Hosszúszemű rizs "A" (1kg)',          '10063099', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009104', '00000000-0000-4000-b000-000000000020',
+    'TESZTA-O-500G',    'Durum tészta orsó (500g)',            '19021910', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009105', '00000000-0000-4000-b000-000000000020',
+    'MEZ-A-500G',       'Akácméz (500g)',                      '04090000', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009106', '00000000-0000-4000-b000-000000000020',
+    'DZS-E-300G',       'Eperlekvár (300g)',                   '20079100', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009107', '00000000-0000-4000-b000-000000000020',
+    'OLAJ-N-1L',        'Napraforgó étolaj (1L)',              '15121999', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009108', '00000000-0000-4000-b000-000000000020',
+    'OLIVA-EV-500ML',   'Extra szűz olívaolaj (500ml)',        '15091090', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-000000009109', '00000000-0000-4000-b000-000000000020',
+    'LE-A-1L',          'Almalé 100% (1L)',                    '20097990', 'pcs', 'ACTIVE', 'UNKNOWN',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910a', '00000000-0000-4000-b000-000000000020',
+    'LE-N-1L',          'Narancslé 100% (1L)',                 '20091990', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910b', '00000000-0000-4000-b000-000000000020',
+    'VIZ-SZM-15L',      'Ásványvíz szénsavmentes (1,5L)',      '22011000', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910c', '00000000-0000-4000-b000-000000000020',
+    'CUKOR-K-1KG',      'Kristálycukor (1kg)',                 '17019910', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910d', '00000000-0000-4000-b000-000000000020',
+    'YOG-N-150G',       'Natúr joghurt (150g)',                '04031011', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910e', '00000000-0000-4000-b000-000000000020',
+    'KAVE-P-250G',      'Szemes kávé pörkölt (250g)',          '09012100', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days'),
+('00000000-0000-4000-f000-00000000910f', '00000000-0000-4000-b000-000000000020',
+    'TEA-F-50G',        'Fekete tea filteres (50g)',           '09024000', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '25 days', now() - INTERVAL '25 days')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO product_packaging_components (
-    id, product_id, material_description, kf_code,
-    weight_per_unit_kg, items_per_parent, component_order,
-    created_at, updated_at
-) VALUES
--- Betonacél: steel bar → KF 91010101, 8.88 kg/unit (6m rebar ~8.88kg)
-(
-    '00000000-0000-4000-f000-00000000a011',
-    '00000000-0000-4000-f000-000000009011',
-    'Acél rúd/profil', '91010101',
-    8.880000, 1, 1,
-    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
-),
--- Cement: cement bag packaging → KF 91010101, 0.050 kg/unit (50g paper sack per 25kg bag)
-(
-    '00000000-0000-4000-f000-00000000a012',
-    '00000000-0000-4000-f000-000000009012',
-    'Cement zsák csomagolás', '91010101',
-    0.050000, 1, 1,
-    now() - INTERVAL '25 days', now() - INTERVAL '25 days'
-)
-ON CONFLICT (id) DO NOTHING;
+-- Story 10.11 AC #15a: NO product_packaging_components seeded for tenant 99887766.
+-- The Demo Accountant classifies components live via Gemini during demos, triggered by the
+-- demo-reset button on the registry page. See AC #15b-d for the reset endpoint + button.
+-- (Previous INSERT block removed — Registry list now shows 15 "hiányos" products on first load.)
 
 -- =============================================================================
--- SECTION 16: Product Registry — Prémium Bútor Zrt. (tax 55667788)
+-- SECTION 16: Product Registry — Prémium Bútor Zrt. (tax 55667788, FURNITURE)
 -- =============================================================================
--- DemoInvoiceFixtures VTSZ: 19059090 (bread), 11010015 (flour)
-INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, created_at, updated_at)
+-- 15 furniture products matching the Prémium Bútor brand identity.
+-- Article numbers & VTSZ codes match DemoInvoiceFixtures.generateFurnitureCompanyInvoices(55667788).
+-- 3 products (office chair, TV stand, puff) are intentionally NEVER sold on invoices —
+-- unsold catalog inventory.
+-- Story 10.11 AC #15 epr_scope distribution: 12 FIRST_PLACER / 2 RESELLER / 1 UNKNOWN
+INSERT INTO products (id, tenant_id, article_number, name, vtsz, primary_unit, status, epr_scope, created_at, updated_at)
 VALUES
-(
-    '00000000-0000-4000-f000-000000009021',
-    '00000000-0000-4000-b000-000000000021',
-    'KEN-F-500G', 'Kenyér (fehér, 500g)', '19059090', 'pcs', 'ACTIVE',
-    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
-),
-(
-    '00000000-0000-4000-f000-000000009022',
-    '00000000-0000-4000-b000-000000000021',
-    'LISZT-BL55-1KG', 'Búzaliszt BL-55 (1kg)', '11010015', 'pcs', 'ACTIVE',
-    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
-)
+('00000000-0000-4000-f000-000000009201', '00000000-0000-4000-b000-000000000021',
+    'SZEK-ET-01',       'Étkezőszék tömör bükk',               '94016900', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009202', '00000000-0000-4000-b000-000000000021',
+    'SZEK-IR-01',       'Irodaszék ergonomikus',               '94013000', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009203', '00000000-0000-4000-b000-000000000021',
+    'FOT-SZ-01',        'Fotel kárpitos szövet',               '94016100', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009204', '00000000-0000-4000-b000-000000000021',
+    'KAN-3-B-01',       'Kanapé 3 személyes bőr',              '94016100', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009205', '00000000-0000-4000-b000-000000000021',
+    'ASZ-ET-160',       'Étkezőasztal 160x90',                 '94036010', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009206', '00000000-0000-4000-b000-000000000021',
+    'ASZ-DOH-01',       'Dohányzóasztal',                      '94036090', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009207', '00000000-0000-4000-b000-000000000021',
+    'ASZ-IR-140',       'Íróasztal 140x70',                    '94033011', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009208', '00000000-0000-4000-b000-000000000021',
+    'SZK-4A-01',        'Szekrény 4 ajtós',                    '94035091', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-000000009209', '00000000-0000-4000-b000-000000000021',
+    'AGY-K-160',        'Ágykeret 160x200',                    '94015000', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920a', '00000000-0000-4000-b000-000000000021',
+    'MAT-H-160',        'Matrac habosított 160x200',           '94042910', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920b', '00000000-0000-4000-b000-000000000021',
+    'EJJ-01',           'Éjjeliszekrény 2 fiókos',             '94035091', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920c', '00000000-0000-4000-b000-000000000021',
+    'FIO-K-4',          'Fiókos komód 4 fiókos',               '94035091', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920d', '00000000-0000-4000-b000-000000000021',
+    'KON-TV-01',        'TV állvány fali',                     '94036010', 'pcs', 'ACTIVE', 'UNKNOWN',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920e', '00000000-0000-4000-b000-000000000021',
+    'KON-PL-5',         'Könyvespolc 5 polcos',                '94036010', 'pcs', 'ACTIVE', 'FIRST_PLACER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days'),
+('00000000-0000-4000-f000-00000000920f', '00000000-0000-4000-b000-000000000021',
+    'PUF-T-01',         'Tárolós puff',                        '94018000', 'pcs', 'ACTIVE', 'RESELLER',
+    now() - INTERVAL '20 days', now() - INTERVAL '20 days')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO product_packaging_components (
-    id, product_id, material_description, kf_code,
-    weight_per_unit_kg, items_per_parent, component_order,
-    created_at, updated_at
-) VALUES
--- Kenyér: bakery packaging (paper/plastic film) → KF 61010101, 0.008 kg/unit
-(
-    '00000000-0000-4000-f000-00000000a021',
-    '00000000-0000-4000-f000-000000009021',
-    'Pékárú csomagolás (PE fólia)', '61010101',
-    0.008000, 1, 1,
-    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
-),
--- Búzaliszt: flour bag packaging → KF 61010101, 0.015 kg/unit (15g paper bag per 1kg flour)
-(
-    '00000000-0000-4000-f000-00000000a022',
-    '00000000-0000-4000-f000-000000009022',
-    'Liszt zsák csomagolás (papír)', '61010101',
-    0.015000, 1, 1,
-    now() - INTERVAL '20 days', now() - INTERVAL '20 days'
-)
-ON CONFLICT (id) DO NOTHING;
+-- Story 10.11 AC #15a: NO product_packaging_components seeded for tenant 55667788.
+-- Live Gemini demo relies on empty packaging state; use the demo-reset button to clear between runs.
+-- (Previous INSERT block removed — Registry shows 15 "hiányos" products on first load.)
 
 -- =============================================================================
 -- SECTION 18: OKIRkapu XML Exports (Story 9.4 — filing history)

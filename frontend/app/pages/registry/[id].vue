@@ -4,6 +4,7 @@ import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import Accordion from 'primevue/accordion'
@@ -36,7 +37,7 @@ const router = useRouter()
 const toast = useToast()
 const { mapErrorType, mapErrorDetail } = useApiError()
 const { hasAccess, tierName } = useTierGate('PRO_EPR')
-const { getProduct, createProduct, updateProduct, getAuditLog } = useRegistry()
+const { getProduct, createProduct, updateProduct, getAuditLog, updateProductScope } = useRegistry()
 const { classify } = useClassifier()
 const registryStore = useRegistryStore()
 const { options: unitOptionsBase } = useUnits()
@@ -55,6 +56,10 @@ const name = ref<string>('')
 const vtsz = ref<string>('')
 const primaryUnit = ref<string>(DEFAULT_UNIT)
 const status = ref<'ACTIVE' | 'ARCHIVED' | 'DRAFT'>('ACTIVE')
+// Story 10.11 AC #17 — per-product EPR scope. Default UNKNOWN on the client until the
+// server response populates it; set on product load (useRegistry.getProduct already returns it).
+const eprScope = ref<'FIRST_PLACER' | 'RESELLER' | 'UNKNOWN'>('UNKNOWN')
+const savingEprScope = ref(false)
 
 // Decision 9.5-R1: option (c) — remove legacy values (e.g. 'pcs') from the
 // dropdown entirely. The DB value roundtrips invisibly on save; the user cannot
@@ -507,6 +512,55 @@ const reusableOptions = computed(() => [
   { label: t('registry.form.reusableNo'), value: false },
 ])
 
+// Story 10.11 AC #17 — EPR scope SelectButton options
+const eprScopeOptions = computed(() => [
+  { label: t('registry.product.eprScope.values.firstPlacer'), value: 'FIRST_PLACER' as const },
+  { label: t('registry.product.eprScope.values.reseller'), value: 'RESELLER' as const },
+  { label: t('registry.product.eprScope.values.unknown'), value: 'UNKNOWN' as const },
+])
+
+function eprScopeSeverity(scope: string): 'success' | 'secondary' | 'warning' {
+  if (scope === 'FIRST_PLACER') return 'success'
+  if (scope === 'RESELLER') return 'secondary'
+  return 'warning'
+}
+
+const eprScopeHelpText = computed(() => {
+  if (eprScope.value === 'FIRST_PLACER') return t('registry.product.eprScope.helpText.firstPlacer')
+  if (eprScope.value === 'RESELLER') return t('registry.product.eprScope.helpText.reseller')
+  return t('registry.product.eprScope.helpText.unknown')
+})
+
+// Story 10.11 AC #17 — optimistic scope PATCH with rollback on error.
+async function onEprScopeChange(newScope: 'FIRST_PLACER' | 'RESELLER' | 'UNKNOWN' | null) {
+  if (isNew.value || !product.value || !newScope) return
+  if (newScope === product.value.eprScope) return
+
+  const previous = product.value.eprScope
+  eprScope.value = newScope // optimistic
+  savingEprScope.value = true
+  try {
+    const updated = await updateProductScope(product.value.id, newScope)
+    product.value = updated
+    registryStore.setEditProduct(updated)
+    toast.add({
+      severity: 'success',
+      summary: t('registry.product.eprScope.saveSuccess'),
+      life: 3000,
+    })
+  } catch (err) {
+    eprScope.value = previous
+    const serverKey = (err as { data?: { errorMessageKey?: string } })?.data?.errorMessageKey
+    toast.add({
+      severity: 'error',
+      summary: serverKey ? t(serverKey) : t('registry.product.eprScope.saveError'),
+      life: 5000,
+    })
+  } finally {
+    savingEprScope.value = false
+  }
+}
+
 // ─── Load ──────────────────────────────────────────────────────────────────────
 async function loadProduct() {
   if (isNew.value) {
@@ -523,6 +577,7 @@ async function loadProduct() {
     vtsz.value = product.value.vtsz ?? ''
     primaryUnit.value = product.value.primaryUnit
     status.value = product.value.status
+    eprScope.value = product.value.eprScope ?? 'UNKNOWN'
     components.value = product.value.components.map(c => ({
       id: c.id,
       materialDescription: c.materialDescription,
@@ -577,6 +632,7 @@ async function save() {
       vtsz: vtsz.value || null,
       primaryUnit: primaryUnit.value,
       status: status.value,
+      eprScope: eprScope.value,
       components: components.value.map(c => ({
         id: c.id,
         materialDescription: c.materialDescription,
@@ -740,6 +796,32 @@ onBeforeUnmount(() => {
           option-value="value"
         />
       </div>
+    </div>
+
+    <!-- Story 10.11 AC #17 — EPR scope per SKU -->
+    <div
+      v-if="!isNew"
+      class="flex flex-col gap-2 border rounded-lg p-4 bg-surface-50 dark:bg-surface-900"
+      data-testid="product-editor-epr-scope"
+    >
+      <h2 class="text-lg font-semibold">{{ t('registry.product.eprScope.title') }}</h2>
+      <div class="flex items-center gap-3 flex-wrap">
+        <SelectButton
+          :model-value="eprScope"
+          :options="eprScopeOptions"
+          option-label="label"
+          option-value="value"
+          :disabled="savingEprScope"
+          data-testid="product-editor-epr-scope-select"
+          @update:model-value="onEprScopeChange"
+        />
+        <Tag
+          :severity="eprScopeSeverity(eprScope)"
+          :value="t(`registry.product.eprScope.values.${eprScope === 'FIRST_PLACER' ? 'firstPlacer' : eprScope === 'RESELLER' ? 'reseller' : 'unknown'}`)"
+          data-testid="product-editor-epr-scope-tag"
+        />
+      </div>
+      <small class="text-color-secondary">{{ eprScopeHelpText }}</small>
     </div>
 
     <!-- Components -->

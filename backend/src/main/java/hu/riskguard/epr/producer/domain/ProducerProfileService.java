@@ -67,6 +67,43 @@ public class ProducerProfileService {
         return repository.upsert(tenantId, req);
     }
 
+    // ─── Story 10.11: default_epr_scope accessors ────────────────────────────
+
+    /**
+     * Return the tenant's current {@code default_epr_scope}. When no profile row exists yet,
+     * returns {@code "UNKNOWN"} — callers that want to know "does a profile exist" should use
+     * {@link #getForDisplay(UUID)}.
+     */
+    @Transactional(readOnly = true)
+    public String getDefaultEprScope(UUID tenantId) {
+        return repository.findDefaultEprScope(tenantId).orElse("UNKNOWN");
+    }
+
+    /**
+     * Update the tenant's {@code default_epr_scope}. Throws {@code 412 PRECONDITION_FAILED} when
+     * no profile row exists (the creation flow uses {@link #upsert} — this method is for updating
+     * an existing profile).
+     *
+     * <p>Read-and-write are atomic in one transaction with {@code SELECT ... FOR UPDATE} on the
+     * producer-profile row, so a concurrent PATCH cannot corrupt the {@code fromScope} observed by
+     * the audit event (review P6). Returns {@link DefaultEprScopeUpdate} carrying both the previous
+     * and resulting scope so the caller can emit a consistent audit row.
+     */
+    @Transactional
+    public DefaultEprScopeUpdate updateDefaultEprScope(UUID tenantId, String scope) {
+        String previous = repository.findDefaultEprScopeForUpdate(tenantId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.PRECONDITION_FAILED,
+                        "producer.profile.missing: No producer profile exists for this tenant. " +
+                        "Create the profile first at /settings/producer-profile."));
+        if (!java.util.Objects.equals(previous, scope)) {
+            repository.updateDefaultEprScope(tenantId, scope);
+        }
+        return new DefaultEprScopeUpdate(previous, scope);
+    }
+
+    /** Previous + resulting scope returned from an atomic {@code updateDefaultEprScope} call. */
+    public record DefaultEprScopeUpdate(String fromScope, String toScope) {}
+
     // ─── Private helpers ─────────────────────────────────────────────────────
 
     private void validateCompleteness(ProducerProfile p) {

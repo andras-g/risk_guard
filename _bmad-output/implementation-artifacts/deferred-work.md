@@ -431,3 +431,17 @@
 - W3: generateReport @Transactional(readOnly=true) spawns a REQUIRES_NEW write transaction inside — safe today but fragile under read-replica DataSource routing; extract write path to a non-readOnly service method.
 - W4: E2E submission-history.e2e.ts skips both scenarios when no live seeded data — make assertions conditional or supply fixture data in CI seed.
 - W5: GET /submissions list endpoint records no audit event — bulk enumeration of submission metadata is not audited; consider SUBMISSION_LIST event type for compliance completeness.
+
+## Deferred from: code review of 10-11-per-product-epr-scope-flag (2026-04-22)
+
+- W1: `ExcludedProductRow.invoiceLineCount`/`totalUnitsSold` hardcoded zeros — join invoice data when AC#20 excluded-reseller panel is implemented [RegistryRepository.java loadExcludedResellerProducts]
+- W2: `bulkUpdateProductScopes` issues up to 500 individual UPDATE round-trips — consider jOOQ `batchExecute` for performance; @Transactional correctness is intact [RegistryService.java:~915]
+- W3: `DemoResetController` DELETE + SELECT COUNT not in `@Transactional` — affectedProducts count non-atomic; demo-only endpoint, negligible concurrency risk [DemoResetController.java:~69-82]
+- W4: `bulkUpdateProductScopes` archive check mid-loop — pre-validate the full owned list before writing to make all-or-nothing guarantee explicit and refactoring-safe [RegistryService.java]
+- W5: Bootstrap `getDefaultEprScope()` called once per product inside REQUIRES_NEW loop — resolve before the loop (single query) to eliminate N+1 [InvoiceDrivenRegistryBootstrapService.java:~463]
+- W6: `recordEprScopeChanged` called inside `@Transactional` — inconsistent with Story 10.9 P7 ADR-0003 "execute-then-log" precedent; pre-existing architectural tension [RegistryService.java]
+- W7: ArchUnit rule `only_audit_package_writes_to_products_epr_scope` does not explicitly allow `hu.riskguard.epr.registry.bootstrap.internal.*` in the allow-list — safe today (bootstrap uses INSERT not `updateEprScope`); add when bootstrap starts calling `updateEprScope` [EpicTenInvariantsTest.java]
+- W8: `EprScope` union type duplicated in `useRegistry.ts` and `useProducerProfile.ts` — consolidate into `frontend/types/epr.ts` to prevent future divergence [useRegistry.ts, useProducerProfile.ts]
+- W9: `@MockitoSettings(strictness = Strictness.LENIENT)` applied class-wide in `RegistryServiceTest` — scope to only new stubs to preserve strict detection on pre-existing tests [RegistryServiceTest.java]
+- W10: `writeCounters` incremented in `recordDefaultEprScopeChanged` even when `log.info` is filtered at WARN level — counter and audit trail diverge under ops log-level changes [AuditService.java]
+- W11: `?filter=epr-scope-unknown` deep-link shares generic `filter` query-param key — no current collision with `?reviewState` / `?classifierSource` but risk grows as filter count increases [registry/index.vue]

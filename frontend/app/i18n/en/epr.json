@@ -33,6 +33,16 @@
         }
       },
       "backToLibrary": "Back to Library",
+      "banner": {
+        "unknownScope": "{n} products with unclassified EPR scope. The filing includes these by default — please classify them."
+      },
+      "excludedProducts": {
+        "columns": {
+          "invoiceLineCount": "Invoice lines",
+          "totalUnitsSold": "Units sold"
+        },
+        "title": "Excluded as reseller"
+      },
       "exportButton": "Export OKIRkapu XML",
       "exportError": "Export failed: {message}",
       "exportGenerating": "Generating XML...",

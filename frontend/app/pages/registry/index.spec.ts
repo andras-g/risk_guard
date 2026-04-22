@@ -12,16 +12,35 @@ const mockTotalProducts = ref(0)
 
 const mockListProducts = vi.fn()
 const mockArchiveProduct = vi.fn()
+const mockResetDemoPackaging = vi.fn()
 
 vi.mock('~/composables/api/useRegistry', () => ({
   useRegistry: vi.fn(() => ({
     listProducts: mockListProducts,
     archiveProduct: mockArchiveProduct,
+    resetDemoPackaging: mockResetDemoPackaging,
     getProduct: vi.fn(),
     createProduct: vi.fn(),
     updateProduct: vi.fn(),
+    updateProductScope: vi.fn(),
+    bulkUpdateProductScope: vi.fn(),
     getAuditLog: vi.fn(),
   })),
+}))
+
+// Story 10.11: mock auth store so `isDemoTenant` computed resolves without a full Pinia instance.
+vi.mock('~/stores/auth', () => ({
+  useAuthStore: vi.fn(() => ({ activeTenantId: 'non-demo-tenant' })),
+}))
+
+// Story 10.11: mock filing store so the unknown-scope warning banner can read aggregation metadata.
+vi.mock('~/stores/eprFiling', () => ({
+  useEprFilingStore: vi.fn(() => ({ aggregation: null })),
+}))
+
+// Story 10.11: demo-reset button uses PrimeVue useConfirm — stubbed to no-op.
+vi.mock('primevue/useconfirm', () => ({
+  useConfirm: () => ({ require: vi.fn() }),
 }))
 
 vi.mock('~/stores/registry', () => ({
@@ -235,6 +254,7 @@ describe('registry/index.vue — filing CTA (Story 10.10)', () => {
           RegistryOnboardingBlock: true,
           RegistryInvoiceBootstrapDialog: true,
           RegistryIncompleteBanner: true,
+          ConfirmDialog: true,
         },
       },
     })

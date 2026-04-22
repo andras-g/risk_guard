@@ -4,6 +4,10 @@
       "archive": "Archive",
       "archived": "Product archived",
       "back": "Back to Registry",
+      "bulkEprScope": {
+        "firstPlacer": "Mark as first placer",
+        "reseller": "Mark as reseller"
+      },
       "cancel": "Cancel",
       "create": "New Product",
       "edit": "Edit",
@@ -82,6 +86,18 @@
       "tooltipEnabled": "AI-suggested KF code based on product name and VTSZ",
       "weightEstimateTooltip": "Estimated value — verify against actual weight"
     },
+    "columns": {
+      "eprScope": "EPR scope"
+    },
+    "demo": {
+      "resetPackaging": {
+        "button": "Demo: reset packaging",
+        "confirmMessage": "This will delete all packaging components on this demo tenant. Continue?",
+        "error": "Failed to reset packaging",
+        "notADemoTenant": "This action is only available on a demo tenant.",
+        "success": "Demo reset: {count} components deleted"
+      }
+    },
     "empty": {
       "cta": "Create your first product",
       "description": "Add products to track packaging components and KF codes for EPR filing.",
@@ -90,6 +106,9 @@
     "filter": {
       "onlyIncomplete": "Only incomplete",
       "onlyUncertain": "Only uncertain"
+    },
+    "filters": {
+      "eprScopeUnknown": "Only unclassified scope"
     },
     "form": {
       "addComponent": "Add component",
@@ -140,6 +159,9 @@
       "weightPerUnitKg": "Weight per unit (kg)"
     },
     "list": {
+      "banner": {
+        "unknownScope": "{n} products with unclassified EPR scope. The filing includes these by default — please classify them."
+      },
       "columns": {
         "actions": "Actions",
         "articleNumber": "Article No.",
@@ -171,6 +193,23 @@
         "title": "About the Product-Packaging Registry"
       },
       "title": "The Product-Packaging Registry is empty"
+    },
+    "product": {
+      "eprScope": {
+        "helpText": {
+          "firstPlacer": "Your company is the first placer on the Hungarian market — this product is EPR-filing liable.",
+          "reseller": "Your company resells from another EU producer — this product is NOT filed.",
+          "unknown": "Not yet classified — currently included in filings as a compliance-safe default."
+        },
+        "saveError": "Failed to update EPR scope",
+        "saveSuccess": "EPR scope updated",
+        "title": "EPR scope",
+        "values": {
+          "firstPlacer": "First placer",
+          "reseller": "Reseller",
+          "unknown": "Unclassified"
+        }
+      }
     },
     "rowBadge": {
       "missingPackaging": "Incomplete",

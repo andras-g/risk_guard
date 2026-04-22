@@ -17,6 +17,7 @@ public record ProductSummary(
         ProductStatus status,
         ReviewState reviewState,
         String classifierSourceBadge,
+        String eprScope,
         int componentCount,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

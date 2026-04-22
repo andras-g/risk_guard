@@ -17,15 +17,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DemoInvoiceFixturesTest {
 
     @ParameterizedTest(name = "company {0} has {1}-{2} invoices")
-    @DisplayName("each fixture company has 20-50 invoices per quarter")
+    @DisplayName("each fixture company has the expected invoice volume")
     @CsvSource({
-            "12345678, 20, 50",  // Példa Kereskedelmi Kft.
-            "99887766, 20, 50",  // Megbízható Építő Zrt.
-            "11223344, 20, 50",  // Adós Szolgáltató Bt.
-            "55667788, 20, 50",  // Csődben Lévő Kft.
-            "44556677, 20, 50",  // Hátralékos és Csődös Kft.
-            "77889900, 20, 50",  // Hiányos Bevallású Kft.
-            "22334455, 20, 50",  // Friss Startup Kft.
+            "12345678, 20, 50",      // Példa Kereskedelmi Kft.
+            "99887766, 7000, 7000",  // Zöld Élelmiszer Kft. (retail food producer; 1 invoice/5min × 8h × 6d × 12w)
+            "11223344, 20, 50",      // Adós Szolgáltató Bt.
+            "55667788, 20, 50",      // Prémium Bútor Zrt.
+            "44556677, 20, 50",      // Hátralékos és Csődös Kft.
+            "77889900, 20, 50",      // Hiányos Bevallású Kft.
+            "22334455, 20, 50",      // Friss Startup Kft.
     })
     void fixtureCompanyHasCorrectInvoiceCount(String taxNumber, int minCount, int maxCount) {
         List<DemoInvoiceFixtures.InvoiceFixture> invoices = DemoInvoiceFixtures.getInvoices(taxNumber);
@@ -89,9 +89,9 @@ class DemoInvoiceFixturesTest {
     @DisplayName("all invoice dates are within the previous quarter (dynamic)")
     @CsvSource({
             "12345678",  // Példa Kereskedelmi Kft.
-            "99887766",  // Megbízható Építő Zrt.
+            "99887766",  // Zöld Élelmiszer Kft.
             "11223344",  // Adós Szolgáltató Bt.
-            "55667788",  // Csődben Lévő Kft.
+            "55667788",  // Prémium Bútor Zrt.
             "44556677",  // Hátralékos és Csődös Kft.
             "33445566",  // Felfüggesztett Adószámú Kft.
             "77889900",  // Hiányos Bevallású Kft.
@@ -116,15 +116,16 @@ class DemoInvoiceFixturesTest {
     @Test
     @DisplayName("invoice fixtures cover mixed VAT rates (27%, 18%, 5%)")
     void invoiceFixturesCoverMixedVatRates() {
-        // Csődben Lévő Kft. (food manufacturing) has mixed VAT rates
-        List<DemoInvoiceFixtures.InvoiceFixture> invoices = DemoInvoiceFixtures.getInvoices("55667788");
+        // Zöld Élelmiszer Kft. (food producer) has mixed VAT rates — some staples
+        // attract the 5% reduced rate (bread, honey, sugar, yogurt), others 18% / 27%.
+        List<DemoInvoiceFixtures.InvoiceFixture> invoices = DemoInvoiceFixtures.getInvoices("99887766");
 
         var vatRates = invoices.stream()
                 .flatMap(i -> i.lineItems().stream())
                 .map(DemoInvoiceFixtures.LineItemFixture::vatRate)
                 .collect(java.util.stream.Collectors.toSet());
 
-        // Food manufacturing company should have both standard (27%) and reduced rates
+        // Food producer should have standard (27%), 18%, and 5% rates — at least 2 distinct
         assertThat(vatRates).hasSizeGreaterThanOrEqualTo(2);
     }
 }

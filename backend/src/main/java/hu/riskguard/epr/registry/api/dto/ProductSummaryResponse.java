@@ -16,6 +16,7 @@ public record ProductSummaryResponse(
         ProductStatus status,
         ReviewState reviewState,
         String classifierSource,
+        String eprScope,
         int componentCount,
         OffsetDateTime updatedAt
 ) {
@@ -23,7 +24,8 @@ public record ProductSummaryResponse(
         return new ProductSummaryResponse(
                 summary.id(), summary.articleNumber(), summary.name(), summary.vtsz(),
                 summary.primaryUnit(), summary.status(), summary.reviewState(),
-                summary.classifierSourceBadge(), summary.componentCount(), summary.updatedAt()
+                summary.classifierSourceBadge(), summary.eprScope(),
+                summary.componentCount(), summary.updatedAt()
         );
     }
 }

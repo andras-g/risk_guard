@@ -458,6 +458,10 @@ public class InvoiceDrivenRegistryBootstrapService {
                     components
             );
 
+            // Story 10.11 AC #11: bootstrap-created products inherit the tenant's default_epr_scope;
+            // first-time tenants with no profile default to 'UNKNOWN'.
+            String bootstrapScope = producerProfileService.getDefaultEprScope(tenantId);
+
             // Insert product — PRODUCTS.REVIEW_STATE is the generated jOOQ TableField,
             // so the column name is compile-time-checked.
             UUID newProductId = dsl.insertInto(PRODUCTS)
@@ -466,6 +470,7 @@ public class InvoiceDrivenRegistryBootstrapService {
                     .set(PRODUCTS.VTSZ, cmd.vtsz())
                     .set(PRODUCTS.STATUS, ProductStatus.ACTIVE.name())
                     .set(PRODUCTS.REVIEW_STATE, reviewState)
+                    .set(PRODUCTS.EPR_SCOPE, bootstrapScope)
                     .returning(PRODUCTS.ID)
                     .fetchOne(PRODUCTS.ID);
 

@@ -201,7 +201,7 @@ class InvoiceDrivenFilingAggregatorTest {
         UUID componentId = UUID.randomUUID();
         when(registryRepository.loadForAggregation(TENANT)).thenReturn(List.of(
                 new RegistryRepository.AggregationRow(
-                        PRODUCT_ID, vtsz, description, "REVIEWED",
+                        PRODUCT_ID, vtsz, description, "REVIEWED", "FIRST_PLACER",
                         componentId, "11010101", 1,
                         BigDecimal.ONE, new BigDecimal("0.025"),
                         "VTSZ_FALLBACK", 0, "PET label")
@@ -539,6 +539,127 @@ class InvoiceDrivenFilingAggregatorTest {
         return new InvoiceDrivenFilingAggregator.ComponentRow(
                 UUID.randomUUID(), PRODUCT_ID, kfCode,
                 wrappingLevel, itemsPerParent, new BigDecimal(weight),
-                null, wrappingLevel, "Test label", "Test Product");
+                null, wrappingLevel, "Test label", "Test Product", "FIRST_PLACER");
+    }
+
+    // ─── Story 10.11 AC #26: scope filter + unknown-scope counter ─────────────
+
+    @Test
+    void aggregation_excludesResellerLines() {
+        // Story 10.11 AC #3 + AC #26: reseller products never reach the aggregator because
+        // loadForAggregation filters them out at the SQL layer. We simulate that by mocking
+        // loadForAggregation to return only the FIRST_PLACER rows — the aggregator is
+        // correctly decoupled from the filter decision.
+        String vtszA = "19059090";
+        String descA = "First-placer bread";
+        String vtszB = "09012100";
+        String descB = "Reseller coffee";
+
+        // Two invoice lines: one matching the FIRST_PLACER product, one matching nothing (the
+        // reseller row was filtered out at the repo layer so the aggregator treats it as
+        // NO_MATCHING_PRODUCT).
+        InvoiceSummary summary = new InvoiceSummary(
+                "INV-001", "CREATE", "12345678", "Supplier",
+                "87654321", "Customer", Q1_START, Q1_START,
+                new BigDecimal("100000"), "HUF", InvoiceDirection.OUTBOUND);
+        InvoiceDetail detail = new InvoiceDetail(
+                "INV-001", "CREATE", "12345678", "Supplier",
+                "87654321", "Customer", Q1_START, Q1_START,
+                new BigDecimal("100000"), "HUF", InvoiceDirection.OUTBOUND,
+                List.of(
+                        lineWithDescription(vtszA, descA, "10", "DARAB"),
+                        lineWithDescription(vtszB, descB, "20", "DARAB")),
+                "TRANSFER", Map.of());
+        when(dataSourceService.queryInvoices(any(), any(), any(), any()))
+                .thenReturn(new InvoiceQueryResult(List.of(summary), true));
+        when(dataSourceService.queryInvoiceDetails("INV-001")).thenReturn(detail);
+
+        UUID firstPlacerProductId = UUID.randomUUID();
+        when(registryRepository.loadForAggregation(TENANT)).thenReturn(List.of(
+                new RegistryRepository.AggregationRow(
+                        firstPlacerProductId, vtszA, descA, "REVIEWED", "FIRST_PLACER",
+                        UUID.randomUUID(), "11010101", 1,
+                        BigDecimal.ONE, new BigDecimal("0.050"),
+                        null, 0, "Paper bag")
+                // NB: reseller row is absent — the repo pre-filters RESELLER scope.
+        ));
+        when(eprService.getAllKfCodes(anyInt(), any()))
+                .thenReturn(new hu.riskguard.epr.api.dto.KfCodeListResponse(1, List.of(
+                        new hu.riskguard.epr.api.dto.KfCodeEntry(
+                                "11010101", "Paper", new BigDecimal("100.00"),
+                                "HUF", "Papír", "Paper"))));
+
+        FilingAggregationResult result = aggregator.aggregateForPeriod(TENANT, Q1_START, Q1_END);
+
+        // Only the first-placer line contributed
+        assertThat(result.kfTotals()).hasSize(1);
+        // Q=10, items=1, w=0.050 → 0.500
+        assertThat(result.kfTotals().get(0).totalWeightKg()).isEqualByComparingTo("0.500");
+        // The reseller line maps to NO_MATCHING_PRODUCT because the repo dropped it
+        assertThat(result.unresolved())
+                .extracting(UnresolvedInvoiceLine::reason)
+                .containsExactly(UnresolvedReason.NO_MATCHING_PRODUCT);
+        assertThat(result.metadata().unknownScopeProductsInPeriod()).isZero();
+    }
+
+    @Test
+    void aggregation_unknownScopeCounter_countsDistinctUnknownProductsContributing() {
+        // Story 10.11 AC #5 + AC #26: three registry products — FIRST_PLACER, UNKNOWN, UNKNOWN —
+        // all with invoice traffic. Counter reports 1 distinct UNKNOWN (both UNKNOWN rows share
+        // one productId, which is the contract: per-product scope, not per-line). Verify the
+        // UNKNOWN row's weight IS included in kfTotals (compliance-safe default, AC #3).
+        String vtszA = "19059090";
+        String descA = "First-placer bread";
+        String vtszB = "22011000";
+        String descB = "Unclassified water";
+
+        InvoiceSummary summary = new InvoiceSummary(
+                "INV-002", "CREATE", "12345678", "Supplier",
+                "87654321", "Customer", Q1_START, Q1_START,
+                new BigDecimal("200000"), "HUF", InvoiceDirection.OUTBOUND);
+        InvoiceDetail detail = new InvoiceDetail(
+                "INV-002", "CREATE", "12345678", "Supplier",
+                "87654321", "Customer", Q1_START, Q1_START,
+                new BigDecimal("200000"), "HUF", InvoiceDirection.OUTBOUND,
+                List.of(
+                        lineWithDescription(vtszA, descA, "10", "DARAB"),
+                        lineWithDescription(vtszB, descB, "40", "DARAB")),
+                "TRANSFER", Map.of());
+        when(dataSourceService.queryInvoices(any(), any(), any(), any()))
+                .thenReturn(new InvoiceQueryResult(List.of(summary), true));
+        when(dataSourceService.queryInvoiceDetails("INV-002")).thenReturn(detail);
+
+        UUID firstPlacerProductId = UUID.randomUUID();
+        UUID unknownProductId = UUID.randomUUID();
+        when(registryRepository.loadForAggregation(TENANT)).thenReturn(List.of(
+                new RegistryRepository.AggregationRow(
+                        firstPlacerProductId, vtszA, descA, "REVIEWED", "FIRST_PLACER",
+                        UUID.randomUUID(), "11010101", 1,
+                        BigDecimal.ONE, new BigDecimal("0.050"),
+                        null, 0, "Paper bag"),
+                new RegistryRepository.AggregationRow(
+                        unknownProductId, vtszB, descB, "REVIEWED", "UNKNOWN",
+                        UUID.randomUUID(), "12020101", 1,
+                        BigDecimal.ONE, new BigDecimal("0.026"),
+                        null, 0, "PET bottle")
+        ));
+        when(eprService.getAllKfCodes(anyInt(), any()))
+                .thenReturn(new hu.riskguard.epr.api.dto.KfCodeListResponse(1, List.of(
+                        new hu.riskguard.epr.api.dto.KfCodeEntry(
+                                "11010101", "Paper", new BigDecimal("100.00"),
+                                "HUF", "Papír", "Paper"),
+                        new hu.riskguard.epr.api.dto.KfCodeEntry(
+                                "12020101", "PET", new BigDecimal("150.00"),
+                                "HUF", "PET", "PET"))));
+
+        FilingAggregationResult result = aggregator.aggregateForPeriod(TENANT, Q1_START, Q1_END);
+
+        assertThat(result.kfTotals())
+                .as("UNKNOWN-scope products must still contribute to kfTotals (compliance-safe default)")
+                .extracting(KfCodeTotal::kfCode)
+                .containsExactlyInAnyOrder("11010101", "12020101");
+        assertThat(result.metadata().unknownScopeProductsInPeriod())
+                .as("Counter must report exactly 1 distinct UNKNOWN-scope product contributing to the period")
+                .isEqualTo(1);
     }
 }
